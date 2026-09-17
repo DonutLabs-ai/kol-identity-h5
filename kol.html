@@ -1,0 +1,269 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>KOL Card ⚡ FlashCard</title><meta name="description" content="KOL Card on the FlashCard holographic ticket"><link rel="icon" type="image/svg+xml" href="favicon.svg"><meta name="theme-color" content="#131313"><link rel="preload" href="_astro/soehne-regular._HNoaqeZ.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="_astro/tiempos-headline-bold.Dv9xb85i.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="_astro/tiempos-headline-bold-italic.YZpGMJLx.woff2" as="font" type="font/woff2" crossorigin><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet"><link rel="stylesheet" href="_astro/Base.BvN_dpGX.css"><link rel="stylesheet" href="_astro/index.DHv97tDu.css"><style>html,body{margin:0;height:100%;background:#0d0a18 url("kol-bg.jpg") center/cover no-repeat fixed}#flashcard{background:transparent}#flashcard::backdrop{background:transparent}.ticket-entrance[data-astro-cid-bvaltcfr]{opacity:0;transform:translateY(26px) scale(.82);transition-duration:.9s;transition-timing-function:cubic-bezier(.34,1.3,.4,1)}.ticket-stage[data-astro-cid-bvaltcfr][data-visible] .ticket-entrance[data-astro-cid-bvaltcfr]{opacity:1;transform:none}.ticket-glow[data-astro-cid-bvaltcfr]{transition-duration:.9s}#flashcard>signup-aurora{display:none}
+/* ---- skins ---- */
+#flashcard[data-skin="amber"] .ticket[data-astro-cid-bvaltcfr]{--card-colors:radial-gradient(ellipse 65% 38% at 0% 0%,#f9dec3,transparent),radial-gradient(ellipse 70% 60% at 100% 100%,#f3b17499,transparent),radial-gradient(ellipse 70% 60% at 100% 85%,#f4b28355,transparent),linear-gradient(var(--rainbow-angle),#956d3c calc(0% + var(--rainbow-shift)),#c6984b calc(16% + var(--rainbow-shift)),#e2be6b calc(25% + var(--rainbow-shift)),#f9e6b3 calc(32% + var(--rainbow-shift)),#fffcf0 calc(43% + var(--rainbow-shift)),#fbebc4 calc(51% + var(--rainbow-shift)),#f1d589 calc(57% + var(--rainbow-shift)),#d3aa47 calc(69% + var(--rainbow-shift)),#ad853c calc(83% + var(--rainbow-shift)),#7d5b31cc calc(100% + var(--rainbow-shift)))}
+#flashcard[data-skin="amber"] .ticket-glow[data-astro-cid-bvaltcfr]{background:radial-gradient(160px 170px at 52% 32%,#fbcc8f55,#0000 100%),radial-gradient(270px 240px at 54% 39%,#f3ad5e33,#0000 100%),radial-gradient(320px 310px at 56% 57%,#bb78562b,#0000 100%),radial-gradient(460px 520px at 46% 38%,#f9dec338,#0000 100%)}
+#flashcard[data-skin="emerald"] .ticket[data-astro-cid-bvaltcfr]{--card-colors:radial-gradient(ellipse 65% 38% at 0% 0%,#bef0d8,transparent),radial-gradient(ellipse 70% 60% at 100% 100%,#47dca999,transparent),radial-gradient(ellipse 70% 60% at 100% 85%,#47e8bb55,transparent),linear-gradient(var(--rainbow-angle),#367c65 calc(0% + var(--rainbow-shift)),#449b7d calc(16% + var(--rainbow-shift)),#61c2a0 calc(25% + var(--rainbow-shift)),#c0f4dd calc(32% + var(--rainbow-shift)),#f1f7f7 calc(43% + var(--rainbow-shift)),#c2f7df calc(51% + var(--rainbow-shift)),#80d4b2 calc(57% + var(--rainbow-shift)),#52b08f calc(69% + var(--rainbow-shift)),#3f8b71 calc(83% + var(--rainbow-shift)),#2b6754cc calc(100% + var(--rainbow-shift)))}
+#flashcard[data-skin="emerald"] .ticket-glow[data-astro-cid-bvaltcfr]{background:radial-gradient(160px 170px at 52% 32%,#b2f3d555,#0000 100%),radial-gradient(270px 240px at 54% 39%,#47d5ab33,#0000 100%),radial-gradient(320px 310px at 56% 57%,#45bb972b,#0000 100%),radial-gradient(460px 520px at 46% 38%,#bef7e138,#0000 100%)}
+#flashcard[data-skin="amethyst"] .ticket[data-astro-cid-bvaltcfr]{--card-colors:radial-gradient(ellipse 65% 38% at 0% 0%,#e5c8fa,transparent),radial-gradient(ellipse 70% 60% at 100% 100%,#927ccb99,transparent),radial-gradient(ellipse 70% 60% at 100% 85%,#ebb2d155,transparent),linear-gradient(var(--rainbow-angle),#624887 calc(0% + var(--rainbow-shift)),#7c5dac calc(16% + var(--rainbow-shift)),#a381d3 calc(25% + var(--rainbow-shift)),#dbbff8 calc(32% + var(--rainbow-shift)),#fcf3fd calc(43% + var(--rainbow-shift)),#edd8fb calc(51% + var(--rainbow-shift)),#caade9 calc(57% + var(--rainbow-shift)),#9c7bcd calc(69% + var(--rainbow-shift)),#795fa4 calc(83% + var(--rainbow-shift)),#5c487fcc calc(100% + var(--rainbow-shift)))}
+#flashcard[data-skin="amethyst"] .ticket-glow[data-astro-cid-bvaltcfr]{background:radial-gradient(160px 170px at 52% 32%,#daccf855,#0000 100%),radial-gradient(270px 240px at 54% 39%,#986fec33,#0000 100%),radial-gradient(320px 310px at 56% 57%,#ba74dc2b,#0000 100%),radial-gradient(460px 520px at 46% 38%,#a186f438,#0000 100%)}
+#flashcard[data-skin="rose"] .ticket[data-astro-cid-bvaltcfr]{--card-colors:radial-gradient(ellipse 65% 38% at 0% 0%,#f7cbd3,transparent),radial-gradient(ellipse 70% 60% at 100% 100%,#eaa08799,transparent),radial-gradient(ellipse 70% 60% at 100% 85%,#ef996855,transparent),linear-gradient(var(--rainbow-angle),#88414f calc(0% + var(--rainbow-shift)),#aa5a67 calc(16% + var(--rainbow-shift)),#cd7380 calc(25% + var(--rainbow-shift)),#f5c0c9 calc(32% + var(--rainbow-shift)),#fcf1f3 calc(43% + var(--rainbow-shift)),#f7d7dc calc(51% + var(--rainbow-shift)),#e8a2ad calc(57% + var(--rainbow-shift)),#c57382 calc(69% + var(--rainbow-shift)),#a05a67 calc(83% + var(--rainbow-shift)),#7a4550cc calc(100% + var(--rainbow-shift)))}
+#flashcard[data-skin="rose"] .ticket-glow[data-astro-cid-bvaltcfr]{background:radial-gradient(160px 170px at 52% 32%,#f5c4cd55,#0000 100%),radial-gradient(270px 240px at 54% 39%,#ec859933,#0000 100%),radial-gradient(320px 310px at 56% 57%,#cc64752b,#0000 100%),radial-gradient(460px 520px at 46% 38%,#f3a8b838,#0000 100%)}
+#flashcard[data-skin="onyx-silver"] .ticket[data-astro-cid-bvaltcfr]{--card-colors:radial-gradient(ellipse 65% 38% at 0% 0%,#c8c8d499,transparent),radial-gradient(ellipse 70% 60% at 100% 100%,#8a8a9699,transparent),radial-gradient(ellipse 70% 60% at 100% 85%,#c8c8d455,transparent),linear-gradient(var(--rainbow-angle),#0f0f12 calc(0% + var(--rainbow-shift)),#2b2b31 calc(16% + var(--rainbow-shift)),#5a5a64 calc(25% + var(--rainbow-shift)),#c8c8d4 calc(32% + var(--rainbow-shift)),#f4f4f8 calc(43% + var(--rainbow-shift)),#a8a8b4 calc(51% + var(--rainbow-shift)),#4a4a52 calc(57% + var(--rainbow-shift)),#c8c8d4 calc(69% + var(--rainbow-shift)),#202026 calc(83% + var(--rainbow-shift)),#0c0c0fcc calc(100% + var(--rainbow-shift)))}#flashcard[data-skin="onyx-silver"] .ticket-glow[data-astro-cid-bvaltcfr]{background:radial-gradient(160px 170px at 52% 32%,#d8d8e455,#0000 100%),radial-gradient(270px 240px at 54% 39%,#8a8a9633,#0000 100%),radial-gradient(320px 310px at 56% 57%,#c8c8d42b,#0000 100%),radial-gradient(460px 520px at 46% 38%,#b8b8c438,#0000 100%)}#flashcard[data-skin="onyx-silver"] .foil-text[data-astro-cid-bvaltcfr]{background-image:linear-gradient(var(--rainbow-angle),#6a6a74 calc(0% + var(--rainbow-shift)),#c8c8d4 calc(30% + var(--rainbow-shift)),#f4f4f8 calc(50% + var(--rainbow-shift)),#a8a8b4 calc(70% + var(--rainbow-shift)),#7a7a84 calc(100% + var(--rainbow-shift)))}/* ---- skin bar ---- */
+.skin-bar{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);z-index:30;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:999px;background:#131313cc;border:1px solid #ffffff1f;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);font:500 12px/1 var(--font-body,system-ui,sans-serif);color:#fffd;opacity:0;translate:0 14px;transition:opacity .6s ease,translate .6s ease;pointer-events:none}
+#flashcard[data-ui-ready] .skin-bar{opacity:1;translate:0 0;pointer-events:auto}
+
+.skin-dot{width:22px;height:22px;border-radius:50%;border:0;padding:0;cursor:pointer;background:var(--dot);box-shadow:inset 0 0 0 1px #ffffff2e;outline:2px solid transparent;outline-offset:2px;transition:outline-color .2s,transform .2s}
+.skin-dot:hover{transform:scale(1.14)}
+.skin-dot[aria-pressed="true"]{outline-color:#ffffffd9}
+.skin-sep{width:1px;height:16px;background:#ffffff26}
+.skin-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;border:1px solid #ffffff26;background:#ffffff14;color:#fffd;font:inherit;cursor:pointer;transition:background .2s}
+.skin-btn:hover{background:#ffffff29}
+
+/* photo textures: one image over the whole card, no tiling */
+#flashcard[data-tex-cover] .ticket-colors[data-astro-cid-bvaltcfr]:after{background-size:cover;background-repeat:no-repeat;background-position:center;opacity:.16}
+#flashcard[data-tex-cover] .ticket-surface[data-astro-cid-bvaltcfr]:before,#flashcard[data-tex-cover] .foil-text[data-astro-cid-bvaltcfr]:before{background-size:cover,1100% 1100%,600% 600%,200% 200%}
+#flashcard{--font-body:'Geist',-apple-system,sans-serif}
+.ticket-copy[data-astro-cid-bvaltcfr] h2.foil-text{font-family:'Instrument Serif',serif;font-weight:400}
+.kb-radar text{font-family:'Geist',sans-serif}
+.kb-chips{display:flex;gap:6px;justify-content:center;margin:0 0 10px}
+.kb-chips span{border:1px solid #13131338;border-radius:6px;padding:6px 10px;font:600 9.3px/1 var(--font-body,system-ui,sans-serif);letter-spacing:.1em;color:#131313cc;white-space:nowrap;background:#ffffff30}
+#flashcard[data-lang="cn"] .kb-chips span{font-size:10.5px;letter-spacing:.14em}
+.kol-tag{margin:13px auto 0;max-width:86%;font:500 12px/1.6 var(--font-body,system-ui,sans-serif);color:#131313c6;text-align:center}
+#flashcard[data-lang="cn"] .kb-type{transform:none;font:700 26px/1.15 var(--font-body,system-ui,sans-serif);letter-spacing:.05em;-webkit-text-stroke:0}
+#flashcard[data-face="caps"] .ticket-copy[data-astro-cid-bvaltcfr] h2{font:700 28px/1.1 var(--font-body,system-ui,sans-serif);letter-spacing:.05em;text-transform:uppercase;transform:none;-webkit-text-stroke:0}
+#flashcard[data-face="caps"] .kb-type{font:700 24px/1.15 var(--font-body,system-ui,sans-serif);letter-spacing:.05em;text-transform:uppercase;transform:none;-webkit-text-stroke:0;text-align:center;width:auto}
+#flashcard[data-seam="hard"] .kol-photo{box-shadow:inset 0 0 0 1px #ffffff99,0 6px 20px #00000040}
+#flashcard[data-seam="hard"] .kol-photo:before,#flashcard[data-seam="hard"] .kol-photo:after{display:none}
+/* ---- KOL layout on the ticket ---- */
+.ticket-target[data-astro-cid-bvaltcfr]{width:min(380px,100vw - 40px)}
+.kol-flip{position:relative;transform-style:preserve-3d;transition:transform .85s cubic-bezier(.35,.1,.25,1);cursor:pointer}
+.kol-flip.is-flipped{transform:rotateY(180deg)}
+.kol-flip>.ticket{backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.kol-flip>.ticket.kol-back-face{position:absolute!important;inset:0;transform:rotateY(180deg)}
+/* top notch = a real bite out of the ticket mask, same language as the
+   side cutouts; the page shows through and the label sits in the void */
+.kol-flip>.ticket>.ticket-surface[data-astro-cid-bvaltcfr]{
+  mask:var(--ticket-mask) center/100% 100% no-repeat,
+       url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 292 423'><path d='M72 0c14 0 8 24 22 24h104c14 0 8-24 22-24z' fill='black'/></svg>") center/100% 100% no-repeat;
+  mask-composite:subtract}
+.kol-notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:50.7%;height:31px;display:flex;align-items:center;justify-content:center;z-index:3;white-space:nowrap;backface-visibility:hidden;-webkit-backface-visibility:hidden;clip-path:path('M0 0c18.2 0 10.4 31 28.6 31h135.4c18.2 0 10.4 -31 28.6 -31z');background:linear-gradient(180deg,#ffffff30,#ffffff12);backdrop-filter:blur(9px) saturate(1.4);-webkit-backdrop-filter:blur(9px) saturate(1.4)}
+.kol-notch span{font:700 9.5px/1 var(--font-body,system-ui,sans-serif);letter-spacing:.32em;text-indent:.32em;text-transform:uppercase;background:linear-gradient(var(--rainbow-angle),#d9cdf0 calc(0% + var(--rainbow-shift)),#ffd6d6 calc(16% + var(--rainbow-shift)),#ffeccb calc(25% + var(--rainbow-shift)),#fffbe9 calc(32% + var(--rainbow-shift)),#ffffff calc(43% + var(--rainbow-shift)),#e8fff4 calc(51% + var(--rainbow-shift)),#cdfff0 calc(57% + var(--rainbow-shift)),#eedbf7 calc(69% + var(--rainbow-shift)),#d4c9f2 calc(83% + var(--rainbow-shift)),#ccd6ff calc(100% + var(--rainbow-shift)));-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+.kol-photo{position:absolute;top:6.4%;inset-inline:9%;aspect-ratio:1;border-radius:14px;overflow:hidden;z-index:1;box-shadow:inset 0 0 0 1px #ffffff4d,0 4px 14px #00000022}
+.kol-photo:after{content:"";position:absolute;inset:0;border-radius:inherit;background:var(--card-colors);mix-blend-mode:soft-light;opacity:.85;pointer-events:none;mask:radial-gradient(86% 86% at 50% 50%,transparent 52%,#000 98%);-webkit-mask:radial-gradient(86% 86% at 50% 50%,transparent 52%,#000 98%)}
+.kol-photo:before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:1;background:var(--card-colors);mix-blend-mode:screen;opacity:.28;pointer-events:none;mask:radial-gradient(80% 80% at 50% 50%,transparent 62%,#000 100%);-webkit-mask:radial-gradient(80% 80% at 50% 50%,transparent 62%,#000 100%)}
+.kol-photo img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(1.05)}
+.ticket-copy[data-astro-cid-bvaltcfr]{top:66.2%}
+.ticket-copy[data-astro-cid-bvaltcfr] h2{font-size:28px;letter-spacing:.02em;margin:0;white-space:nowrap;transform:scaleX(1.28);transform-origin:50% 50%;-webkit-text-stroke:.45px #131313c4}
+.ticket-copy[data-astro-cid-bvaltcfr] p{margin:10px 0 0;font:600 11px/1 var(--font-body,system-ui,sans-serif);letter-spacing:.28em;text-indent:.28em;text-transform:uppercase}
+.ticket-copy[data-astro-cid-bvaltcfr] p.foil-text[data-astro-cid-bvaltcfr]:before,.ticket-copy[data-astro-cid-bvaltcfr] p.foil-text[data-astro-cid-bvaltcfr]:after{display:none}
+.ticket-copy[data-astro-cid-bvaltcfr] p.foil-text[data-astro-cid-bvaltcfr]{display:inline-block;padding:9px 18px;border-radius:999px;background:linear-gradient(180deg,#ffffff52,#ffffff2e);box-shadow:inset 0 1px 0 #ffffff8c,0 1px 4px #00000014;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:#131313d9;-webkit-text-fill-color:#131313d9;filter:none}
+.kol-footer{position:absolute;bottom:4.4%;inset-inline:30px;display:flex;align-items:flex-end;gap:12px;z-index:1;text-align:left}
+.kol-qr{width:47px;height:47px;opacity:.88}
+.kol-code{display:flex;flex-direction:column;gap:4px;font:500 9.5px/1 var(--font-body,system-ui,sans-serif);letter-spacing:.16em;text-transform:uppercase;color:#13131399}
+.kol-code b{font:600 13px/1 var(--font-body,system-ui,sans-serif);letter-spacing:.12em;color:#131313e0}
+.kol-icon{margin-left:auto;width:26px;height:26px;background:var(--card-colors);filter:saturate(3) brightness(.32);mask:url("kol-mark.svg") center/contain no-repeat;-webkit-mask:url("kol-mark.svg") center/contain no-repeat;margin-bottom:3px}
+.kol-lockup{margin-left:auto;width:74px;height:24px;background:var(--card-colors);filter:saturate(3) brightness(.32);mask:url("kol-logo.svg") center/contain no-repeat;-webkit-mask:url("kol-logo.svg") center/contain no-repeat;margin-bottom:3px}
+/* back face */
+.kol-back{position:absolute;inset:0;padding:46px 30px 96px;display:flex;flex-direction:column;z-index:1;color:#131313;text-align:left}
+.kb-eyebrow{font:600 9.5px/1 var(--font-body,system-ui,sans-serif);letter-spacing:.3em;text-indent:.3em;text-transform:uppercase;color:#13131399;text-align:center}
+.kb-type{font:400 30px/1.1 'Instrument Serif',serif;letter-spacing:.02em;margin:3px 0 2px;color:#131313e6;-webkit-text-stroke:.5px #131313c8;transform:scaleX(1.18);transform-origin:50% 50%;width:fit-content;margin-inline:auto}
+.kb-desc{font:500 11px/1.5 var(--font-body,system-ui,sans-serif);color:#131313d0;margin:0 0 8px}
+.kb-meta{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-top:1px solid #13131317}
+.kb-meta span{font:600 8px/1 var(--font-body,system-ui,sans-serif);letter-spacing:.22em;text-transform:uppercase;color:#13131385}
+.kb-meta b{font:600 10px/1 var(--font-body,system-ui,sans-serif);letter-spacing:.06em;color:#131313d6}
+.kb-note{font:500 7.5px/1 var(--font-body,system-ui,sans-serif);letter-spacing:.12em;text-transform:uppercase;color:#1313136e;text-align:center;margin-top:10px}
+.kb-radar{display:block;margin:0 auto}
+.kb-radarwrap{margin:8px auto 0;padding:14px 2px 10px;border-radius:14px;background:linear-gradient(180deg,#ffffff42,#ffffff24);box-shadow:inset 0 1px 0 #ffffff8c,0 2px 8px #00000012;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.kb-panel{margin-top:12px;padding:12px 14px;border-radius:12px;background:linear-gradient(180deg,#ffffff42,#ffffff24);box-shadow:inset 0 1px 0 #ffffff8c,0 2px 8px #00000012;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+</style></head><body><dialog id="flashcard" aria-labelledby="beta-ticket-title" aria-describedby="beta-ticket-description" tabindex="-1" data-beta-dialog data-astro-cid-twdf4nlf><signup-aurora aria-hidden="true" data-placement="top" data-active="false" data-astro-cid-qkyfhp7w="true"><div class="composition" data-astro-cid-qkyfhp7w><canvas data-astro-cid-qkyfhp7w></canvas></div></signup-aurora><script type="module" src="_astro/AuroraBackground.astro_astro_type_script_index_0_lang.GyYscbYj.js"></script><div class="beta-viewport" data-beta-viewport data-astro-cid-twdf4nlf><div class="beta-scroll" data-astro-cid-twdf4nlf><div class="beta-scene" data-astro-cid-twdf4nlf><div class="beta-content" data-beta-form data-astro-cid-twdf4nlf style="display:none"></div><div class="ticket-stage" data-ticket-stage hidden inert data-astro-cid-bvaltcfr><div class="ticket-glow" aria-hidden="true" data-astro-cid-bvaltcfr></div><div class="ticket-entrance" data-ticket-entrance data-astro-cid-bvaltcfr><div class="ticket-target" data-ticket-target data-astro-cid-bvaltcfr><div class="kol-flip" data-kol-flip><section class="ticket" data-ticket aria-labelledby="beta-ticket-title" aria-describedby="beta-ticket-description" style="--ticket-mask: url(&quot;ticket-mask.Dktmghxg.svg&quot;); --ticket-mark: url(&quot;kol-mark.svg&quot;); --foil-texture: url(&quot;foil-texture.Dr5ahRY6.webp&quot;)" data-astro-cid-bvaltcfr><div class="ticket-surface" aria-hidden="true" data-astro-cid-bvaltcfr><div class="ticket-colors" data-astro-cid-bvaltcfr></div><div class="ticket-grain" data-astro-cid-bvaltcfr></div><div class="ticket-sweep" data-ticket-sweep data-astro-cid-bvaltcfr></div><div class="ticket-edge" data-astro-cid-bvaltcfr></div></div><div class="kol-notch" data-astro-cid-bvaltcfr><span>Donut Trader</span></div><div class="kol-photo" aria-hidden="true" data-astro-cid-bvaltcfr><img src="kol-pfp.jpg" alt=""></div><div class="ticket-copy" data-astro-cid-bvaltcfr><h2 class="foil-text" id="beta-ticket-title" data-ticket-title data-foil-text="RU7LONGCRYPTO" tabindex="-1" data-astro-cid-bvaltcfr>RU7LONGCRYPTO</h2><p class="foil-text" id="beta-ticket-description" data-ticket-description data-foil-text="DIAMOND HANDS" data-astro-cid-bvaltcfr>DIAMOND HANDS</p><div class="kol-tag" data-astro-cid-bvaltcfr>Make time your home ground. The market shouts; you hold your own rhythm.</div></div><div class="kol-footer" data-astro-cid-bvaltcfr><span class="kol-lockup" role="img" aria-label="Donut"></span></div></section><section class="ticket kol-back-face" aria-hidden="true" data-astro-cid-bvaltcfr><div class="ticket-surface" aria-hidden="true" data-astro-cid-bvaltcfr><div class="ticket-colors" data-astro-cid-bvaltcfr></div><div class="ticket-grain" data-astro-cid-bvaltcfr></div><div class="ticket-sweep" data-astro-cid-bvaltcfr></div><div class="ticket-edge" data-astro-cid-bvaltcfr></div></div><div class="kol-notch" data-astro-cid-bvaltcfr><span>Trader Data</span></div><div class="kol-back" data-astro-cid-bvaltcfr><div class="kb-eyebrow">Trading Style / Self-Reported</div><h3 class="kb-type">Diamond Hands</h3><div class="kb-radarwrap"><svg class="kb-radar" width="330" height="228" viewBox="0 0 212 130" aria-hidden="true"><g transform="translate(6,0)"><polygon points="100,49.3 112.7,56.7 112.7,71.3 100,78.7 87.3,71.3 87.3,56.7" fill="none" stroke="#13131320"/><polygon points="100,34.7 125.4,49.3 125.4,78.7 100,93.3 74.6,78.7 74.6,49.3" fill="none" stroke="#13131320"/><polygon points="100,20 138.1,42 138.1,86 100,108 61.9,86 61.9,42" fill="none" stroke="#13131320"/><line x1="100" y1="64" x2="100" y2="20" stroke="#13131320"/><line x1="100" y1="64" x2="138.1" y2="42" stroke="#13131320"/><line x1="100" y1="64" x2="138.1" y2="86" stroke="#13131320"/><line x1="100" y1="64" x2="100" y2="108" stroke="#13131320"/><line x1="100" y1="64" x2="61.9" y2="86" stroke="#13131320"/><line x1="100" y1="64" x2="61.9" y2="42" stroke="#13131320"/><polygon points="100,26.4 126.8,48.6 119.7,75.4 100,92.6 65.7,83.8 71.3,47.4" fill="#5b4bb022" stroke="#4c3d9ecc" stroke-width="1.6" stroke-linejoin="round"/><circle cx="100" cy="26.4" r="2" fill="#4c3d9e"/><circle cx="126.8" cy="48.6" r="2" fill="#4c3d9e"/><circle cx="119.7" cy="75.4" r="2" fill="#4c3d9e"/><circle cx="100" cy="92.6" r="2" fill="#4c3d9e"/><circle cx="65.7" cy="83.8" r="2" fill="#4c3d9e"/><circle cx="71.3" cy="47.4" r="2" fill="#4c3d9e"/><text x="100" y="12" text-anchor="middle" font-size="7.2" font-weight="700" fill="#131313c8">TIMING<tspan x="100" dy="9" font-weight="600" fill="#5b4bb0d9">High</tspan></text><text x="144" y="36" text-anchor="start" font-size="7.2" font-weight="700" fill="#131313c8">ON-CHAIN<tspan x="144" dy="9" font-weight="600" fill="#5b4bb0d9">Medium</tspan></text><text x="144" y="86" text-anchor="start" font-size="7.2" font-weight="700" fill="#131313c8">MACRO<tspan x="144" dy="9" font-weight="600" fill="#5b4bb0d9">Low</tspan></text><text x="100" y="122" text-anchor="middle" font-size="7.2" font-weight="700" fill="#131313c8">RISK<tspan x="100" dy="9" font-weight="600" fill="#5b4bb0d9">Medium</tspan></text><text x="56" y="86" text-anchor="end" font-size="7.2" font-weight="700" fill="#131313c8">EXECUTION<tspan x="56" dy="9" font-weight="600" fill="#5b4bb0d9">High</tspan></text><text x="56" y="36" text-anchor="end" font-size="7.2" font-weight="700" fill="#131313c8">DISCIPLINE<tspan x="56" dy="9" font-weight="600" fill="#5b4bb0d9">High</tspan></text></g></svg></div><div class="kb-panel"><div class="kb-chips"><span>SYSTEMS</span><span>LEVERAGE</span><span>NARRATIVE</span></div><p class="kb-desc">Holds on long-horizon conviction — tolerates drawdowns, rarely re-positions.</p></div></div><div class="kol-footer" data-astro-cid-bvaltcfr><img class="kol-qr" src="kol-qr.png" alt="Referral QR"><div class="kol-code"><span>Referral Code</span><b>DONUT2026</b></div><span class="kol-icon" role="img" aria-label="Donut"></span></div></section></div></div></div></div></div></div><div class="skin-bar" data-skin-bar><button type="button" class="skin-dot" data-skin-set="aurora" title="Aurora" aria-label="Aurora" style="--dot:linear-gradient(135deg,#a669c0,#ffdb89 40%,#00b7ff)"></button><button type="button" class="skin-dot" data-skin-set="onyx-silver" title="Onyx Silver" aria-label="Onyx Silver" style="--dot:linear-gradient(135deg,#0f0f12,#e8e8f0 55%,#a8a8b4)"></button><button type="button" class="skin-dot" data-skin-set="emerald" title="Emerald" aria-label="Emerald" style="--dot:linear-gradient(135deg,#367c65,#c0f4dd 45%,#449b7d)"></button><button type="button" class="skin-dot" data-skin-set="amethyst" title="Amethyst" aria-label="Amethyst" style="--dot:linear-gradient(135deg,#624887,#dbbff8 45%,#7c5dac)"></button><button type="button" class="skin-dot" data-skin-set="rose" title="Rose" aria-label="Rose" style="--dot:linear-gradient(135deg,#88414f,#f5c0c9 45%,#aa5a67)"></button><button type="button" class="skin-dot" data-skin-set="amber" title="Amber" aria-label="Amber" style="--dot:linear-gradient(135deg,#956d3c,#f9e6b3 45%,#c6984b)"></button><span class="skin-sep"></span><button type="button" class="skin-btn" data-tex-toggle>Tex: Guilloché</button><button type="button" class="skin-btn" data-bg-toggle>BG: Cosmic</button><button type="button" class="skin-btn" data-pfp-toggle>PFP</button><button type="button" class="skin-btn" data-type-toggle>Type</button><button type="button" class="skin-btn" data-lang-toggle>EN</button><button type="button" class="skin-btn" data-seam-toggle>Seam: Soft</button></div></dialog><script type="module">
+import { t as initTicket } from './_astro/signupTicket.BSWhIEkT.js';
+const dlg = document.getElementById('flashcard');
+const ticket = document.querySelector('[data-ticket]');
+const assetBase = new URL('_astro/', document.baseURI).href;
+const rootBase = new URL('./', document.baseURI).href;
+
+// absolute asset urls (relative url() in inline custom properties resolves
+// inconsistently across engines)
+for (const t of document.querySelectorAll('.ticket')) {
+  t.style.setProperty('--ticket-mask', `url("${assetBase}ticket-mask.Dktmghxg.svg")`);
+  t.style.setProperty('--foil-texture', `url("${assetBase}foil-texture.Dr5ahRY6.webp")`);
+}
+
+// ---- KOL params (?user=&type=&code=&img=) ----
+const sp = new URLSearchParams(location.search);
+const user = sp.get('user') || 'RU7LONGCRYPTO';
+const code = sp.get('code') || 'DONUT2026';
+const cb = document.querySelector('.kol-code b'); if (cb) cb.textContent = code;
+const img = sp.get('img');
+const titleEl = document.querySelector('[data-ticket-title]');
+const descEl = document.querySelector('[data-ticket-description]');
+titleEl.dataset.foilText = user; titleEl.textContent = user;
+const backNotch = document.querySelectorAll('.kol-notch span')[1]; if (backNotch) backNotch.textContent = user;
+
+// ---- flip ----
+const flip = document.querySelector('[data-kol-flip]');
+flip.addEventListener('click', () => flip.classList.toggle('is-flipped'));
+if (sp.get('flipped')) flip.classList.add('is-flipped');
+
+// ---- foil texture toggle ----
+const TEXTURES = [
+  ['Guilloche', `${assetBase}foil-texture.Dr5ahRY6.webp`],
+  ['Frost', `${rootBase}kol-tex-frost.jpg`],
+  ['Crush', `${rootBase}kol-tex-crush.png`],
+  ['Silk', `${rootBase}kol-tex-silk.png`],
+  ['Steel', `${rootBase}kol-tex-steel.png`],
+];
+const texBtn = document.querySelector('[data-tex-toggle]');
+let texIdx = TEXTURES.findIndex(t => t[0].toLowerCase() === (sp.get('tex') || '').toLowerCase());
+if (texIdx < 0) texIdx = TEXTURES.findIndex(t => t[0] === 'Steel');
+const applyTex = () => {
+  const [name, url] = TEXTURES[texIdx];
+  for (const t of document.querySelectorAll('.ticket')) t.style.setProperty('--foil-texture', `url("${url}")`);
+  texBtn.textContent = `Tex: ${name}`;
+  dlg.toggleAttribute('data-tex-cover', texIdx !== 0);
+};
+texBtn.addEventListener('click', () => { texIdx = (texIdx + 1) % TEXTURES.length; applyTex(); shineSweep(); });
+applyTex();
+
+// ---- page background toggle ----
+const BGS = [
+  ['Cosmic', `url("${rootBase}kol-bg.jpg")`, '#0d0a18'],
+  ['Prism', `url("${rootBase}kol-bg-prism.svg")`, '#f3f0fa'],
+  ['Dark', 'none', '#131313'],
+];
+const bgBtn = document.querySelector('[data-bg-toggle]');
+let bgIdx = BGS.findIndex(b => b[0].toLowerCase() === (sp.get('bg') || '').toLowerCase());
+if (bgIdx < 0) bgIdx = BGS.findIndex(b => b[0] === 'Dark');
+const applyBg = () => {
+  const [name, img, color] = BGS[bgIdx];
+  for (const el of [document.documentElement, document.body]) {
+    el.style.backgroundColor = color;
+    el.style.backgroundImage = img;
+    el.style.backgroundSize = 'cover';
+    el.style.backgroundPosition = 'center';
+    el.style.backgroundAttachment = 'fixed';
+    el.style.backgroundRepeat = 'no-repeat';
+  }
+  bgBtn.textContent = `BG: ${name}`;
+};
+bgBtn.addEventListener('click', () => { bgIdx = (bgIdx + 1) % BGS.length; applyBg(); });
+applyBg();
+if (img) document.querySelector('.kol-photo img').src = img;
+
+// ---- skins ----
+const bar = dlg.querySelector('[data-skin-bar]');
+const SKINS = ['aurora', 'amber', 'emerald', 'amethyst', 'rose', 'onyx-silver'];
+const dots = [...bar.querySelectorAll('[data-skin-set]')];
+let sweepAnim;
+const shineSweep = () => {
+  const el = document.querySelector('[data-ticket-sweep]');
+  if (!el) return;
+  sweepAnim?.cancel();
+  sweepAnim = el.animate(
+    [{ transform: 'translateX(-70%)', opacity: 0 }, { opacity: .65, offset: .35 }, { opacity: .45, offset: .65 }, { transform: 'translateX(70%)', opacity: 0 }],
+    { duration: 600, easing: 'linear' });
+};
+const applySkin = (skin, announce) => {
+  if (!SKINS.includes(skin)) skin = 'aurora';
+  dlg.dataset.skin = skin;
+  dots.forEach(d => d.setAttribute('aria-pressed', String(d.dataset.skinSet === skin)));
+  localStorage.setItem('kolfc-skin', skin);
+  if (announce) shineSweep();
+};
+bar.addEventListener('click', e => {
+  const dot = e.target.closest('[data-skin-set]');
+  if (dot) applySkin(dot.dataset.skinSet, true);
+});
+applySkin('aurora', false);
+
+// ---- comparison toggles: title align / notch text / photo seam ----
+const seamBtn = document.querySelector('[data-seam-toggle]');
+let seam = (sp.get('seam') || 'soft') === 'hard' ? 'hard' : 'soft';
+const applySeam = () => {
+  if (seam === 'hard') dlg.dataset.seam = 'hard'; else delete dlg.dataset.seam;
+  seamBtn.textContent = `Seam: ${seam === 'hard' ? 'Hard' : 'Soft'}`;
+};
+seamBtn.addEventListener('click', () => { seam = seam === 'hard' ? 'soft' : 'hard'; applySeam(); });
+applySeam();
+
+// Geist caps is the permanent typeface style
+dlg.dataset.face = 'caps';
+
+// ---- pfp toggle ----
+const PFPS = [
+  ['Ru7', 'kol-pfp.jpg'],
+  ['Prism', 'kol-pfp-prism.jpg'],
+  ['Shades', 'kol-pfp-shades.png'],
+  ['Chris', 'kol-pfp-chris.jpg'],
+  ['Javier', 'kol-pfp-javier.jpg'],
+  ['Ansem', 'kol-pfp-ansem.jpg'],
+];
+const pfpBtn = document.querySelector('[data-pfp-toggle]');
+let pfpIdx = PFPS.findIndex(x => x[0].toLowerCase() === (sp.get('pfp') || '').toLowerCase());
+if (pfpIdx < 0) pfpIdx = 0;
+const applyPfp = () => {
+  if (!img) document.querySelector('.kol-photo img').src = rootBase + PFPS[pfpIdx][1];
+  pfpBtn.textContent = `PFP: ${PFPS[pfpIdx][0]}`;
+};
+pfpBtn.addEventListener('click', () => { pfpIdx = (pfpIdx + 1) % PFPS.length; applyPfp(); shineSweep(); });
+applyPfp();
+
+// ---- 12 trader types -> 6 skin colors (2 each) + EN/CN ----
+const TYPES = [
+  { en:'Diamond Hands', cn:'钻石手', skin:'amethyst', tagEn:'Make time your home ground.', supEn:'The market shouts; you hold your own rhythm.', tagCn:'把时间，变成你的主场。', supCn:'市场喧嚣，你有自己的持有节奏。' },
+  { en:'DCA Believer', cn:'定投信徒', skin:'amethyst', tagEn:'Give every persistence to time.', supEn:'Accumulate at your pace; make long-term a habit.', tagCn:'把每一次坚持，交给时间。', supCn:'按自己的节奏积累，让长期成为习惯。' },
+  { en:'Risk Explorer', cn:'高风险探索者', skin:'rose', tagEn:'Beyond the edge, your coordinates.', supEn:'Curiosity leads the way; risk is yours to weigh.', tagCn:'边界之外，也有你的坐标。', supCn:'好奇心带你向前，风险由你认真衡量。' },
+  { en:'Day Trader', cn:'日内交易者', skin:'rose', tagEn:'Your home ground is the present.', supEn:'Short cycles, your own execution rhythm.', tagCn:'你的主场，在每一个当下。', supCn:'专注短周期，跟随自己的执行节奏。' },
+  { en:'Sniper', cn:'狙击手', skin:'onyx-silver', tagEn:'Patience is your entry.', supEn:'Chase nothing; wait for your moment.', tagCn:'耐心，是你的入场方式。', supCn:'不追逐每一次波动，只等待自己的时刻。' },
+  { en:'Grid Executor', cn:'网格执行者', skin:'onyx-silver', tagEn:"Write the market's swings into rules.", supEn:'Give every execution its own order.', tagCn:'把市场的起伏，写进规则。', supCn:'让每一次执行，都有自己的秩序。' },
+  { en:'Swing Hunter', cn:'波段猎手', skin:'emerald', tagEn:'Every leg of the market has your rhythm.', supEn:'Find room between trends; act within plan.', tagCn:'每一段行情，都有你的节奏。', supCn:'在趋势之间寻找空间，在计划之内行动。' },
+  { en:'Momentum Rider', cn:'动量跟随者', skin:'emerald', tagEn:'Trends appear; you have your answer.', supEn:'Watch strength, wait for confirmation, act on plan.', tagCn:'趋势出现，你有自己的回应。', supCn:'观察强势，等待确认，然后按计划行动。' },
+  { en:'Arb Researcher', cn:'套利研究者', skin:'amber', tagEn:'See the other possibility between prices.', supEn:'Your edge hides in structure, spreads and detail.', tagCn:'看见价格之间的另一种可能。', supCn:'你的视角，藏在结构、价差与细节里。' },
+  { en:'Narrative Trader', cn:'叙事交易者', skin:'amber', tagEn:'Read the story, write your call.', supEn:'Your eyes follow the narrative of the era.', tagCn:'读懂故事，也写下你的判断。', supCn:'你的目光，跟随正在发生的时代叙事。' },
+  { en:'Risk-First', cn:'风控优先者', skin:'aurora', tagEn:'Confidence comes from clear boundaries.', supEn:'Define risk first, then move.', tagCn:'你的底气，来自清晰的边界。', supCn:'先定义风险，再决定向前。' },
+  { en:'Contrarian', cn:'逆向布局者', skin:'aurora', tagEn:'When the crowd turns, you keep watching.', supEn:"On the cycle's far side, set your own pace.", tagCn:'人群转身时，你仍在观察。', supCn:'在周期的另一面，寻找自己的布局节奏。' },
+];
+const typeBtn = document.querySelector('[data-type-toggle]');
+const langBtn = document.querySelector('[data-lang-toggle]');
+const tparam = (sp.get('type') || '').toLowerCase();
+let typeIdx = TYPES.findIndex(t => t.en.toLowerCase() === tparam || t.cn === sp.get('type'));
+if (typeIdx < 0) typeIdx = 0;
+let lang = (sp.get('lang') || 'en').toLowerCase() === 'cn' ? 'cn' : 'en';
+const L10N = {
+  eyebrow: { en:'Trading Style', cn:'交易风格' },
+  chips: { en:['SYSTEMS','LEVERAGE','NARRATIVE'], cn:['系统思维','杠杆意识','叙事嗅觉'] },
+  src: { en:'Profile source', cn:'画像来源' }, srcV: { en:'Survey + self-report', cn:'问卷 + 自述' },
+  status: { en:'Status', cn:'身份状态' }, statusV: { en:'Provisional style', cn:'暂定风格' },
+  note: { en:'Style profile ≠ trading skill · not a member rating', cn:'风格画像 ≠ 交易能力 · 不代表收益或会员等级' },
+  refcode: { en:'Referral Code', cn:'推荐码' }, trader: { en:'Trader', cn:'交易员' },
+};
+const applyType = (applyColor = true) => {
+  const T = TYPES[typeIdx];
+  dlg.dataset.lang = lang;
+  const name = lang === 'cn' ? T.cn : T.en;
+  descEl.dataset.foilText = lang === 'cn' ? name : name.toUpperCase();
+  descEl.textContent = descEl.dataset.foilText;
+  const t2 = document.querySelector('.kb-type'); if (t2) t2.textContent = name;
+  const d = document.querySelector('.kb-desc'); if (d) d.textContent = lang === 'cn' ? `${T.tagCn}${T.supCn}` : `${T.tagEn} ${T.supEn}`;
+  const eb = document.querySelector('.kb-eyebrow'); if (eb) eb.textContent = L10N.eyebrow[lang];
+  document.querySelectorAll('.kb-chips span').forEach((el, i) => { el.textContent = L10N.chips[lang][i]; });
+  const tag = document.querySelector('.kol-tag'); if (tag) tag.textContent = lang === 'cn' ? `${T.tagCn}${T.supCn}` : `${T.tagEn} ${T.supEn}`;
+  const codeSpans = document.querySelectorAll('.kol-code span');
+  if (codeSpans[0]) codeSpans[0].textContent = L10N.refcode[lang];
+  typeBtn.textContent = `Type: ${name}`;
+  langBtn.textContent = lang.toUpperCase();
+  if (applyColor) applySkin(T.skin, false);
+};
+typeBtn.addEventListener('click', () => { typeIdx = (typeIdx + 1) % TYPES.length; applyType(); shineSweep(); });
+langBtn.addEventListener('click', () => { lang = lang === 'en' ? 'cn' : 'en'; applyType(false); });
+applyType(!!sp.get('type'));
+
+// ---- open + entrance ----
+initTicket(dlg);
+dlg.showModal();
+requestAnimationFrame(() => requestAnimationFrame(() => { dlg.dataset.motionState = 'open'; }));
+setTimeout(() => {
+  dlg.dispatchEvent(new CustomEvent('signup:statechange', { detail: { state: 'success', ownsFocus: false } }));
+}, 750);
+setTimeout(() => { dlg.dataset.uiReady = ''; }, 1300);
+</script></body></html>
