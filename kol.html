@@ -104,18 +104,26 @@ const backNotch = document.querySelectorAll('.kol-notch span')[1]; if (backNotch
 const flip = document.querySelector('[data-kol-flip]');
 flip.addEventListener('click', () => flip.classList.toggle('is-flipped'));
 
-// The tilt controller drives only the front ticket; mirror its transform
-// and foil vars onto the back face each frame so the back pans/shimmers too.
+// The tilt controller drives only the front ticket; while flipped, mirror
+// its transform and foil vars onto the back (write only on change — a
+// constant per-frame write forces both heavy faces to recomposite).
 const backFace = document.querySelector('.kol-back-face');
 const FOIL_VARS = ['--rainbow-shift','--rainbow-angle','--foil-active','--foil-x','--foil-y','--foil-band-x','--foil-band-y'];
+let lastBackT = null;
+const lastVars = {};
 (function syncBack() {
   requestAnimationFrame(syncBack);
   if (!backFace) return;
+  if (!flip.classList.contains('is-flipped')) {
+    if (lastBackT !== null) { backFace.style.transform = ''; lastBackT = null; }
+    return;
+  }
   const t = ticket.style.transform;
-  backFace.style.transform = t ? `rotateY(180deg) ${t}` : 'rotateY(180deg)';
+  const nt = t ? `rotateY(180deg) ${t}` : '';
+  if (nt !== lastBackT) { backFace.style.transform = nt; lastBackT = nt; }
   for (const v of FOIL_VARS) {
     const val = ticket.style.getPropertyValue(v);
-    if (val) backFace.style.setProperty(v, val);
+    if (val && val !== lastVars[v]) { backFace.style.setProperty(v, val); lastVars[v] = val; }
   }
 })();
 if (sp.get('flipped')) flip.classList.add('is-flipped');
