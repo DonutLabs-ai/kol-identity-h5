@@ -103,6 +103,21 @@ const backNotch = document.querySelectorAll('.kol-notch span')[1]; if (backNotch
 // ---- flip ----
 const flip = document.querySelector('[data-kol-flip]');
 flip.addEventListener('click', () => flip.classList.toggle('is-flipped'));
+
+// The tilt controller drives only the front ticket; mirror its transform
+// and foil vars onto the back face each frame so the back pans/shimmers too.
+const backFace = document.querySelector('.kol-back-face');
+const FOIL_VARS = ['--rainbow-shift','--rainbow-angle','--foil-active','--foil-x','--foil-y','--foil-band-x','--foil-band-y'];
+(function syncBack() {
+  requestAnimationFrame(syncBack);
+  if (!backFace) return;
+  const t = ticket.style.transform;
+  backFace.style.transform = t ? `rotateY(180deg) ${t}` : 'rotateY(180deg)';
+  for (const v of FOIL_VARS) {
+    const val = ticket.style.getPropertyValue(v);
+    if (val) backFace.style.setProperty(v, val);
+  }
+})();
 if (sp.get('flipped')) flip.classList.add('is-flipped');
 
 // ---- foil texture toggle ----
