@@ -35,20 +35,26 @@
     bg.className = "donut-hero-bg";
     bg.dataset.kind = kind;
     bg.setAttribute("aria-hidden", "true");
+    // poster sits underneath at all times, so a stalled or black frame never shows through
+    var img = document.createElement("img");
+    img.src = MEDIA + "hero-poster.jpg"; img.alt = ""; img.decoding = "async";
+    bg.appendChild(img);
     if (withVideo && !reduce.matches) {
       var v = document.createElement("video");
-      v.muted = true; v.loop = true; v.playsInline = true; v.autoplay = true; v.preload = "auto";
-      v.setAttribute("muted", ""); v.setAttribute("playsinline", "");
-      v.poster = MEDIA + "hero-poster.jpg";
-      var s = document.createElement("source"); s.src = MEDIA + "hero-720.mp4"; s.type = "video/mp4";
-      v.appendChild(s);
-      v.addEventListener("loadedmetadata", function () { v.defaultPlaybackRate = 0.8; v.playbackRate = 0.8; });
+      v.muted = true; v.loop = true; v.playsInline = true; v.autoplay = true; v.preload = "auto"; v.disableRemotePlayback = true;
+      v.setAttribute("muted", ""); v.setAttribute("playsinline", ""); v.setAttribute("webkit-playsinline", "");
+      var src = document.createElement("source"); src.src = MEDIA + "hero-720.mp4"; src.type = "video/mp4";
+      v.appendChild(src);
+      // native rate: fractional playbackRate stutters in some mobile webviews
+      var hideT;
+      function show() { clearTimeout(hideT); v.classList.add("is-playing"); }
+      function hideSoon() { clearTimeout(hideT); hideT = setTimeout(function () { v.classList.remove("is-playing"); }, 1200); }
+      v.addEventListener("playing", show); v.addEventListener("timeupdate", show);
+      v.addEventListener("waiting", hideSoon); v.addEventListener("stalled", hideSoon); v.addEventListener("suspend", function () { if (v.paused) hideSoon(); });
+      v.addEventListener("error", function () { v.classList.remove("is-playing"); });
+      document.addEventListener("visibilitychange", function () { if (!document.hidden && v.isConnected) v.play().catch(function () {}); });
       bg.appendChild(v);
       v.play().catch(function () {});
-    } else {
-      var img = document.createElement("img");
-      img.src = MEDIA + "hero-poster.jpg"; img.alt = ""; img.decoding = "async";
-      bg.appendChild(img);
     }
     host.prepend(bg);
   }
@@ -182,7 +188,7 @@
   /* ── Yi's flashcard replaces the artifact card: same-origin iframe of ../flashcard/kol.html?embed=1 ── */
   var FLASH_SRC = "../flashcard/kol.html";
   function flashParams(user, type, img) {
-    var q = new URLSearchParams({ embed: "1", bare: "1", lang: "en", user: user, type: type, code: "Donut2026" });
+    var q = new URLSearchParams({ embed: "1", bare: "1", lang: "en", user: user, type: type, code: "Donut2026", skin: "amethyst" });   // one skin for every style (per Cory)
     if (img && /^https?:/.test(img)) q.set("img", img);
     return q.toString();
   }
@@ -227,7 +233,7 @@
     var landingCard = document.querySelector(".landing .hero-card");
     if (landingCard) {
       mountFlash(landingCard, "Donut Trader", "Diamond Hands", portrait);
-      if (!landingCard.querySelector(".donut-shine")) { var sh = document.createElement("div"); sh.className = "donut-shine"; sh.setAttribute("aria-hidden", "true"); sh.innerHTML = "<b></b><i></i><i></i><i></i><i></i>"; landingCard.appendChild(sh); }
+      if (!landingCard.querySelector(".donut-shine")) { var sh = document.createElement("div"); sh.className = "donut-shine"; sh.setAttribute("aria-hidden", "true"); sh.innerHTML = "<i></i><i></i><i></i><i></i>"; landingCard.appendChild(sh); }
     }
     var mount = document.querySelector(".reveal-card-mount");
     if (mount) {
@@ -385,7 +391,7 @@
     "Day Trader": "Your home ground is the present.", "Sniper": "Patience is your entry.", "Grid Executor": "Write the market's swings into rules.",
     "Swing Hunter": "Every leg of the market has your rhythm.", "Momentum Rider": "Trends appear; you have your answer.", "Arb Researcher": "See the other possibility between prices.",
     "Narrative Trader": "Read the story, write your call.", "Risk-First": "Confidence comes from clear boundaries.", "Contrarian": "When the crowd turns, you keep watching." };
-  var SKINS = ["amethyst", "amethyst", "rose", "rose", "onyx", "onyx", "emerald", "emerald", "amber", "amber", "aurora", "aurora"];   // Yi's pairing
+  var SKINS = ARCHETYPES.map(function () { return "amethyst"; });   // every style wears the landing purple (Cory: unify)
   (function intro() {
     var q = new URLSearchParams(location.search);
     if (q.get("intro") === "0") return;
