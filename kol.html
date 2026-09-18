@@ -151,6 +151,7 @@ if (img) document.querySelector('.kol-photo img').src = img;
 
 // ---- skins ----
 const bar = dlg.querySelector('[data-skin-bar]');
+if (sp.get('bare')) bar.style.display = 'none';   // ?bare=1: no dev bar (shared / saved card view)
 const SKINS = ['aurora', 'amber', 'emerald', 'amethyst', 'rose', 'onyx-silver'];
 const dots = [...bar.querySelectorAll('[data-skin-set]')];
 let sweepAnim;
