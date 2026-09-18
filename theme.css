@@ -675,3 +675,16 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 /* …and equal widths for the pair, so Share and Save card line up as one unit. */
 .reveal-actions { gap: 10px; }
 .reveal-actions button, .reveal-actions .reveal-share, .reveal-actions .secondary { flex: 1 1 0 !important; max-width: 168px; min-width: 132px; }
+
+/* Audit pass (all steps): every pill obeys the control spec, text buttons match pill height, toggle icons 16px */
+.hero-actions .primary, .hero-actions .primary:hover { padding: var(--control-pad) !important; height: var(--control-h) !important; min-height: 0 !important; font-size: var(--control-font) !important; }
+.form-footer .text-button, .rail-bottom button, .site-footer button { height: var(--control-h); padding: 0 6px; font-size: var(--control-font); gap: 8px; display: inline-flex; align-items: center; }
+.form-footer .text-button svg, .rail-bottom button svg { width: 16px; height: 16px; }
+.donut-theme-toggle svg, .donut-tune-toggle svg { width: 16px; height: 16px; }
+.twitter-connect .secondary { width: auto; min-width: 0; align-self: center; }
+@media (max-width: 760px) { .twitter-connect .secondary { width: 100%; } }
+.form-footer { align-items: center; }
+/* Footer line centred */
+.site-footer { justify-content: center; text-align: center; }
+.site-footer > span:first-child { flex: 1; text-align: center; }
+.identity-reveal + .site-footer { justify-content: center; }
