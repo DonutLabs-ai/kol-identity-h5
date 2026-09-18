@@ -737,3 +737,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .donut-theme-toggle.has-liquid-glass, .donut-tune-toggle.has-liquid-glass { position: fixed !important; }
 /* The archetype row bleeds past the gutters; clip it at the section so the page never scrolls sideways. */
 .identity-reveal, .landing { overflow-x: clip; }
+
+/* ── Card portrait placeholder: the approved preview illustration replaces the generated planet pattern
+   until the user uploads their own image (an uploaded <img> takes over automatically). ── */
+.portrait:not(:has(> img)) { background: #0b0a12 url(./img/preview-portrait.jpg) center 18% / cover no-repeat; }
+.portrait:not(:has(> img)) .planet-core, .portrait:not(:has(> img)) .planet-orbit, .portrait:not(:has(> img)) .art-coordinate, .portrait:not(:has(> img)) .halftone { display: none; }
+.portrait:not(:has(> img)) .portrait-edge { background: linear-gradient(transparent 55%, #15141c); }
