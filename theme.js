@@ -404,7 +404,7 @@
     root.innerHTML = '<div class="donut-intro-ring"></div><div class="donut-intro-copy"><h1>Test your Trading Personality on Donut D0</h1><p>presented by Donut.ai</p></div>';
     var ring = root.querySelector(".donut-intro-ring");
     var W = innerWidth, H = innerHeight, ph = W <= 760;
-    var CW = ph ? Math.min(250, W - 80) : 260, CH = Math.round(CW * 1.42);   // the fly-by card face (full size)
+    var CW = ph ? Math.min(340, W - 40) : 380, CH = Math.round(CW * 1.42);   // the fly-by card face: near full width so the character reads
     root.style.setProperty("--cw", CW + "px"); root.style.setProperty("--ch", CH + "px");
     var imgs = [];
     // orbit carries the position; the card face inside counter-rotates so it stays upright while the ring turns
@@ -433,7 +433,7 @@
       setTimeout(function () { root.remove(); }, 700);
     }
     root.addEventListener("click", finish);
-    var STAGGER = 150, FLY = 780, flyY = ph ? H * .42 : H * .5;
+    var STAGGER = 190, FLY = 1000, flyY = ph ? H * .44 : H * .5;
     function run() {
       var from = "translate(" + Math.round(W / 2 + CW) + "px, " + Math.round(flyY) + "px) rotate(4deg)";
       var to = "translate(" + Math.round(-W / 2 - CW) + "px, " + Math.round(flyY) + "px) rotate(-4deg)";
@@ -441,7 +441,7 @@
         return c.animate([{ transform: from, opacity: 0 }, { opacity: 1, offset: .1 }, { opacity: 1, offset: .9 }, { transform: to, opacity: 0 }],
           { duration: FLY, delay: i * STAGGER, easing: "cubic-bezier(.35,.55,.2,1)", fill: "both" });
       });
-      var settleAt = (cards.length - 1) * STAGGER + FLY - 260;
+      var settleAt = (cards.length - 1) * STAGGER + FLY - 320;
       timers.push(setTimeout(function () {
         cards.forEach(function (c, i) {
           var a = -90 + i * 30, rad = a * Math.PI / 180, x = Math.cos(rad) * R, y = Math.sin(rad) * R;
