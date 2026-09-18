@@ -136,7 +136,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .form-area h1 { font-size: clamp(32px, 4vw, 48px); line-height: 1.1; color: var(--ink); }
 .intro, .reveal-description, .card-read, .result-heading p, .modal > p, .rail-bottom p, .info-box p, .field small, .question-list fieldset > p, .twitter-connect p, .avatar-row p, .privacy-note, .wallet-purpose { color: var(--muted); }
 .result-heading h1 { font-size: clamp(34px, 4vw, 52px); }
-.question-list legend { color: var(--ink); font-size: 16px; font-weight: 500; }
+.question-list legend { color: var(--ink); font-family: var(--serif); font-size: 22px; font-weight: 400; letter-spacing: -.01em; line-height: 1.25; }
 .question-list legend > span { color: var(--violet); font-family: var(--sans); font-size: 11px; letter-spacing: 1px; }
 .question-list fieldset > p { font-size: 12px; }
 .form-top { color: var(--muted-2); font-family: var(--sans); font-size: 10px; letter-spacing: 2px; font-weight: 500; }
@@ -198,6 +198,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 }
 :root[data-theme="dark"] .info-box, :root[data-theme="dark"] .twitter-connect, :root[data-theme="dark"] .rule-summary, :root[data-theme="dark"] .auth-summary, :root[data-theme="dark"] .membership, :root[data-theme="dark"] .archive-grid article { box-shadow: none; }
 .info-box strong, .twitter-connect h3, .avatar-row strong, .rule-summary strong, .archive-grid h3, .membership-head h3 { color: var(--ink); font-size: 14px; }
+.twitter-connect h3, .avatar-row strong, .wallet-field-heading, .field:not(:has(textarea)) { font-family: var(--sans); }
 .info-box { color: var(--ink-2); }
 .info-box > svg, .reasons svg, .x-logo { color: var(--ink); }
 .is-connected { box-shadow: 0 0 0 1px rgb(120 85 239 / .45) inset; }
@@ -321,7 +322,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .form-top { font-size: 0; color: transparent; margin-bottom: 16px; min-height: 0; }
   .form-top .test-fill-button { font-size: 12px; color: var(--ink); }
   .form-top .sample-tag { font-size: 11px; color: var(--violet); }
-  .question-list legend { font-size: 19px; line-height: 1.35; }
+  .question-list legend { font-size: 24px; line-height: 1.2; }
   .question-list legend > span { font-size: 12px; }
   .question-list fieldset > p { font-size: 13px; }
   .choices button { font-size: 15px; min-height: 52px; padding: 13px 16px; }
@@ -451,3 +452,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .donut-tune .fit { margin-top: 8px; font-size: 11px; color: var(--muted); }
 .donut-tune .fit[data-clamped] { color: var(--violet); }
 @media (max-width: 760px) { .donut-tune { right: 12px; left: 12px; width: auto; bottom: 116px; } .donut-tune-toggle { right: 12px; bottom: 64px; } }
+
+/* About-you step: the prompt chips are the label row; the bare "About you" text under them is redundant. */
+.bio-hints { margin: 20px 0 10px; }
+.field:has(textarea) { font-size: 0; gap: 0; margin-top: 0; }          /* hides the label's bare text node */
+.field:has(textarea) > textarea { font-size: 14px; }
+.field:has(textarea) > .field-bottom { margin-top: 8px; }
+.field:has(textarea) small { font-size: 11px; }
+.bio-hints { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.bio-hints::-webkit-scrollbar { display: none; }
+.bio-hints span { white-space: nowrap; flex: 0 0 auto; }
+@media (max-width: 760px) { .bio-hints { gap: 6px; } .bio-hints span { font-size: 12px; padding: 7px 11px; } }
