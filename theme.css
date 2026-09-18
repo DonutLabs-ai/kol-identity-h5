@@ -794,3 +794,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 @media (max-width: 760px) { .reveal-card-mount.has-flash { --flash-scale: .72; } }
 .hero-card.has-flash, .reveal-card-mount.has-flash { width: calc(396px * var(--flash-scale)); height: calc(590px * var(--flash-scale)); zoom: 1; }
 .has-flash > .donut-flash { transform: scale(var(--flash-scale)); transform-origin: 0 0; }
+
+/* the floating tune / theme toggles are dev tools: hidden unless the page is opened with ?tune=1 */
+body:not([data-tools]) .donut-tune-toggle, body:not([data-tools]) .donut-theme-toggle { display: none !important; }

@@ -54,6 +54,7 @@
   }
   /* ── card tuning: size / y / tilt / copy bottom, per device class; auto-clamps so the card never covers the copy ── */
   var TKEY = "donut-identity-card-tune";
+  if (new URLSearchParams(location.search).get("tune") === "1") document.body.setAttribute("data-tools", "");   // shows the floating tune + theme toggles
   var phone = function () { return innerWidth <= 760; };
   var DEFAULTS = { m: { zoom: 82, y: -30, tz: -6, ty: 12, copy: 22 }, d: { zoom: 90, y: 0, tz: -6, ty: 12, copy: 22 },
                    card: { px: 50, py: 0, pz: 100, ink: 100, bg: 55 } };   // card face (portrait crop + notch label) is shared by phone/desktop   // the flashcard is narrower than the old card
