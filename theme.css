@@ -774,3 +774,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 @media (max-width: 760px) { .reveal-card-mount.has-flash { zoom: .95; } }
 .reveal-card-mount.has-flash { zoom: .85; }
 @media (max-width: 760px) { .reveal-card-mount.has-flash { zoom: .72; } }
+
+/* tuning panel: phones get a compact bottom sheet so the card stays visible while sliding */
+.donut-tune label { margin: 6px 0; }
+@media (max-width: 760px) {
+  .donut-tune { left: 0; right: 0; bottom: 0; width: auto; max-height: 42svh; overflow: auto; border-radius: 20px 20px 0 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); }
+  .donut-tune h4 { margin-bottom: 6px; }
+  .donut-tune label { margin: 4px 0; }
+  .donut-tune-toggle { z-index: 72; }   /* stays tappable above the open sheet, so it also closes it */
+  /* lift the floating toggles above the open sheet so they never sit on the sliders */
+  body:has(.donut-tune[data-open]) .donut-theme-toggle, body:has(.donut-tune[data-open]) .donut-tune-toggle { bottom: calc(42svh + 12px + env(safe-area-inset-bottom)); }
+  body:has(.donut-tune[data-open]) .donut-tune-toggle { bottom: calc(42svh + 64px + env(safe-area-inset-bottom)); }
+}

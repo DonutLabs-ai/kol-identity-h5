@@ -55,11 +55,27 @@
   /* ── card tuning: size / y / tilt / copy bottom, per device class; auto-clamps so the card never covers the copy ── */
   var TKEY = "donut-identity-card-tune";
   var phone = function () { return innerWidth <= 760; };
-  var DEFAULTS = { m: { zoom: 82, y: -30, tz: -6, ty: 12, copy: 22 }, d: { zoom: 90, y: 0, tz: -6, ty: 12, copy: 22 } };   // the flashcard is narrower than the old card
+  var DEFAULTS = { m: { zoom: 82, y: -30, tz: -6, ty: 12, copy: 22 }, d: { zoom: 90, y: 0, tz: -6, ty: 12, copy: 22 },
+                   card: { px: 50, py: 0, pz: 100, ink: 100, bg: 55 } };   // card face (portrait crop + notch label) is shared by phone/desktop   // the flashcard is narrower than the old card
   function loadTune() { try { return Object.assign(JSON.parse(JSON.stringify(DEFAULTS)), JSON.parse(localStorage.getItem(TKEY) || "{}")); } catch (e) { return JSON.parse(JSON.stringify(DEFAULTS)); } }
   var tune = loadTune();
   function saveTune() { try { localStorage.setItem(TKEY, JSON.stringify(tune)); } catch (e) {} }
   function cur() { return tune[phone() ? "m" : "d"]; }
+  var CARD_FIELDS = { px: 1, py: 1, pz: 1, ink: 1, bg: 1 };
+  function bag(name) { return CARD_FIELDS[name] ? tune.card : cur(); }
+  // push the card-face values into every embedded flashcard (same origin, so CSS vars on its <html>)
+  function applyFlash() {
+    var c = tune.card;
+    document.querySelectorAll(".donut-flash").forEach(function (f) {
+      try {
+        var st = f.contentDocument && f.contentDocument.documentElement.style; if (!st) return;
+        st.setProperty("--photo-pos", c.px + "% " + c.py + "%");
+        st.setProperty("--photo-zoom", String(c.pz / 100));
+        st.setProperty("--notch-ink", String(c.ink / 100));
+        st.setProperty("--notch-bg", String(c.bg / 100));
+      } catch (e) {}
+    });
+  }
   var clamped = false;
   function applyTune() {
     var landing = document.querySelector(".landing"); if (!landing) return;
@@ -69,6 +85,7 @@
     landing.style.setProperty("--tilt-z", t.tz + "deg");
     landing.style.setProperty("--tilt-y", t.ty + "deg");
     landing.style.setProperty("--copy-bottom", t.copy + "px");
+    applyFlash();
     // never let the card sit on the copy: shrink until there is a 12px gap (phones stack them in one screen)
     clamped = false;
     var card = landing.querySelector(".hero-card"), h1 = landing.querySelector(".hero-copy h1");
@@ -89,25 +106,27 @@
     var fit = panel.querySelector(".fit");
     fit.textContent = clamped ? "Size clamped so the card clears the headline" : "Card clears the headline";
     if (clamped) fit.setAttribute("data-clamped", ""); else fit.removeAttribute("data-clamped");
-    panel.querySelectorAll("input").forEach(function (inp) { inp.value = t[inp.name]; inp.previousElementSibling.textContent = t[inp.name] + inp.dataset.unit; });
+    panel.querySelectorAll("input").forEach(function (inp) { var v = bag(inp.name)[inp.name]; inp.value = v; inp.previousElementSibling.textContent = v + inp.dataset.unit; });
   }
   function mountPanel() {
     tuneBtn = document.createElement("button"); tuneBtn.type = "button"; tuneBtn.className = "donut-tune-toggle"; tuneBtn.setAttribute("aria-label", "Card tuning");
     tuneBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>';
     panel = document.createElement("div"); panel.className = "donut-tune"; panel.setAttribute("role", "region"); panel.setAttribute("aria-label", "Card tuning");
-    var fields = [["zoom", "Card size", "%", 40, 110, 1], ["y", "Card offset Y", "px", -160, 160, 1], ["tz", "Tilt", "°", -20, 20, 1], ["ty", "Turn (Y)", "°", -30, 30, 1], ["copy", "Copy bottom", "px", 0, 120, 1]];
+    var fields = [["zoom", "Card size", "%", 40, 110, 1], ["y", "Card offset Y", "px", -160, 160, 1], ["tz", "Tilt", "°", -20, 20, 1], ["ty", "Turn (Y)", "°", -30, 30, 1], ["copy", "Copy bottom", "px", 0, 120, 1],
+                  ["px", "Portrait X", "%", 0, 100, 1], ["py", "Portrait Y", "%", 0, 100, 1], ["pz", "Portrait zoom", "%", 100, 180, 1],
+                  ["ink", "Label ink", "%", 20, 100, 1], ["bg", "Label backing", "%", 0, 100, 1]];
     panel.innerHTML = "<h4>Card · " + (phone() ? "phone" : "desktop") + "</h4>" + fields.map(function (f) {
-      return '<label><span>' + f[1] + '</span><span>' + cur()[f[0]] + f[2] + '</span><input type="range" name="' + f[0] + '" min="' + f[3] + '" max="' + f[4] + '" step="' + f[5] + '" data-unit="' + f[2] + '"></label>';
+      return '<label><span>' + f[1] + '</span><span>' + bag(f[0])[f[0]] + f[2] + '</span><input type="range" name="' + f[0] + '" min="' + f[3] + '" max="' + f[4] + '" step="' + f[5] + '" data-unit="' + f[2] + '"></label>';
     }).join("") + '<p class="fit"></p><div class="row"><button type="button" data-act="reset">Reset</button><button type="button" data-act="copy">Copy CSS</button></div>';
     panel.addEventListener("input", function (e) {
       var inp = e.target; if (inp.tagName !== "INPUT") return;
-      cur()[inp.name] = Number(inp.value); saveTune(); applyTune();
+      bag(inp.name)[inp.name] = Number(inp.value); saveTune(); applyTune();
     });
     panel.addEventListener("click", function (e) {
       var act = e.target.getAttribute("data-act");
-      if (act === "reset") { tune[phone() ? "m" : "d"] = JSON.parse(JSON.stringify(DEFAULTS[phone() ? "m" : "d"])); saveTune(); applyTune(); }
+      if (act === "reset") { tune[phone() ? "m" : "d"] = JSON.parse(JSON.stringify(DEFAULTS[phone() ? "m" : "d"])); tune.card = JSON.parse(JSON.stringify(DEFAULTS.card)); saveTune(); applyTune(); }
       if (act === "copy") {
-        var t = cur(); var css = (phone() ? "@media (max-width: 760px) { .landing { " : ".landing { ") + "--card-zoom: " + (t.zoom / 100) + "; --card-y: " + t.y + "px; --tilt-z: " + t.tz + "deg; --tilt-y: " + t.ty + "deg; --copy-bottom: " + t.copy + "px; }" + (phone() ? " }" : "");
+        var t = cur(); var css = (phone() ? "@media (max-width: 760px) { .landing { " : ".landing { ") + "--card-zoom: " + (t.zoom / 100) + "; --card-y: " + t.y + "px; --tilt-z: " + t.tz + "deg; --tilt-y: " + t.ty + "deg; --copy-bottom: " + t.copy + "px; }" + (phone() ? " }" : "") + "\n/* card face */ .donut-flash { --photo-pos: " + tune.card.px + "% " + tune.card.py + "%; --photo-zoom: " + (tune.card.pz / 100) + "; --notch-ink: " + (tune.card.ink / 100) + "; --notch-bg: " + (tune.card.bg / 100) + "; }";
         navigator.clipboard && navigator.clipboard.writeText(css).then(function () { e.target.textContent = "Copied"; setTimeout(function () { e.target.textContent = "Copy CSS"; }, 1200); });
       }
     });
@@ -167,8 +186,9 @@
     f.setAttribute("aria-label", "Your Donut identity card"); f.loading = "eager"; f.scrolling = "no";
     f.width = "396"; f.height = "590";   // 380×550 ticket + notch + tilt room
     f.src = FLASH_SRC + "?" + flashParams(user, type, /^https?:/.test(img || "") ? img : "");
-    if (img && /^data:/.test(img)) f.addEventListener("load", function () {   // uploaded photo: same-origin, set directly
-      try { var ph = f.contentDocument.querySelector(".kol-photo img"); if (ph) ph.src = img; } catch (e) {}
+    f.addEventListener("load", function () {
+      if (img && /^data:/.test(img)) { try { var ph = f.contentDocument.querySelector(".kol-photo img"); if (ph) ph.src = img; } catch (e) {} }   // uploaded photo: same-origin, set directly
+      applyFlash();
     });
     host.classList.add("has-flash");
     host.appendChild(f);
