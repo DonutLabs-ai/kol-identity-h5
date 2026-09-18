@@ -707,3 +707,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .small-card { margin-top: 0; }
   .preview-rail > p { margin-top: 0; }
 }
+
+/* Landing → footer: the dawn band lives on the footer (same as after the reveal), so the stage always hands
+   over through the gradient no matter how tall the first screen is. */
+.landing { background: #050511; }
+:root[data-theme="dark"] .landing { background: #050511; }
+.landing + .site-footer {
+  position: relative; height: auto; min-height: 0; padding: 200px var(--gutter) 28px; border: 0; align-items: flex-end;
+  background: linear-gradient(180deg, #050511 0%, #191337 22%, #7b63e6 46%, #dba98b 68%, var(--page-bg) 90%, var(--page-bg) 100%);
+}
+:root[data-theme="dark"] .landing + .site-footer { background: linear-gradient(180deg, #050511 0%, #191337 25%, #5a45b8 50%, #2a1d3a 78%, var(--page-bg) 100%); }
+@media (max-width: 760px) { .landing + .site-footer { padding-top: 150px; } }
