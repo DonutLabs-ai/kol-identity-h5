@@ -810,3 +810,25 @@ body:not([data-tools]) .donut-tune-toggle, body:not([data-tools]) .donut-theme-t
 .reveal-card-mount.is-locked > .donut-flash { filter: brightness(.38) saturate(.5); }
 .reveal-card-mount.is-locked::after { content: "LOCKED"; position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; pointer-events: none;
   font: 500 13px/1 var(--sans); letter-spacing: 4px; color: #fff; text-shadow: 0 2px 14px rgb(0 0 0 / .6); }
+
+/* form pages: the footer's hairline read as a stray rule under the last field */
+.site-footer { border-top: 0 !important; }
+
+/* ── opening sequence ── */
+.donut-intro { position: fixed; inset: 0; z-index: 100; overflow: hidden; cursor: pointer; color: #fff; -webkit-tap-highlight-color: transparent;
+  background: radial-gradient(120% 70% at 50% 115%, rgb(120 85 239 / .32), transparent 62%), #0b0a12; transition: opacity .65s ease; }
+.donut-intro.is-out { opacity: 0; pointer-events: none; }
+.donut-intro-ring { position: absolute; left: 50%; top: var(--ring-y, 50%); width: 0; height: 0; }
+.donut-intro-ring.is-ring { animation: donut-intro-spin 80s linear infinite; }
+@keyframes donut-intro-spin { to { transform: rotate(360deg); } }
+.donut-intro-orbit { position: absolute; left: 0; top: 0; width: 0; height: 0; opacity: 0; will-change: transform, opacity; }
+.donut-intro-card { position: absolute; left: calc(var(--cw) / -2); top: calc(var(--ch) / -2); width: var(--cw); height: var(--ch); border-radius: 10px; overflow: hidden;
+  background: #000; box-shadow: inset 0 0 0 1px rgb(255 255 255 / .26); }
+.donut-intro-ring.is-ring .donut-intro-card { animation: donut-intro-spin 80s linear infinite reverse; }   /* stays upright while the ring turns */
+.donut-intro-card img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 0; display: block; }
+.donut-intro-copy { position: absolute; left: 50%; top: var(--copy-y, 50%); transform: translate(-50%, var(--copy-shift, -50%)); width: min(var(--copy-w, 340px), calc(100vw - 48px));
+  text-align: center; opacity: 0; transition: opacity .9s ease .45s; }
+.donut-intro.is-titled .donut-intro-copy { opacity: 1; }
+.donut-intro-copy h1 { margin: 0; font: 400 clamp(26px, 7.4vw, 34px)/1.08 var(--serif); letter-spacing: -.01em; text-wrap: balance; }
+.donut-intro-copy p { margin: 14px 0 0; font: 400 13px/1 var(--sans); color: rgb(255 255 255 / .62); }
+html[data-intro] .landing .hero-card, html[data-intro] .hero-copy > *, html[data-intro] .hero-actions { animation-play-state: paused !important; }

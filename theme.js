@@ -94,7 +94,7 @@
     // animations to their end for the measurement and put them back in the same frame (nothing is painted between)
     var running = landing.getAnimations ? landing.getAnimations({ subtree: true }).filter(function (a) {   // card spin, copy fade-up …
       var t = a.effect && a.effect.getTiming ? a.effect.getTiming() : {};
-      return a.playState === "running" && t.iterations !== Infinity;
+      return a.playState !== "finished" && t.iterations !== Infinity;   // running, or paused behind the intro
     }) : [];
     var saved = running.map(function (a) { return a.currentTime; });
     running.forEach(function (a) { try { a.currentTime = a.effect.getComputedTiming().endTime; } catch (e) {} });
@@ -375,6 +375,67 @@
       requestAnimationFrame(step);
     })(performance.now());
   }
+
+  /* ── opening: the twelve cards fly past one by one, settle into a ring, the title lands, then the landing shows.
+        Once per session; ?intro=1 replays, ?intro=0 skips, reduced-motion skips, any tap skips. ── */
+  (function intro() {
+    var q = new URLSearchParams(location.search);
+    if (q.get("intro") === "0") return;
+    var seen = false; try { seen = !!sessionStorage.getItem("donut-intro-seen"); } catch (e) {}
+    if (q.get("intro") !== "1" && (reduce.matches || seen)) return;
+    try { sessionStorage.setItem("donut-intro-seen", "1"); } catch (e) {}
+    document.documentElement.setAttribute("data-intro", "");
+    var root = document.createElement("div"); root.className = "donut-intro"; root.setAttribute("role", "presentation");
+    root.innerHTML = '<div class="donut-intro-ring"></div><div class="donut-intro-copy"><h1>Test your Trading Personality on Donut D0</h1><p>presented by Donut.ai</p></div>';
+    var ring = root.querySelector(".donut-intro-ring");
+    // orbit carries the position (fly-by, then ring slot); the card inside counter-rotates so it stays upright while the ring turns
+    var cards = ARCHETYPES.map(function (t) {
+      var o = document.createElement("div"); o.className = "donut-intro-orbit";
+      var c = document.createElement("div"); c.className = "donut-intro-card";
+      var img = document.createElement("img"); img.src = archetypePortrait(t); img.alt = ""; img.decoding = "async"; c.appendChild(img);
+      o.appendChild(c); ring.appendChild(o); return o;
+    });
+    var W = innerWidth, H = innerHeight, ph = W <= 760;
+    var cw = ph ? 62 : 96, ch = Math.round(cw * 4 / 3);
+    var ringY = ph ? H * .40 : H * .5;
+    var R = ph ? Math.min(W / 2 - cw / 2 - 14, ringY - ch / 2 - 24) : Math.min(W, H) * .40 - ch / 2;
+    root.style.setProperty("--cw", cw + "px"); root.style.setProperty("--ch", ch + "px");
+    root.style.setProperty("--ring-y", ringY + "px");
+    if (ph) { root.style.setProperty("--copy-y", (ringY + R + ch / 2 + 32) + "px"); root.style.setProperty("--copy-shift", "0"); root.style.setProperty("--copy-w", "320px"); }
+    else { root.style.setProperty("--copy-y", ringY + "px"); root.style.setProperty("--copy-shift", "-50%"); root.style.setProperty("--copy-w", Math.round((R - ch / 2) * 2 * .86) + "px"); }
+    document.body.appendChild(root);
+    var STAGGER = 120, FLY = 900;   // ~3 cards on screen at once
+    var fs = ph ? 1.9 : 1.5;   // fly-by cards are bigger than the ring slots so each one reads as a card
+    var from = "translate(" + Math.round(W * .6 + cw * fs) + "px, " + Math.round(H * .55 + ch * fs) + "px) rotate(-14deg) scale(" + fs + ")";
+    var to = "translate(" + Math.round(-W * .6 - cw * fs) + "px, " + Math.round(-H * .55 - ch * fs) + "px) rotate(-14deg) scale(" + fs + ")";
+    var fly = cards.map(function (c, i) {
+      return c.animate([{ transform: from, opacity: 0 }, { opacity: 1, offset: .12 }, { opacity: 1, offset: .88 }, { transform: to, opacity: 0 }],
+        { duration: FLY, delay: i * STAGGER, easing: "cubic-bezier(.3,.6,.2,1)", fill: "both" });
+    });
+    var timers = [], done = false;
+    function finish() {
+      if (done) return; done = true;
+      timers.forEach(clearTimeout);
+      root.classList.add("is-out");
+      document.documentElement.removeAttribute("data-intro");
+      applyTune();
+      setTimeout(function () { root.remove(); }, 700);
+    }
+    root.addEventListener("click", finish);
+    var settleAt = (cards.length - 1) * STAGGER + FLY - 220;
+    timers.push(setTimeout(function () {
+      cards.forEach(function (c, i) {
+        var a = -90 + i * 30, rad = a * Math.PI / 180, x = Math.cos(rad) * R, y = Math.sin(rad) * R;
+        var ringTf = "translate(" + x.toFixed(1) + "px, " + y.toFixed(1) + "px)";   // upright slots
+        try { fly[i].cancel(); } catch (e) {}
+        c.animate([{ transform: "translate(" + (x * 2.6).toFixed(1) + "px, " + (y * 2.6).toFixed(1) + "px) rotate(-40deg) scale(.6)", opacity: 0 }, { transform: ringTf, opacity: 1 }],
+          { duration: 900, delay: i * 45, easing: "cubic-bezier(.2,.8,.2,1)", fill: "both" });
+      });
+      ring.classList.add("is-ring");
+      root.classList.add("is-titled");
+    }, settleAt));
+    timers.push(setTimeout(finish, settleAt + 3000));
+  })();
 
   var target = document.getElementById("root") || document.body;
   new MutationObserver(function () { scan(); collectFaces(); stepPulse(); }).observe(target, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
