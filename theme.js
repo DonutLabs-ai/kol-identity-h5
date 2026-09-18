@@ -52,15 +52,12 @@
     }
     host.prepend(bg);
   }
-  /* ── laser burst behind the card (once per landing mount) ── */
+  /* ── intro FX: fx.js (three + postprocessing) listens for this and plays once per landing mount ── */
   function burst(landing) {
     var art = landing.querySelector(".hero-art");
-    if (!art || art.querySelector(".donut-burst")) return;
-    var b = document.createElement("div");
-    b.className = "donut-burst"; b.setAttribute("aria-hidden", "true");
-    b.innerHTML = '<i class="glow"></i><i class="rays"></i><i class="prism"></i>';
-    art.prepend(b);
-    setTimeout(function () { b.remove(); }, 4000);   // done after the spin; nothing left to composite
+    if (!art || art.dataset.fxPlayed) return;
+    art.dataset.fxPlayed = "1";
+    window.dispatchEvent(new CustomEvent("donut:landing", { detail: { art: art } }));
   }
 
   /* ── card tuning: size / y / tilt / copy bottom, per device class; auto-clamps so the card never covers the copy ── */

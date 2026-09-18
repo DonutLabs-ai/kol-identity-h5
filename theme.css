@@ -347,29 +347,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 :root[data-theme="dark"] .landing { background: linear-gradient(180deg, #050511 0, #050511 var(--stage-h), #191337 calc(var(--stage-h) + var(--band) * .25), #5a45b8 calc(var(--stage-h) + var(--band) * .5), #2a1d3a calc(var(--stage-h) + var(--band) * .8), var(--page-bg) calc(var(--stage-h) + var(--band)), var(--page-bg) 100%); }
 /* Card first: smaller, spins in once (rotateY) then floats */
 .hero-art { order: -1; position: relative; width: 100%; align-self: center; padding: 24px 0 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0; perspective: 1400px; translate: 0 var(--card-y, 0px); }
-/* Chromatic laser burst behind the card on its first spin (theme.js injects .donut-burst) */
-.donut-burst { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; z-index: -1; overflow: visible; }
-.donut-burst > i { position: absolute; left: 50%; top: 50%; width: 150vmin; height: 150vmin; max-width: 1400px; max-height: 1400px; border-radius: 50%; translate: -50% -50%; mix-blend-mode: screen; opacity: 0; }
-.donut-burst .rays {
-  background: conic-gradient(from 0deg, #7855ef, #acaaff, #ffd27a, #7dd3fc, #ff9ecf, #a2ffd6, #7855ef);
-  -webkit-mask: repeating-conic-gradient(#000 0 1.6deg, transparent 1.6deg 9deg), radial-gradient(circle, #000 0, #000 18%, transparent 62%);
-  -webkit-mask-composite: source-in; mask: repeating-conic-gradient(#000 0 1.6deg, transparent 1.6deg 9deg), radial-gradient(circle, #000 0, #000 18%, transparent 62%); mask-composite: intersect;
-  filter: blur(.6px) saturate(1.3);
-  animation: donut-rays 2.4s cubic-bezier(.2, .7, .2, 1) .45s both;
-}
-.donut-burst .glow { background: radial-gradient(circle, rgb(172 170 255 / .9), rgb(120 85 239 / .35) 28%, transparent 60%); filter: blur(18px); animation: donut-glow 2.4s ease-out .4s both; }
-.donut-burst .prism {
-  background: conic-gradient(from 90deg, transparent 0 40%, #ff9ecf 43%, #ffd27a 46%, #a2ffd6 49%, #7dd3fc 52%, #acaaff 55%, transparent 58%);
-  -webkit-mask: radial-gradient(circle, transparent 0 22%, #000 30%, transparent 70%); mask: radial-gradient(circle, transparent 0 22%, #000 30%, transparent 70%);
-  filter: blur(6px); animation: donut-prism 2.6s cubic-bezier(.2, .7, .2, 1) .5s both;
-}
-@keyframes donut-rays { 0% { opacity: 0; transform: scale(.15) rotate(0deg); } 22% { opacity: .95; } 100% { opacity: 0; transform: scale(1.7) rotate(50deg); } }
-@keyframes donut-glow { 0% { opacity: 0; transform: scale(.3); } 25% { opacity: 1; } 100% { opacity: 0; transform: scale(1.6); } }
-@keyframes donut-prism { 0% { opacity: 0; transform: scale(.4) rotate(-40deg); } 30% { opacity: .8; } 100% { opacity: 0; transform: scale(1.5) rotate(160deg); } }
-@media (prefers-reduced-motion: reduce) { .donut-burst { display: none; } }
+/* Intro FX canvas (fx.js): sits behind the card inside .hero-art, spills past it for the rays. */
+.donut-fx { position: absolute; left: 50%; top: 50%; translate: -50% -50%; width: max(140%, 900px); height: max(140%, 900px); max-width: 1600px; max-height: 1600px; pointer-events: none; z-index: -1; opacity: 0; transition: opacity .35s ease; mix-blend-mode: screen; }
+.donut-fx[data-on] { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .donut-fx { display: none; } }
 .hero-card {
   zoom: var(--card-zoom); transform-origin: 50% 50%; filter: drop-shadow(0 30px 70px rgb(0 0 0 / .6));
-  animation: donut-spin-in 2s cubic-bezier(.2, .7, .2, 1) both, donut-float 9s ease-in-out 2.2s infinite;
+  animation: donut-spin-in 2.6s cubic-bezier(.25, .6, .2, 1) both, donut-float 9s ease-in-out 2.8s infinite;
 }
 .halo, .floating-caption { display: none; }
 .hero-number { display: none; }
@@ -388,7 +372,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .hero-process i { background: rgb(255 255 255 / .2); }
 @keyframes donut-arrive { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 @keyframes donut-arrive-blur { from { opacity: 0; transform: translateY(22px); filter: blur(8px); } to { opacity: 1; transform: none; filter: none; } }
-@keyframes donut-spin-in { 0% { opacity: 0; transform: translateY(40px) rotateY(-360deg) scale(.86); } 30% { opacity: 1; } 100% { opacity: 1; transform: var(--card-tilt); } }
+@keyframes donut-spin-in { 0% { opacity: 0; transform: translateY(40px) rotateY(-720deg) scale(.82); } 18% { opacity: 1; } 100% { opacity: 1; transform: var(--card-tilt); } }   /* two full turns */
 @keyframes donut-float { 0%, 100% { transform: var(--card-tilt) translateY(0); } 50% { transform: var(--card-tilt) translateY(-8px); } }
 .hero-card { --card-tilt: rotate(var(--tilt-z, -6deg)) rotateX(var(--tilt-x, 6deg)) rotateY(var(--tilt-y, 12deg)); transform: var(--card-tilt); }
 
