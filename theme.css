@@ -801,3 +801,12 @@ body:not([data-tools]) .donut-tune-toggle, body:not([data-tools]) .donut-theme-t
 /* the card's stage box is a full-screen flex area on phones and was swallowing taps meant for the copy and CTA */
 .hero-art { pointer-events: none; }
 .hero-art .hero-card { pointer-events: auto; }
+
+/* locked preview of another style's card (tap a tag in the row) */
+.spectrum-type { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.spectrum-type.is-previewing { border-color: rgb(255 255 255 / .35); color: var(--ink); }
+:root[data-theme="light"] .spectrum-type.is-previewing { border-color: rgb(32 32 38 / .35); }
+.reveal-card-mount > .donut-flash { transition: filter .35s ease; }
+.reveal-card-mount.is-locked > .donut-flash { filter: brightness(.38) saturate(.5); }
+.reveal-card-mount.is-locked::after { content: "LOCKED"; position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; pointer-events: none;
+  font: 500 13px/1 var(--sans); letter-spacing: 4px; color: #fff; text-shadow: 0 2px 14px rgb(0 0 0 / .6); }

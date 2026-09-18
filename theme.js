@@ -130,7 +130,8 @@
     }).join("") + '<p class="fit"></p><div class="row"><button type="button" data-act="reset">Reset</button><button type="button" data-act="copy">Copy CSS</button></div>';
     panel.addEventListener("input", function (e) {
       var inp = e.target; if (inp.tagName !== "INPUT") return;
-      bag(inp.name)[inp.name] = Number(inp.value); saveTune(); applyTune();
+      var v = Number(inp.value); if (!isFinite(v)) return;
+      bag(inp.name)[inp.name] = v; saveTune(); applyTune();
     });
     panel.addEventListener("click", function (e) {
       var act = e.target.getAttribute("data-act");
@@ -211,8 +212,18 @@
     var slug = ARCHETYPES[i].toLowerCase().replace(/[^a-z]+/g, "-");
     return new URL("img/archetypes/" + String(i + 1).padStart(2, "0") + "-" + slug + ".jpg", location.href).href;
   }
+  // reveal: tapping another style's tag previews that card, dimmed and marked LOCKED; tapping YOU (or the same tag) returns
+  var previewType = null;
+  document.addEventListener("click", function (e) {
+    var tag = e.target.closest && e.target.closest(".spectrum-type"); if (!tag) return;
+    var label = ((tag.querySelector("small + span") || {}).textContent || "").trim();
+    previewType = (tag.classList.contains("is-yours") || previewType === label) ? null : label;
+    document.querySelectorAll(".spectrum-type").forEach(function (x) { x.classList.toggle("is-previewing", !!previewType && x === tag); });
+    flashSync();
+  }, true);
   function flashSync() {
     var portrait = archetypePortrait("Diamond Hands");
+    if (!document.querySelector(".reveal-card-mount")) previewType = null;
     var landingCard = document.querySelector(".landing .hero-card");
     if (landingCard) mountFlash(landingCard, "Donut Trader", "Diamond Hands", portrait);
     var mount = document.querySelector(".reveal-card-mount");
@@ -220,7 +231,11 @@
       var name = ((mount.querySelector(".card-profile > h2") || {}).textContent || "Trader").trim();
       var type = ((document.querySelector(".reveal-copy h1") || {}).textContent || "").replace(/\.$/, "").trim();
       var up = mount.querySelector(".portrait > img");
-      mountFlash(mount, name, type || "Diamond Hands", up ? up.src : archetypePortrait(type || "Diamond Hands"));
+      var own = type || "Diamond Hands";
+      var locked = !!previewType && previewType.toLowerCase() !== own.toLowerCase();
+      var show = locked ? previewType : own;
+      mountFlash(mount, name, show, (up && !locked) ? up.src : archetypePortrait(show));
+      mount.classList.toggle("is-locked", locked);
     }
   }
 
