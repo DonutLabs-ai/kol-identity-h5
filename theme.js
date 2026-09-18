@@ -116,7 +116,22 @@
     if (new URLSearchParams(location.search).get("tune") === "1") panel.setAttribute("data-open", "");
     renderPanel();
   }
+  /* ── card face declutter: clone referral code into the top bar and the name into the footer (React owns the
+        originals, so they are hidden by CSS rather than moved) ── */
+  function decorateCard(card) {
+    var ref = card.querySelector(".card-referral b"), top = card.querySelector(".card-top");
+    if (ref && top && !top.querySelector(".donut-ref")) { var r = document.createElement("span"); r.className = "donut-ref"; r.textContent = ref.textContent.trim(); top.appendChild(r); }
+    var name = card.querySelector(".card-profile > h2"), foot = card.querySelector(".card-footer > div");
+    if (name && foot) {
+      var n = foot.querySelector(".donut-name");
+      if (!n) { n = document.createElement("span"); n.className = "donut-name"; foot.prepend(n); }
+      if (n.textContent !== name.textContent) n.textContent = name.textContent;
+    }
+    var handle = card.querySelector(".card-handle");
+    if (handle) handle.classList.toggle("is-unlinked", /not linked/i.test(handle.textContent));
+  }
   function scan() {
+    document.querySelectorAll(".identity-card").forEach(decorateCard);
     var landing = document.querySelector(".landing");
     if (landing) { stage(landing, true); if (!panel) mountPanel(); applyTune(); }
     if (panel) { panel.style.display = landing ? "" : "none"; if (tuneBtn) tuneBtn.style.display = landing ? "" : "none"; }

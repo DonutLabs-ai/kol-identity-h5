@@ -743,3 +743,20 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .portrait:not(:has(> img)) { background: #0b0a12 url(./img/preview-portrait.jpg) center 18% / cover no-repeat; }
 .portrait:not(:has(> img)) .planet-core, .portrait:not(:has(> img)) .planet-orbit, .portrait:not(:has(> img)) .art-coordinate, .portrait:not(:has(> img)) .halftone { display: none; }
 .portrait:not(:has(> img)) .portrait-edge { background: linear-gradient(transparent 55%, #15141c); }
+
+/* ═══ Card face, decluttered (theme.js decorateCard): referral code moves to the top bar, the user name to the
+   footer beside the QR; the uppercase echo, "your personal trader id", "self-reported", the not-linked line and
+   the referral row go. ═══ */
+.identity-card .card-archetype > span,            /* SWING HUNTER echo */
+.identity-card .card-profile-top,                  /* YOUR PERSONAL TRADER ID · SELF-REPORTED */
+.identity-card .card-referral,                     /* referral row (code now sits in the top bar) */
+.identity-card .card-profile > h2,                 /* name (cloned into the footer) */
+.identity-card .card-footer small,                 /* IDENTITY NUMBER label */
+.identity-card .card-top > span:nth-of-type(2):not(.donut-ref) { display: none; }   /* ✧ */
+.identity-card .card-top > .donut-ref { display: inline-block; margin-left: auto; }
+.identity-card .card-top .donut-ref { font: 600 10px var(--sans); letter-spacing: 2px; color: #f4f0ff; }
+.identity-card .card-profile { padding-top: 14px; }
+.identity-card .card-footer .donut-name { display: block; font-family: var(--serif); font-size: 22px; line-height: 1.1; color: #f4f0ff; margin-bottom: 4px; }
+.identity-card .card-footer b { margin-top: 0; }
+.identity-card .card-handle.is-unlinked { display: none; }
+.identity-card .front-tags { margin-top: 6px; }
