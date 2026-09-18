@@ -203,8 +203,16 @@
     host.classList.add("has-flash");
     host.appendChild(f);
   }
+  // one illustrated portrait per archetype (Cory's black-background set, img/archetypes/NN-slug.jpg), same order as Yi's TYPES
+  var ARCHETYPES = ["Diamond Hands", "DCA Believer", "Risk Explorer", "Day Trader", "Sniper", "Grid Executor", "Swing Hunter", "Momentum Rider", "Arb Researcher", "Narrative Trader", "Risk-First", "Contrarian"];
+  function archetypePortrait(type) {
+    var i = ARCHETYPES.findIndex(function (t) { return t.toLowerCase() === String(type || "").toLowerCase(); });
+    if (i < 0) return new URL("img/preview-portrait.jpg", location.href).href;
+    var slug = ARCHETYPES[i].toLowerCase().replace(/[^a-z]+/g, "-");
+    return new URL("img/archetypes/" + String(i + 1).padStart(2, "0") + "-" + slug + ".jpg", location.href).href;
+  }
   function flashSync() {
-    var portrait = new URL("img/preview-portrait.jpg", location.href).href;
+    var portrait = archetypePortrait("Diamond Hands");
     var landingCard = document.querySelector(".landing .hero-card");
     if (landingCard) mountFlash(landingCard, "Donut Trader", "Diamond Hands", portrait);
     var mount = document.querySelector(".reveal-card-mount");
@@ -212,7 +220,7 @@
       var name = ((mount.querySelector(".card-profile > h2") || {}).textContent || "Trader").trim();
       var type = ((document.querySelector(".reveal-copy h1") || {}).textContent || "").replace(/\.$/, "").trim();
       var up = mount.querySelector(".portrait > img");
-      mountFlash(mount, name, type || "Diamond Hands", up ? up.src : portrait);
+      mountFlash(mount, name, type || "Diamond Hands", up ? up.src : archetypePortrait(type || "Diamond Hands"));
     }
   }
 
