@@ -215,11 +215,10 @@
   function autoScroll(row) {
     if (!row || row.dataset.auto || reduce.matches) return;
     row.dataset.auto = "1";
-    var dir = 1, paused = false, resumeAt = 0, started = performance.now() + 2600;   // let the "yours" centring land first
+    var dir = 1, paused = false, resumeAt = 0, started = performance.now() + 1800;   // let the "yours" centring land first
     var hold = function (ms) { paused = true; resumeAt = performance.now() + ms; };
-    ["pointerdown", "touchstart", "wheel"].forEach(function (t) { row.addEventListener(t, function () { hold(4000); }, { passive: true }); });
-    row.addEventListener("pointerenter", function () { paused = true; resumeAt = Infinity; });
-    row.addEventListener("pointerleave", function () { hold(800); });
+    // Only a deliberate interaction stops the drift (tap, drag, wheel); hovering does not. It resumes after 5s idle.
+    ["pointerdown", "touchstart", "wheel"].forEach(function (t) { row.addEventListener(t, function () { hold(5000); }, { passive: true }); });
     (function step(now) {
       if (!row.isConnected) return;
       if (now > started && (!paused || now > resumeAt)) {

@@ -616,3 +616,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .identity-reveal + .site-footer { padding-top: 150px; }
 }
 .spectrum-grid { scroll-snap-type: none; }   /* snap points fought the auto-drift (sub-pixel scrolls snapped back) */
+.reveal-tap { font-size: 9px; letter-spacing: 1.2px; color: rgb(255 255 255 / .38); }
+.donut-pulse { box-shadow: inset 0 0 140px 40px rgb(162 72 255 / .34); }
+:root[data-theme="dark"] .donut-pulse { box-shadow: inset 0 0 160px 48px rgb(162 72 255 / .32); }
