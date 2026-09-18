@@ -525,3 +525,21 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 @media (max-width: 760px) { .spectrum-grid { margin: 0 -20px; padding-left: 20px; padding-right: 20px; } .spectrum-heading p { font-size: 18px; } }
 .identity-reveal .reveal-topline .text-button { color: #fff; background: rgb(255 255 255 / .14); border-radius: var(--radius-control); padding: 10px 16px; font-size: 12px; font-weight: 500; -webkit-backdrop-filter: blur(24px) saturate(.8); backdrop-filter: blur(24px) saturate(.8); }
 .identity-reveal .reveal-topline .text-button:hover { background: rgb(255 255 255 / .22); }
+
+/* Reveal order: name + tagline are the page title above the card; chips and actions follow the card. */
+.reveal-copy { display: contents; }
+.reveal-layout { align-items: center; }
+.reveal-layout > .reveal-showcase { order: 3; }
+.reveal-copy > h1 { order: 1; margin: 6px 0 0; }
+.reveal-copy > h2 { order: 2; margin: 2px 0 6px; }
+.reveal-copy > .reveal-tags { order: 4; margin-top: 4px; }
+.reveal-copy > .reveal-provisional { order: 5; }
+.reveal-copy > .reveal-actions { order: 6; }
+.reveal-tap { order: 3; }
+.identity-reveal .reveal-topline { position: absolute; top: 10px; right: 24px; z-index: 2; padding: 0; }
+@media (max-width: 760px) {
+  .identity-reveal .reveal-topline { right: 16px; top: 8px; }
+  .identity-reveal { padding-top: 52px; }
+  .reveal-copy > h1, .reveal-copy > h1.long-identity { font-size: 38px; }
+  .reveal-card-mount { zoom: .58; }
+}
