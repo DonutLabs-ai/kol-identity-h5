@@ -455,3 +455,19 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 
 /* About-you step: no prompt chips, just the "About you" label above the textarea. */
 .bio-hints { display: none; }
+
+/* ── Identity step: no stray rules, inline Required/Optional tags, portrait first ── */
+.form-area:has(.avatar-row) { display: flex; flex-direction: column; }
+.form-area:has(.avatar-row) > .avatar-row { order: 1; border: 0; padding: 8px 0 20px; }
+.form-area:has(.avatar-row) > .field { order: 2; }
+.form-area:has(.avatar-row) > .twitter-connect { order: 3; }
+.form-area:has(.avatar-row) > .contact-fields { order: 4; border: 0; margin-top: 8px; padding-top: 0; }
+.form-area:has(.avatar-row) > .form-footer { order: 5; border: 0; margin-top: 8px; padding-top: 8px; }
+.avatar-row, .contact-fields, .form-footer, .privacy-note { border: 0; }
+/* Label + Required/Optional on one line; the control sits under them full-width. */
+.field { display: block; }
+.field > input, .field > textarea { display: block; width: 100%; margin-top: 8px; }
+.field > small, .field > .field-bottom { display: block; margin-top: 8px; }
+.field > .field-bottom { display: flex; }
+.required, .optional { display: inline; margin-left: 6px; font-size: 11px; vertical-align: 1px; }
+.wallet-field-heading .required { margin-left: 6px; }
