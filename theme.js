@@ -66,7 +66,7 @@
   /* ── card tuning: size / y / tilt / copy bottom, per device class; auto-clamps so the card never covers the copy ── */
   var TKEY = "donut-identity-card-tune";
   var phone = function () { return innerWidth <= 760; };
-  var DEFAULTS = { m: { zoom: 78, y: 0, tz: -6, ty: 12, copy: 22 }, d: { zoom: 70, y: 0, tz: -6, ty: 12, copy: 22 } };
+  var DEFAULTS = { m: { zoom: 70, y: -63, tz: -6, ty: 12, copy: 22 }, d: { zoom: 70, y: 0, tz: -6, ty: 12, copy: 22 } };
   function loadTune() { try { return Object.assign(JSON.parse(JSON.stringify(DEFAULTS)), JSON.parse(localStorage.getItem(TKEY) || "{}")); } catch (e) { return JSON.parse(JSON.stringify(DEFAULTS)); } }
   var tune = loadTune();
   function saveTune() { try { localStorage.setItem(TKEY, JSON.stringify(tune)); } catch (e) {} }
