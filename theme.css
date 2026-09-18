@@ -335,8 +335,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 }
 .donut-hero-bg::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 22%; background: linear-gradient(180deg, transparent, #050511); }
 .landing {
-  display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; align-items: start; align-content: start; text-align: center;
-  gap: 0; max-width: none; min-height: var(--stage-h); margin: 0; padding: 0 24px 80px; color: #fff;
+  display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; justify-items: center; align-items: center; text-align: center;
+  gap: 0; max-width: none; min-height: var(--stage-h); margin: 0; padding: 0 24px 28px; color: #fff;
   background: linear-gradient(180deg,
     #050511 0, #050511 var(--stage-h),
     #191337 calc(var(--stage-h) + var(--band) * .2),
@@ -346,7 +346,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 }
 :root[data-theme="dark"] .landing { background: linear-gradient(180deg, #050511 0, #050511 var(--stage-h), #191337 calc(var(--stage-h) + var(--band) * .25), #5a45b8 calc(var(--stage-h) + var(--band) * .5), #2a1d3a calc(var(--stage-h) + var(--band) * .8), var(--page-bg) calc(var(--stage-h) + var(--band)), var(--page-bg) 100%); }
 /* Card first: smaller, spins in once (rotateY) then floats */
-.hero-art { order: -1; width: 100%; padding: 28px 0 0; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; gap: 0; perspective: 1400px; }
+.hero-art { order: -1; width: 100%; align-self: center; padding: 24px 0 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0; perspective: 1400px; }
 .hero-card {
   zoom: var(--card-zoom); transform-origin: 50% 50%; filter: drop-shadow(0 30px 70px rgb(0 0 0 / .6));
   animation: donut-spin-in 2s cubic-bezier(.2, .7, .2, 1) both, donut-float 9s ease-in-out 2.2s infinite;
@@ -354,22 +354,23 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .halo, .floating-caption { display: none; }
 .hero-number { display: none; }
 /* Copy under the card, white on the stage */
-.hero-copy { max-width: 760px; display: flex; flex-direction: column; align-items: center; margin-top: 8px; }
-.hero-copy .eyebrow { color: rgb(255 255 255 / .7); animation: donut-arrive 900ms cubic-bezier(.2, .7, .2, 1) 500ms both; }
-.hero-copy h1 { color: #fff; text-shadow: 0 2px 5px rgb(12 8 30 / .24), 0 5px 18px rgb(24 14 52 / .28); margin: 10px 0 12px; font-size: clamp(32px, 3.4vw, 44px); line-height: 1.06; animation: donut-arrive-blur 1100ms cubic-bezier(.2, .7, .2, 1) 620ms both; text-wrap: balance; }
+.hero-copy { max-width: 640px; display: flex; flex-direction: column; align-items: center; align-self: end; margin-top: 0; }
+.hero-copy .eyebrow { display: none; }
+.hero-copy h1 { color: #fff; text-shadow: 0 2px 5px rgb(12 8 30 / .24), 0 5px 18px rgb(24 14 52 / .28); margin: 0 0 10px; font-size: clamp(26px, 2.8vw, 38px); line-height: 1.06; animation: donut-arrive-blur 1100ms cubic-bezier(.2, .7, .2, 1) 620ms both; text-wrap: balance; }
 .hero-copy h1 em { color: #d9d3ff; }
-.hero-copy > p { color: rgb(255 255 255 / .78); text-shadow: 0 1px 3px rgb(12 8 30 / .55); margin: 0 auto; max-width: 560px; font-size: 14px; animation: donut-arrive 900ms cubic-bezier(.2, .7, .2, 1) 800ms both; }
-.hero-actions { justify-content: center; margin-top: 20px; animation: donut-arrive 900ms cubic-bezier(.2, .7, .2, 1) 920ms both; }
+.hero-copy > p { color: rgb(255 255 255 / .72); text-shadow: 0 1px 3px rgb(12 8 30 / .55); margin: 0 auto; max-width: 480px; font-size: 13px; animation: donut-arrive 900ms cubic-bezier(.2, .7, .2, 1) 800ms both; }
+.hero-actions { justify-content: center; margin-top: 16px; animation: donut-arrive 900ms cubic-bezier(.2, .7, .2, 1) 920ms both; }
 .landing .primary { color: #fff; background: rgb(255 255 255 / .16); -webkit-backdrop-filter: blur(24px) saturate(.8); backdrop-filter: blur(24px) saturate(.8); }
 .landing .primary:hover { background: rgb(255 255 255 / .26); }
-.hero-facts { justify-content: center; color: rgb(255 255 255 / .66); margin-top: 18px; animation: donut-arrive 900ms cubic-bezier(.2, .7, .2, 1) 1040ms both; }
+.hero-facts { justify-content: center; color: rgb(255 255 255 / .5); margin-top: 14px; font-size: 11px; animation: donut-arrive 900ms cubic-bezier(.2, .7, .2, 1) 1040ms both; }
 .hero-facts svg, .hero-facts .mini-clock { color: rgb(255 255 255 / .66); }
-.hero-process { justify-content: center; color: rgb(255 255 255 / .55); margin-top: 40px; animation: donut-arrive 900ms cubic-bezier(.2, .7, .2, 1) 1160ms both; }
+.landing .hero-process { display: none; }   /* the step strip repeats inside the flow; the stage stays quiet */
 .hero-process i { background: rgb(255 255 255 / .2); }
 @keyframes donut-arrive { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 @keyframes donut-arrive-blur { from { opacity: 0; transform: translateY(22px); filter: blur(8px); } to { opacity: 1; transform: none; filter: none; } }
-@keyframes donut-spin-in { 0% { opacity: 0; transform: translateY(40px) rotateY(-360deg) scale(.86); } 30% { opacity: 1; } 100% { opacity: 1; transform: none; } }
-@keyframes donut-float { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-8px) rotate(-.5deg); } }
+@keyframes donut-spin-in { 0% { opacity: 0; transform: translateY(40px) rotateY(-360deg) scale(.86); } 30% { opacity: 1; } 100% { opacity: 1; transform: var(--card-tilt); } }
+@keyframes donut-float { 0%, 100% { transform: var(--card-tilt) translateY(0); } 50% { transform: var(--card-tilt) translateY(-8px); } }
+.hero-card { --card-tilt: rotate(-6deg) rotateX(6deg) rotateY(12deg); transform: var(--card-tilt); }
 
 /* Reveal: same dark stage, poster only (no second video), copy stays left-aligned per the demo layout. */
 .identity-reveal { color: #fff; max-width: none; padding-left: max(24px, calc((100% - 1440px) / 2 + 64px)); padding-right: max(24px, calc((100% - 1440px) / 2 + 64px)); margin-top: 0; padding-top: 40px; }
@@ -402,13 +403,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .reveal-card-mount:hover { transform: translateY(-4px); }
 
 @media (max-width: 760px) {
-  .landing { --band: 200px; --card-zoom: .66; padding: 0 20px 56px; }
-  .hero-art { padding-top: 16px; }
-  .hero-copy h1 { font-size: clamp(28px, 8.4vw, 34px); }
-  .hero-copy > p { font-size: 13px; }
-  .hero-actions .primary { min-height: 46px; font-size: 13px; }
-  .hero-facts { font-size: 11px; gap: 10px 14px; margin-top: 14px; }
-  .hero-process { margin-top: 28px; font-size: 10px; }
+  .landing { --band: 200px; --card-zoom: .7; padding: 0 20px 24px; }
+  .hero-art { padding: 12px 0; }
+  .hero-copy h1 { font-size: clamp(24px, 6.6vw, 27px); }
+  .hero-copy > p { font-size: 12px; max-width: 320px; }
+  .hero-actions { margin-top: 12px; }
+  .hero-actions .primary { min-height: 44px; font-size: 13px; }
+  .hero-facts { display: none; }
   .identity-reveal { margin-top: 0; padding-top: 28px; }
 }
 @media (prefers-reduced-motion: reduce) {
