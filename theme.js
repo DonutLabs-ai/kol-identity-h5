@@ -121,13 +121,35 @@
     if (landing) { stage(landing, true); if (!panel) mountPanel(); applyTune(); }
     if (panel) { panel.style.display = landing ? "" : "none"; if (tuneBtn) tuneBtn.style.display = landing ? "" : "none"; }
     var reveal = document.querySelector(".identity-reveal");
-    if (reveal) stage(reveal, false);
+    if (reveal) { stage(reveal, false); tapHint(); }
     // Flow pages: drop any stage layer the reused <main> carried over (it would only keep a video decoding).
     document.querySelectorAll(".donut-hero-bg").forEach(function (bg) {
       var host = bg.parentElement;
       if (!host || !(host.classList.contains("landing") || host.classList.contains("identity-reveal"))) bg.remove();
     });
   }
+  /* ── reveal: tap the card to flip it (drives the artifact's hidden Identity/Style switch) ── */
+  document.addEventListener("click", function (e) {
+    var mount = e.target.closest && e.target.closest(".reveal-card-mount");
+    if (!mount || mount.classList.contains("is-flipping")) return;
+    var next = Array.prototype.find.call(document.querySelectorAll(".reveal-card-controls button"), function (b) { return !b.classList.contains("active"); });
+    if (!next) return;
+    mount.classList.add("is-flipping");
+    setTimeout(function () {
+      next.click();
+      requestAnimationFrame(function () {
+        mount.classList.remove("is-flipping"); mount.classList.add("is-flipping-in");
+        setTimeout(function () { mount.classList.remove("is-flipping-in"); }, 340);
+      });
+    }, 300);
+  });
+  function tapHint() {
+    var sc = document.querySelector(".reveal-showcase");
+    if (!sc || sc.querySelector(".reveal-tap")) return;
+    var hint = document.createElement("span"); hint.className = "reveal-tap"; hint.textContent = "Tap the card to flip";
+    var mount = sc.querySelector(".reveal-card-mount"); (mount || sc).insertAdjacentElement("afterend", hint);
+  }
+
   var target = document.getElementById("root") || document.body;
   new MutationObserver(scan).observe(target, { childList: true, subtree: true });
   scan();

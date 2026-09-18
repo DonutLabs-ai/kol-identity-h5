@@ -476,3 +476,38 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .network-symbol { font-size: 0; color: transparent; width: 22px; height: 22px; flex: 0 0 22px; background: url(./logos/ethereum.png) center / contain no-repeat; }
 .network-symbol.solana { background-image: url(./logos/solana.png); }
 .address-network label > svg, .choices button.selected > svg:last-child { display: none; }   /* the radio dot already says "selected" */
+
+/* ═══ Reveal: the card first, the name under it, nothing decorative. One phone screen: card + name + share. ═══ */
+.identity-reveal { padding-top: 8px; }
+.identity-reveal .reveal-topline { border: 0; justify-content: flex-end; padding: 8px 0 0; }
+.identity-reveal .reveal-topline > span { display: none; }                       /* "YOUR IDENTITY, REVEALED" */
+.reveal-edition, .reveal-person, .reveal-english, .reveal-description, .reveal-invite, .reveal-card-label, .reveal-card-id, .reveal-card-controls, .reveal-orbit, .reveal-showcase::before { display: none; }
+.reveal-layout { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; align-items: start; gap: 8px; padding: 4px 0 28px; text-align: center; }
+.reveal-showcase { order: -1; width: 100%; perspective: 1400px; padding: 0; margin: 0; }
+.reveal-copy { display: flex; flex-direction: column; align-items: center; padding: 0; max-width: 640px; }
+.reveal-copy h1 { font-size: clamp(40px, 5.6vw, 68px); line-height: 1; margin: 0 0 8px; letter-spacing: -.02em; }
+.reveal-copy h1.long-identity { font-size: clamp(36px, 4.6vw, 56px); letter-spacing: -.02em; }
+.reveal-copy h2 { font-size: clamp(17px, 2vw, 24px); margin-top: 4px; color: rgb(255 255 255 / .82); }
+.reveal-tags { justify-content: center; margin-top: 12px; }
+.reveal-provisional { margin-top: 8px; }
+.reveal-actions { justify-content: center; margin-top: 16px; }
+/* The card spins in (two turns, like the landing), rests tilted, and flips on tap instead of a two-button switch. */
+.reveal-card-mount { --card-tilt: rotate(-4deg) rotateX(4deg) rotateY(8deg); transform: var(--card-tilt); animation: donut-spin-in 2.2s cubic-bezier(.25, .6, .2, 1) both; cursor: pointer; filter: none; transition: none; -webkit-tap-highlight-color: transparent; }
+.reveal-card-mount:hover { transform: var(--card-tilt); }
+.reveal-card-mount .card-export { transform-style: preserve-3d; transition: transform .3s cubic-bezier(.4, 0, .2, 1); filter: none; }
+.reveal-card-mount.is-flipping .card-export { transform: rotateY(90deg); }
+.reveal-card-mount.is-flipping-in .card-export { animation: donut-flip-in .32s cubic-bezier(.2, .7, .2, 1) both; }
+@keyframes donut-flip-in { from { transform: rotateY(-90deg); } to { transform: rotateY(0); } }
+.reveal-tap { display: block; margin: 22px auto 0; font: 500 11px/1 var(--sans); letter-spacing: 1.6px; text-transform: uppercase; color: rgb(255 255 255 / .5); animation: donut-arrive 900ms 1.8s both; }
+@media (max-width: 760px) {
+  .identity-reveal { padding-top: 0; }
+  .reveal-layout { gap: 4px; padding-bottom: 20px; }
+  .reveal-card-mount { zoom: .6; width: auto; }
+  .reveal-showcase .card-export, .reveal-showcase .identity-card { width: 354px; }
+  .reveal-copy h1, .reveal-copy h1.long-identity { font-size: 40px; }
+  .reveal-copy h2 { font-size: 17px; }
+  .reveal-tags > span { font-size: 11px; padding: 7px 11px; }
+  .reveal-actions { margin-top: 14px; }
+  .reveal-tap { margin-top: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { .reveal-card-mount, .reveal-card-mount .card-export { animation: none !important; transition: none !important; } }
