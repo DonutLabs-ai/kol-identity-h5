@@ -619,3 +619,43 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .reveal-tap { font-size: 9px; letter-spacing: 1.2px; color: rgb(255 255 255 / .38); }
 .donut-pulse { box-shadow: inset 0 0 140px 40px rgb(162 72 255 / .34); }
 :root[data-theme="dark"] .donut-pulse { box-shadow: inset 0 0 160px 48px rgb(162 72 255 / .32); }
+
+/* ═══ Controls: one spec. Material = liquid-glass-react pane (glass.js), never hand-drawn glass on the host. ═══ */
+:root { --control-h: 48px; --control-h-sm: 40px; --control-pad: 0 20px; --control-font: 14px; --control-glass: rgb(255 255 255 / .28); --control-glass-hover: rgb(255 255 255 / .38); }
+@media (max-width: 760px) { :root { --control-h: 44px; --control-h-sm: 38px; --control-pad: 0 18px; --control-font: 13px; } }
+.primary, .secondary, .reveal-actions button, .result-actions button, .form-footer .primary, .twitter-connect .secondary, .membership .secondary, .full, .reveal-topline .text-button {
+  height: var(--control-h); min-height: 0; padding: var(--control-pad); font-size: var(--control-font); font-weight: 500; border-radius: 999px; border: 0; box-shadow: none; gap: 10px;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+.reveal-actions button, .result-actions button, .reveal-actions .reveal-share { min-width: 0; padding: var(--control-pad); font-size: var(--control-font); min-height: 0; }
+.donut-theme-toggle, .donut-tune-toggle, .reveal-topline .text-button { width: var(--control-h-sm); height: var(--control-h-sm); padding: 0; }
+.donut-theme-toggle svg, .donut-tune-toggle svg { width: 18px; height: 18px; }
+/* Hosts stay clear; the pane carries the material (mirrors the website's controls.css). */
+.has-liquid-glass { position: relative; isolation: isolate; }
+.has-liquid-glass > .glass-surface { position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none; }
+.has-liquid-glass > .glass-surface.is-live > * { pointer-events: auto; }
+.has-liquid-glass, .has-liquid-glass:hover, .has-liquid-glass:active { background: transparent !important; border-color: transparent !important; box-shadow: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+.glass-surface-control:not(.is-live) { background: var(--control-glass); -webkit-backdrop-filter: blur(24px) saturate(.8); backdrop-filter: blur(24px) saturate(.8); }
+.has-liquid-glass:hover > .glass-surface:not(.is-live) { background: var(--control-glass-hover); }
+.glass-surface .glass { background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; width: 100%; height: 100%; box-sizing: border-box; }
+.glass-surface span { display: none !important; }
+.glass-surface-control .glass { background: var(--control-glass); box-shadow: 0 8px 24px rgb(7 5 16 / .14) !important; border: 0; }
+.glass-surface .glass__warp { filter: none !important; }
+.glass-surface .bg-black { background: #000; } .glass-surface .opacity-0 { opacity: 0; } .glass-surface .opacity-20 { opacity: .2; } .glass-surface .opacity-100 { opacity: 1; } .glass-surface .mix-blend-overlay { mix-blend-mode: overlay; } .glass-surface .pointer-events-none { pointer-events: none; }
+/* Text colour per ground: ink on the light flow pages, white on the dark stages; the primary CTA keeps the ink pill. */
+.primary.has-liquid-glass, .full.has-liquid-glass, .reveal-actions .reveal-share.has-liquid-glass { color: var(--ink-pill-text); }
+.primary.has-liquid-glass > .glass-surface-control:not(.is-live), .primary.has-liquid-glass > .glass-surface .glass, .full.has-liquid-glass > .glass-surface .glass, .reveal-actions .reveal-share.has-liquid-glass > .glass-surface .glass, .reveal-actions .reveal-share.has-liquid-glass > .glass-surface-control:not(.is-live) { background: var(--ink-pill); }
+.landing .primary.has-liquid-glass, .identity-reveal .reveal-actions .reveal-share.has-liquid-glass { color: #1a1728; }
+.landing .primary.has-liquid-glass > .glass-surface .glass, .landing .primary.has-liquid-glass > .glass-surface-control:not(.is-live) { background: rgb(255 255 255 / .92); }
+.secondary.has-liquid-glass, .twitter-connect .secondary.has-liquid-glass { color: var(--ink); }
+.identity-reveal .reveal-actions .secondary.has-liquid-glass, .identity-reveal .reveal-topline .text-button, .landing .text-button { color: #fff; }
+.avatar-preview.has-liquid-glass { color: var(--muted); }
+/* Start over: icon only */
+.identity-reveal .reveal-topline .text-button { font-size: 0; gap: 0; display: grid; place-items: center; }
+.identity-reveal .reveal-topline .text-button svg { width: 18px; height: 18px; }
+/* Camera badge: icon dead-centre */
+.avatar-row .upload-button { position: absolute; }
+.avatar-row .upload-button::before { position: absolute; inset: 0; margin: auto; }
+/* Reveal sits on the dark stage: Share is a white pill there (the ink pill would vanish). */
+.identity-reveal .reveal-actions .reveal-share.has-liquid-glass > .glass-surface .glass,
+.identity-reveal .reveal-actions .reveal-share.has-liquid-glass > .glass-surface-control:not(.is-live) { background: rgb(255 255 255 / .92); }
