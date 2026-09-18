@@ -404,16 +404,16 @@
     root.innerHTML = '<div class="donut-intro-ring"></div><div class="donut-intro-copy"><h1>Test your Trading Personality on Donut D0</h1><p>presented by Donut.ai</p></div>';
     var ring = root.querySelector(".donut-intro-ring");
     var W = innerWidth, H = innerHeight, ph = W <= 760;
-    var CW = ph ? Math.min(340, W - 40) : 380, CH = Math.round(CW * 1.42);   // the fly-by card face: near full width so the character reads
+    var CW = ph ? Math.min(340, W - 40) : 380, CH = Math.round(CW * 550 / 380);   // the fly-by card: Yi's ticket, pre-rendered (scripts/render-intro-cards.*)
     root.style.setProperty("--cw", CW + "px"); root.style.setProperty("--ch", CH + "px");
     var imgs = [];
     // orbit carries the position; the card face inside counter-rotates so it stays upright while the ring turns
     var cards = ARCHETYPES.map(function (t, i) {
       var o = document.createElement("div"); o.className = "donut-intro-orbit";
-      var c = document.createElement("div"); c.className = "donut-intro-card skin-" + SKINS[i];
-      c.innerHTML = '<span class="notch">Donut Trader</span><div class="photo"></div><strong></strong><em></em>';
-      c.querySelector("strong").textContent = t; c.querySelector("em").textContent = TAGLINES[t] || "";
-      var img = document.createElement("img"); img.src = archetypePortrait(t); img.alt = ""; img.decoding = "async"; c.querySelector(".photo").appendChild(img); imgs.push(img);
+      var c = document.createElement("div"); c.className = "donut-intro-card";
+      var img = document.createElement("img"); img.alt = t; img.decoding = "async";
+      img.src = new URL("img/intro/" + String(i + 1).padStart(2, "0") + "-" + t.toLowerCase().replace(/[^a-z]+/g, "-") + ".webp", location.href).href;
+      c.appendChild(img); imgs.push(img);
       o.appendChild(c); ring.appendChild(o); return o;
     });
     var slot = ph ? 54 : 84, sc = slot / CW;   // ring slot size → scale of the full card
