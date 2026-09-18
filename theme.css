@@ -718,3 +718,22 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 }
 :root[data-theme="dark"] .landing + .site-footer { background: linear-gradient(180deg, #050511 0%, #191337 25%, #5a45b8 50%, #2a1d3a 78%, var(--page-bg) 100%); }
 @media (max-width: 760px) { .landing + .site-footer { padding-top: 150px; } }
+
+/* Phones: first and last screens are exactly one viewport tall — no footer band below them; the archetype row
+   sits at the bottom of the reveal screen. The questionnaire steps keep their natural length. */
+@media (max-width: 760px) {
+  .landing + .site-footer, .identity-reveal + .site-footer { display: none; }
+  .landing { min-height: 100svh; }
+  .identity-reveal { min-height: 100svh; display: flex; flex-direction: column; padding-bottom: 14px; }
+  .identity-reveal .reveal-layout { padding-bottom: 6px; }
+  .identity-spectrum { margin-top: auto; padding-top: 10px; border-top: 0; }
+  .identity-spectrum .spectrum-heading { margin-bottom: 8px; }
+  .identity-spectrum .spectrum-heading p { font-size: 16px; }
+  .spectrum-grid { padding-bottom: 4px; }
+  .spectrum-type { padding: 8px 12px 10px; min-width: 120px; }
+  .spectrum-type small { margin-bottom: 4px; }
+}
+/* The glass host rule (.has-liquid-glass { position: relative }) must not un-fix the floating toggles. */
+.donut-theme-toggle.has-liquid-glass, .donut-tune-toggle.has-liquid-glass { position: fixed !important; }
+/* The archetype row bleeds past the gutters; clip it at the section so the page never scrolls sideways. */
+.identity-reveal, .landing { overflow-x: clip; }

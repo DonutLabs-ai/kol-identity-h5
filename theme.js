@@ -124,7 +124,10 @@
     if (reveal) {
       stage(reveal, false); tapHint();
       var mine = reveal.querySelector(".spectrum-type.is-yours");
-      if (mine && !mine.dataset.shown) { mine.dataset.shown = "1"; setTimeout(function () { mine.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" }); }, 1200); }
+      if (mine && !mine.dataset.shown) { mine.dataset.shown = "1"; setTimeout(function () {
+        var row = mine.parentElement; if (!row) return;   // scroll the row itself, never the page
+        row.scrollTo({ left: mine.offsetLeft - (row.clientWidth - mine.offsetWidth) / 2, behavior: "smooth" });
+      }, 1200); }
       autoScroll(reveal.querySelector(".spectrum-grid"));
     }
     // Flow pages: drop any stage layer the reused <main> carried over (it would only keep a video decoding).
