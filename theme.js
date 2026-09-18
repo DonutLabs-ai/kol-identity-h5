@@ -84,8 +84,12 @@
     });
   }
   var clamped = false;
-  function applyTune() {
+  var tuneKey = "";
+  function applyTune(force) {
     var landing = document.querySelector(".landing"); if (!landing) return;
+    var key = innerWidth + "x" + innerHeight + "|" + JSON.stringify(tune) + "|" + (landing.querySelector(".hero-card.has-flash") ? 1 : 0);
+    if (!force && key === tuneKey && landing.style.getPropertyValue("--card-zoom")) { applyFlash(); return; }
+    tuneKey = key;
     var t = cur();
     landing.style.setProperty("--card-zoom", String(t.zoom / 100));
     landing.style.setProperty("--card-y", t.y + "px");
@@ -98,12 +102,11 @@
     var card = landing.querySelector(".hero-card"), h1 = landing.querySelector(".hero-copy h1");
     // the opening spin distorts the card's rect while it runs, so measure at the settled pose: jump the finite
     // animations to their end for the measurement and put them back in the same frame (nothing is painted between)
-    var running = landing.getAnimations ? landing.getAnimations({ subtree: true }).filter(function (a) {   // card spin, copy fade-up …
-      var t = a.effect && a.effect.getTiming ? a.effect.getTiming() : {};
-      return a.playState !== "finished" && t.iterations !== Infinity;   // running, or paused behind the intro
-    }) : [];
+    var running = landing.getAnimations ? landing.getAnimations({ subtree: true }).filter(function (a) { return a.playState !== "finished"; }) : [];
     var saved = running.map(function (a) { return a.currentTime; });
-    running.forEach(function (a) { try { a.currentTime = a.effect.getComputedTiming().endTime; } catch (e) {} });
+    running.forEach(function (a) {   // finite (spin-in, copy fade-up) → their end pose; infinite (idle float) → their resting start
+      try { var t = a.effect.getComputedTiming(); a.currentTime = t.iterations === Infinity ? 0 : t.endTime; } catch (e) {}
+    });
     if (card && h1) {   // desktop too: short laptop viewports otherwise let the tilted corner touch the headline
       for (var i = 0; i < 12; i++) {
         var c = card.getBoundingClientRect(), top = h1.getBoundingClientRect().top;
@@ -137,11 +140,11 @@
     panel.addEventListener("input", function (e) {
       var inp = e.target; if (inp.tagName !== "INPUT") return;
       var v = Number(inp.value); if (!isFinite(v)) return;
-      bag(inp.name)[inp.name] = v; saveTune(); applyTune();
+      bag(inp.name)[inp.name] = v; saveTune(); applyTune(true);
     });
     panel.addEventListener("click", function (e) {
       var act = e.target.getAttribute("data-act");
-      if (act === "reset") { tune[phone() ? "m" : "d"] = JSON.parse(JSON.stringify(DEFAULTS[phone() ? "m" : "d"])); tune.card = JSON.parse(JSON.stringify(DEFAULTS.card)); saveTune(); applyTune(); }
+      if (act === "reset") { tune[phone() ? "m" : "d"] = JSON.parse(JSON.stringify(DEFAULTS[phone() ? "m" : "d"])); tune.card = JSON.parse(JSON.stringify(DEFAULTS.card)); saveTune(); applyTune(true); }
       if (act === "copy") {
         var t = cur(); var css = (phone() ? "@media (max-width: 760px) { .landing { " : ".landing { ") + "--card-zoom: " + (t.zoom / 100) + "; --card-y: " + t.y + "px; --tilt-z: " + t.tz + "deg; --tilt-y: " + t.ty + "deg; --copy-bottom: " + t.copy + "px; }" + (phone() ? " }" : "") + "\n/* card face */ .donut-flash { --photo-pos: " + tune.card.px + "% " + tune.card.py + "%; --photo-zoom: " + (tune.card.pz / 100) + "; --notch-ink: " + (tune.card.ink / 100) + "; --notch-bg: " + (tune.card.bg / 100) + "; }";
         navigator.clipboard && navigator.clipboard.writeText(css).then(function () { e.target.textContent = "Copied"; setTimeout(function () { e.target.textContent = "Copy CSS"; }, 1200); });
@@ -266,7 +269,7 @@
     document.querySelectorAll(".identity-card").forEach(decorateCard);
     flashSync();
     var landing = document.querySelector(".landing");
-    if (landing) { stage(landing, true); if (!panel) mountPanel(); applyTune(); }
+    if (landing) { stage(landing, true); if (!panel) mountPanel(); applyTune(); }   // applyTune is a no-op unless viewport/tune/card changed
     if (panel) { panel.style.display = landing ? "" : "none"; if (tuneBtn) tuneBtn.style.display = landing ? "" : "none"; }
     var reveal = document.querySelector(".identity-reveal");
     if (reveal) {
@@ -386,7 +389,7 @@
   }
 
   /* ── opening: the twelve card faces flick past horizontally at full size, settle into an upright ring, the title
-        lands, then the landing shows. Once per session; ?intro=1 replays, ?intro=0 skips, reduced-motion skips, any tap skips. ── */
+        lands, then the landing shows. Every load; ?intro=0 skips, reduced-motion skips, any tap skips. ── */
   var TAGLINES = { "Diamond Hands": "Make time your home ground.", "DCA Believer": "Give every persistence to time.", "Risk Explorer": "Beyond the edge, your coordinates.",
     "Day Trader": "Your home ground is the present.", "Sniper": "Patience is your entry.", "Grid Executor": "Write the market's swings into rules.",
     "Swing Hunter": "Every leg of the market has your rhythm.", "Momentum Rider": "Trends appear; you have your answer.", "Arb Researcher": "See the other possibility between prices.",
@@ -395,9 +398,7 @@
   (function intro() {
     var q = new URLSearchParams(location.search);
     if (q.get("intro") === "0") return;
-    var seen = false; try { seen = !!sessionStorage.getItem("donut-intro-seen"); } catch (e) {}
-    if (q.get("intro") !== "1" && (reduce.matches || seen)) return;
-    try { sessionStorage.setItem("donut-intro-seen", "1"); } catch (e) {}
+    if (q.get("intro") !== "1" && reduce.matches) return;   // plays on every load (a refresh replays it); any tap skips
     document.documentElement.setAttribute("data-intro", "");
     var root = document.createElement("div"); root.className = "donut-intro"; root.setAttribute("role", "presentation");
     root.innerHTML = '<div class="donut-intro-ring"></div><div class="donut-intro-copy"><h1>Test your Trading Personality on Donut D0</h1><p>presented by Donut.ai</p></div>';
@@ -428,7 +429,7 @@
       timers.forEach(clearTimeout);
       root.classList.add("is-out");
       document.documentElement.removeAttribute("data-intro");
-      applyTune();
+      applyTune(true);
       setTimeout(function () { root.remove(); }, 700);
     }
     root.addEventListener("click", finish);
@@ -462,6 +463,6 @@
   var target = document.getElementById("root") || document.body;
   new MutationObserver(function () { scan(); collectFaces(); stepPulse(); }).observe(target, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
   scan(); collectFaces(); stepPulse();
-  var rt; addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(applyTune, 120); });
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(applyTune);
+  var rt; addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(function () { applyTune(true); }, 120); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { applyTune(true); });
 })();
