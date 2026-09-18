@@ -583,3 +583,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .avatar-row .upload-button { position: absolute; left: calc(50% + 24px); top: calc(8px + 116px - 36px); width: 36px; height: 36px; padding: 0; border-radius: 50%; display: grid; place-items: center; background: var(--ink-pill); color: var(--ink-pill-text); font-size: 0; gap: 0; box-shadow: 0 6px 18px rgb(32 32 38 / .18); }
 .avatar-row .upload-button svg { width: 16px; height: 16px; }
 .avatar-row .text-button { margin: 10px 0 0; font-size: 12px; }
+
+/* Hide the demo autofill button; standard avatar pattern: photo circle + camera badge */
+.form-top .test-fill-button { display: none !important; }
+.avatar-preview { width: 120px; height: 120px; box-shadow: inset 0 0 0 1px rgb(32 32 38 / .06); }
+.avatar-preview svg { width: 40px; height: 40px; opacity: .7; }
+.avatar-row .upload-button { left: calc(50% + 26px); top: calc(8px + 120px - 38px); width: 38px; height: 38px; }
+.avatar-row .upload-button svg { display: none; }
+.avatar-row .upload-button::before { content: ""; width: 18px; height: 18px; background: currentColor; -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z'/><circle cx='12' cy='13' r='3'/></svg>") center / contain no-repeat; mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z'/><circle cx='12' cy='13' r='3'/></svg>") center / contain no-repeat; }
