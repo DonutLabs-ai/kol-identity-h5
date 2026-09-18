@@ -127,7 +127,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   font-family: var(--serif); font-weight: 400; letter-spacing: -.02em;
 }
 .hero-copy h1 { font-size: clamp(40px, 4.2vw, 56px); line-height: 1.1; margin: 20px 0 22px; color: var(--ink); text-wrap: balance; }
-.hero-copy h1 em { color: var(--violet); font-style: italic; }
+.hero-copy h1 em { color: var(--violet); font-style: normal; }   /* accent colour only, no italic (per Cory) */
 .hero-copy > p { color: var(--muted); font-size: 15px; line-height: 1.7; max-width: 520px; }
 .eyebrow { color: var(--muted); font-family: var(--sans); font-size: 11px; letter-spacing: 2.4px; font-weight: 500; }
 .hero-facts { color: var(--muted); font-size: 12px; }
@@ -865,3 +865,6 @@ html[data-lang="zh"] .hero-copy h1, html[data-lang="ko"] .hero-copy h1 { letter-
 :root[data-theme="light"] .donut-lang button { color: rgb(32 32 38 / .7); }
 :root[data-theme="light"] .donut-lang button[aria-current="true"] { background: #16141f; color: #fff; }
 html[data-intro] .donut-lang { display: none; }
+
+/* no italics anywhere on the site */
+em, i, .reveal-copy em, .donut-intro-copy em { font-style: normal; }

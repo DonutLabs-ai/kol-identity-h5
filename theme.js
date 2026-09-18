@@ -463,7 +463,7 @@
       setTimeout(function () { root.remove(); }, 700);
     }
     root.addEventListener("click", finish);
-    var STAGGER = 190, FLY = 1000, flyY = ph ? H * .44 : H * .5;
+    var STAGGER = 260, FLY = 1350, flyY = ph ? H * .44 : H * .5;   // slower flick: each card is on screen ~0.6s
     function run() {
       var from = "translate(" + Math.round(W / 2 + CW) + "px, " + Math.round(flyY) + "px) rotate(4deg)";
       var to = "translate(" + Math.round(-W / 2 - CW) + "px, " + Math.round(flyY) + "px) rotate(-4deg)";
