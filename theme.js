@@ -52,14 +52,6 @@
     }
     host.prepend(bg);
   }
-  /* ── intro FX: fx.js (three + postprocessing) listens for this and plays once per landing mount ── */
-  function burst(landing) {
-    var art = landing.querySelector(".hero-art");
-    if (!art || art.dataset.fxPlayed) return;
-    art.dataset.fxPlayed = "1"; art.dataset.fxAt = String(performance.now());
-    window.dispatchEvent(new CustomEvent("donut:landing", { detail: { art: art } }));
-  }
-
   /* ── card tuning: size / y / tilt / copy bottom, per device class; auto-clamps so the card never covers the copy ── */
   var TKEY = "donut-identity-card-tune";
   var phone = function () { return innerWidth <= 760; };
@@ -126,7 +118,7 @@
   }
   function scan() {
     var landing = document.querySelector(".landing");
-    if (landing) { stage(landing, true); burst(landing); if (!panel) mountPanel(); applyTune(); }
+    if (landing) { stage(landing, true); if (!panel) mountPanel(); applyTune(); }
     if (panel) { panel.style.display = landing ? "" : "none"; if (tuneBtn) tuneBtn.style.display = landing ? "" : "none"; }
     var reveal = document.querySelector(".identity-reveal");
     if (reveal) stage(reveal, false);

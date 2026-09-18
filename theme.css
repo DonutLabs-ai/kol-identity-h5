@@ -310,10 +310,23 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .landing { padding: 40px 20px 64px; gap: 40px; }
   .hero-copy h1 { font-size: clamp(34px, 10vw, 40px); line-height: 1.12; letter-spacing: -.02em; }
   .hero-copy > p { font-size: 14px; }
-  .form-area { padding: 28px 20px 48px; }
+  .form-area { padding: 20px 20px 48px; }
   .form-area h1 { font-size: 34px; }
-  .question-list legend { font-size: 15px; }
-  .choices button { font-size: 13px; }
+  /* Progress: the four step buttons collapse into one segmented line; the STEP 01 / 03 label goes. */
+  .flow-rail { padding: 18px 20px 0; border-bottom: 0; }
+  .steps { display: flex; gap: 6px; height: 3px; }
+  .steps button { flex: 1; height: 3px; padding: 0; border-radius: 2px; background: var(--line); font-size: 0; color: transparent; overflow: hidden; gap: 0; }
+  .steps button span { display: none; }
+  .steps button.done, .steps button.active { background: var(--violet); }
+  .form-top { font-size: 0; color: transparent; margin-bottom: 16px; min-height: 0; }
+  .form-top .test-fill-button { font-size: 12px; color: var(--ink); }
+  .form-top .sample-tag { font-size: 11px; color: var(--violet); }
+  .question-list legend { font-size: 19px; line-height: 1.35; }
+  .question-list legend > span { font-size: 12px; }
+  .question-list fieldset > p { font-size: 13px; }
+  .choices button { font-size: 15px; min-height: 52px; padding: 13px 16px; }
+  .choices button small { font-size: 12px; }
+  .intro { font-size: 14px; }
   .reveal-copy h1 { font-size: clamp(56px, 17vw, 72px); }
   .reveal-copy h1.long-identity { font-size: clamp(38px, 11.6vw, 50px); }
   .reveal-copy h2 { font-size: 24px; }
@@ -347,10 +360,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 :root[data-theme="dark"] .landing { background: linear-gradient(180deg, #050511 0, #050511 var(--stage-h), #191337 calc(var(--stage-h) + var(--band) * .25), #5a45b8 calc(var(--stage-h) + var(--band) * .5), #2a1d3a calc(var(--stage-h) + var(--band) * .8), var(--page-bg) calc(var(--stage-h) + var(--band)), var(--page-bg) 100%); }
 /* Card first: smaller, spins in once (rotateY) then floats */
 .hero-art { order: -1; position: relative; width: 100%; align-self: center; padding: 24px 0 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0; perspective: 1400px; translate: 0 var(--card-y, 0px); }
-/* Intro FX canvas (fx.js): sits behind the card inside .hero-art, spills past it for the rays. */
-.donut-fx { position: absolute; left: 50%; top: 50%; translate: -50% -50%; width: max(140%, 900px); height: max(140%, 900px); max-width: 1600px; max-height: 1600px; pointer-events: none; z-index: -1; opacity: 0; transition: opacity .35s ease; mix-blend-mode: screen; }
-.donut-fx[data-on] { opacity: 1; }
-@media (prefers-reduced-motion: reduce) { .donut-fx { display: none; } }
+/* (intro burst removed per review: the card spin alone carries the opening) */
 .hero-card {
   zoom: var(--card-zoom); transform-origin: 50% 50%; filter: none;   /* no drop shadow (per review) */
   animation: donut-spin-in 2.6s cubic-bezier(.25, .6, .2, 1) both, donut-float 9s ease-in-out 2.8s infinite;
