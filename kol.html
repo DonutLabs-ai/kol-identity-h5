@@ -286,4 +286,6 @@ setTimeout(() => {
   dlg.dispatchEvent(new CustomEvent('signup:statechange', { detail: { state: 'success', ownsFocus: false } }));
 }, 750);
 setTimeout(() => { dlg.dataset.uiReady = ''; }, 1300);
+// ?skin= overrides the per-type colour (the identity site wears one skin for every style)
+{ const sk = sp.get('skin'); if (sk) applySkin(sk, false); }
 </script></body></html>
