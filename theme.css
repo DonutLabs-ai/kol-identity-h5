@@ -659,3 +659,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 /* Reveal sits on the dark stage: Share is a white pill there (the ink pill would vanish). */
 .identity-reveal .reveal-actions .reveal-share.has-liquid-glass > .glass-surface .glass,
 .identity-reveal .reveal-actions .reveal-share.has-liquid-glass > .glass-surface-control:not(.is-live) { background: rgb(255 255 255 / .92); }
+
+/* Control spec audit: icon sizes normalised, icon-only buttons truly square and centred, Share on the dark stage always white. */
+.primary svg, .secondary svg, .reveal-actions button svg, .form-footer button svg, .twitter-connect .secondary svg { width: 16px; height: 16px; flex: 0 0 16px; }
+.identity-reveal .reveal-topline .text-button { padding: 0 !important; width: var(--control-h-sm) !important; height: var(--control-h-sm) !important; display: grid !important; place-items: center; gap: 0; line-height: 0; }
+.identity-reveal .reveal-topline .text-button svg { width: 16px; height: 16px; display: block; }
+.donut-theme-toggle, .donut-tune-toggle { padding: 0; display: grid; place-items: center; line-height: 0; }
+.identity-reveal .reveal-actions .reveal-share.has-liquid-glass > .glass-surface-control:not(.is-live),
+.identity-reveal .reveal-actions .reveal-share.has-liquid-glass > .glass-surface .glass { background: rgb(255 255 255 / .92) !important; }
+.identity-reveal .reveal-actions .reveal-share.has-liquid-glass { color: #1a1728 !important; }
+/* The hidden "Start over" text node is still an (empty) grid item; keep rows at content size and centre the block. */
+.identity-reveal .reveal-topline .text-button { grid-auto-rows: min-content; align-content: center; justify-items: center; }
