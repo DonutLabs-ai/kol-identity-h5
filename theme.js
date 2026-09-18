@@ -121,7 +121,11 @@
     if (landing) { stage(landing, true); if (!panel) mountPanel(); applyTune(); }
     if (panel) { panel.style.display = landing ? "" : "none"; if (tuneBtn) tuneBtn.style.display = landing ? "" : "none"; }
     var reveal = document.querySelector(".identity-reveal");
-    if (reveal) { stage(reveal, false); tapHint(); }
+    if (reveal) {
+      stage(reveal, false); tapHint();
+      var mine = reveal.querySelector(".spectrum-type.is-yours");
+      if (mine && !mine.dataset.shown) { mine.dataset.shown = "1"; setTimeout(function () { mine.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" }); }, 1200); }
+    }
     // Flow pages: drop any stage layer the reused <main> carried over (it would only keep a video decoding).
     document.querySelectorAll(".donut-hero-bg").forEach(function (bg) {
       var host = bg.parentElement;

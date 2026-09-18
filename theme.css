@@ -511,3 +511,17 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .reveal-tap { margin-top: 16px; }
 }
 @media (prefers-reduced-motion: reduce) { .reveal-card-mount, .reveal-card-mount .card-export { animation: none !important; transition: none !important; } }
+
+/* ── Reveal: archetypes as one horizontal row (scroll-snap), Start over as a glass pill ── */
+.identity-spectrum { padding-top: 20px; }
+.spectrum-heading { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.spectrum-heading > span { display: none; }                 /* "12 ARCHETYPES. ONE OF A KIND." */
+.spectrum-heading p { font-family: var(--serif); font-size: 20px; color: #fff; margin: 0; }
+.spectrum-grid { display: flex; grid-template-columns: none; gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 2px 0 10px; margin: 0 -24px; padding-left: 24px; padding-right: 24px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.spectrum-grid::-webkit-scrollbar { display: none; }
+.spectrum-type { flex: 0 0 auto; min-width: 128px; scroll-snap-align: start; padding: 10px 12px 12px; }
+.spectrum-type small { margin-bottom: 6px; }
+.spectrum-type > span { font-size: 12px; }
+@media (max-width: 760px) { .spectrum-grid { margin: 0 -20px; padding-left: 20px; padding-right: 20px; } .spectrum-heading p { font-size: 18px; } }
+.identity-reveal .reveal-topline .text-button { color: #fff; background: rgb(255 255 255 / .14); border-radius: var(--radius-control); padding: 10px 16px; font-size: 12px; font-weight: 500; -webkit-backdrop-filter: blur(24px) saturate(.8); backdrop-filter: blur(24px) saturate(.8); }
+.identity-reveal .reveal-topline .text-button:hover { background: rgb(255 255 255 / .22); }
