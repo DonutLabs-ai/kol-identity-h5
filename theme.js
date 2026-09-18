@@ -55,7 +55,7 @@
   /* ── card tuning: size / y / tilt / copy bottom, per device class; auto-clamps so the card never covers the copy ── */
   var TKEY = "donut-identity-card-tune";
   var phone = function () { return innerWidth <= 760; };
-  var DEFAULTS = { m: { zoom: 70, y: -63, tz: -6, ty: 12, copy: 22 }, d: { zoom: 70, y: 0, tz: -6, ty: 12, copy: 22 } };
+  var DEFAULTS = { m: { zoom: 82, y: -30, tz: -6, ty: 12, copy: 22 }, d: { zoom: 90, y: 0, tz: -6, ty: 12, copy: 22 } };   // the flashcard is narrower than the old card
   function loadTune() { try { return Object.assign(JSON.parse(JSON.stringify(DEFAULTS)), JSON.parse(localStorage.getItem(TKEY) || "{}")); } catch (e) { return JSON.parse(JSON.stringify(DEFAULTS)); } }
   var tune = loadTune();
   function saveTune() { try { localStorage.setItem(TKEY, JSON.stringify(tune)); } catch (e) {} }
@@ -149,6 +149,43 @@
     setTimeout(function () { t.remove(); }, 2200);
   }
 
+  /* ── Yi's flashcard replaces the artifact card: same-origin iframe of ../flashcard/kol.html?embed=1 ── */
+  var FLASH_SRC = "../flashcard/kol.html";
+  function flashParams(user, type, img) {
+    var q = new URLSearchParams({ embed: "1", bare: "1", lang: "en", user: user, type: type, code: "Donut2026" });
+    if (img && /^https?:/.test(img)) q.set("img", img);
+    return q.toString();
+  }
+  function mountFlash(host, user, type, img) {
+    if (!host) return;
+    var existing = host.querySelector(":scope > .donut-flash");
+    var key = user + "|" + type + "|" + (img || "").slice(0, 64);
+    if (existing && existing.dataset.key === key) return;
+    if (existing) existing.remove();
+    var f = document.createElement("iframe");
+    f.className = "donut-flash"; f.dataset.key = key; f.title = "Your Donut identity card";
+    f.setAttribute("aria-label", "Your Donut identity card"); f.loading = "eager"; f.scrolling = "no";
+    f.width = "396"; f.height = "590";   // 380×550 ticket + notch + tilt room
+    f.src = FLASH_SRC + "?" + flashParams(user, type, /^https?:/.test(img || "") ? img : "");
+    if (img && /^data:/.test(img)) f.addEventListener("load", function () {   // uploaded photo: same-origin, set directly
+      try { var ph = f.contentDocument.querySelector(".kol-photo img"); if (ph) ph.src = img; } catch (e) {}
+    });
+    host.classList.add("has-flash");
+    host.appendChild(f);
+  }
+  function flashSync() {
+    var portrait = new URL("img/preview-portrait.jpg", location.href).href;
+    var landingCard = document.querySelector(".landing .hero-card");
+    if (landingCard) mountFlash(landingCard, "Donut Trader", "Diamond Hands", portrait);
+    var mount = document.querySelector(".reveal-card-mount");
+    if (mount) {
+      var name = ((mount.querySelector(".card-profile > h2") || {}).textContent || "Trader").trim();
+      var type = ((document.querySelector(".reveal-copy h1") || {}).textContent || "").replace(/\.$/, "").trim();
+      var up = mount.querySelector(".portrait > img");
+      mountFlash(mount, name, type || "Diamond Hands", up ? up.src : portrait);
+    }
+  }
+
   /* ── card face declutter: clone referral code into the top bar and the name into the footer (React owns the
         originals, so they are hidden by CSS rather than moved) ── */
   function decorateCard(card) {
@@ -165,6 +202,7 @@
   }
   function scan() {
     document.querySelectorAll(".identity-card").forEach(decorateCard);
+    flashSync();
     var landing = document.querySelector(".landing");
     if (landing) { stage(landing, true); if (!panel) mountPanel(); applyTune(); }
     if (panel) { panel.style.display = landing ? "" : "none"; if (tuneBtn) tuneBtn.style.display = landing ? "" : "none"; }
@@ -187,7 +225,7 @@
   /* ── reveal: tap the card to flip it (drives the artifact's hidden Identity/Style switch) ── */
   document.addEventListener("click", function (e) {
     var mount = e.target.closest && e.target.closest(".reveal-card-mount");
-    if (!mount || mount.classList.contains("is-flipping")) return;
+    if (!mount || mount.classList.contains("is-flipping") || mount.classList.contains("has-flash")) return;
     var next = Array.prototype.find.call(document.querySelectorAll(".reveal-card-controls button"), function (b) { return !b.classList.contains("active"); });
     if (!next) return;
     mount.classList.add("is-flipping");

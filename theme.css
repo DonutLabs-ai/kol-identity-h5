@@ -339,7 +339,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
    the headline + CTA sit under it in white; the website's dawn gradient band follows below the fold. ═══ */
 .site-header { display: none; }                       /* no header bar (per review) */
 .landing, .identity-reveal { position: relative; isolation: isolate; }
-.landing { --stage-h: 100svh; --band: 220px; --card-zoom: .7; }
+.landing { --stage-h: 100svh; --band: 220px; --card-zoom: .9; }
 .donut-hero-bg { position: absolute; inset: 0; z-index: -1; overflow: hidden; background: #050507; pointer-events: none; }
 .landing > .donut-hero-bg { height: var(--stage-h); bottom: auto; }
 .donut-hero-bg video, .donut-hero-bg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; filter: saturate(1.04) contrast(1.02); }
@@ -419,7 +419,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 
 @media (max-width: 760px) {
   /* Phones: the card is centred in the full first screen; the copy is pinned to the bottom of that screen. */
-  .landing { --band: 200px; --card-zoom: .7; --card-y: -63px; --tilt-z: -6deg; --tilt-y: 12deg; --copy-bottom: 22px; display: block; padding: 0 20px 0; min-height: var(--stage-h); }   /* tuned 2026-09-18 */
+  .landing { --band: 200px; --card-zoom: .82; --card-y: -30px; --tilt-z: -6deg; --tilt-y: 12deg; --copy-bottom: 22px; display: block; padding: 0 20px 0; min-height: var(--stage-h); }   /* tuned 2026-09-18 */
   .hero-art { min-height: var(--stage-h); padding: 0; justify-content: center; }
   .hero-copy { position: absolute; left: 20px; right: 20px; bottom: var(--copy-bottom, 22px); max-width: none; margin: 0; }
   .hero-copy h1 { text-shadow: 0 2px 6px rgb(5 5 7 / .6), 0 6px 22px rgb(5 5 7 / .5); }
@@ -764,3 +764,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .identity-card .card-footer > div { flex: 1; min-width: 0; }
 .identity-card .card-footer .donut-name { font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .identity-card .card-footer b { white-space: nowrap; }
+
+/* ═══ Yi's flashcard (kol.html?embed=1) is the card; the artifact's DOM card stays only as the data source ═══ */
+.has-flash > .identity-card, .has-flash > .card-export { position: absolute !important; opacity: 0 !important; pointer-events: none !important; width: 1px; height: 1px; overflow: hidden; }
+.donut-flash { display: block; width: 396px; height: 590px; border: 0; background: transparent; color-scheme: dark; }
+.hero-card.has-flash, .reveal-card-mount.has-flash { width: 396px; height: 590px; }
+.hero-card.has-flash > .identity-card { transform: none !important; }
+.reveal-card-mount.has-flash { cursor: default; }
+@media (max-width: 760px) { .reveal-card-mount.has-flash { zoom: .95; } }
+.reveal-card-mount.has-flash { zoom: .85; }
+@media (max-width: 760px) { .reveal-card-mount.has-flash { zoom: .72; } }
