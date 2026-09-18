@@ -868,3 +868,6 @@ html[data-intro] .donut-lang { display: none; }
 
 /* no italics anywhere on the site */
 em, i, .reveal-copy em, .donut-intro-copy em { font-style: normal; }
+
+/* the artifact appends a purple full stop after the style name; the name stands alone */
+.reveal-title-dot { display: none !important; }

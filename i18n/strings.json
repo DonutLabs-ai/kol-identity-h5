@@ -1140,8 +1140,9 @@
   "ko": "Donut D0에서 트레이딩 성향을 테스트하세요"
  },
  "presented by Donut.ai": {
-  "zh": "由 Donut.ai 呈现",
-  "ko": "presented by Donut.ai"
+  "en": "presented by DonutAI",
+  "zh": "由 DonutAI 呈现",
+  "ko": "presented by DonutAI"
  },
  "LOCKED": {
   "zh": "未解锁",
