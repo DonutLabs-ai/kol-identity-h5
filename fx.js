@@ -37,7 +37,7 @@ function play(art) {
   const dpr = Math.min(devicePixelRatio || 1, 1.5);
   renderer.setPixelRatio(dpr);
   renderer.setSize(W, H, false);
-  renderer.setClearColor(0x000000, 0);
+  renderer.setClearColor(0x000000, 0); renderer.toneMapping = THREE.NoToneMapping;
   renderer.domElement.style.width = "100%"; renderer.domElement.style.height = "100%";
 
   // Orthographic, 1 unit = 1 CSS px, origin at the canvas (= card) centre.
@@ -48,14 +48,14 @@ function play(art) {
   // Sparks: additive shards flung outward; bloom makes them read as light.
   const N = 160;
   const sparkGeo = new THREE.PlaneGeometry(1, 1);
-  const sparks = new THREE.InstancedMesh(sparkGeo, new THREE.MeshBasicMaterial({ color: new THREE.Color("#ffffff"), transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }), N);
+  const sparks = new THREE.InstancedMesh(sparkGeo, new THREE.MeshBasicMaterial({ color: new THREE.Color("#ffffff"), transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }), N);
   const sp = [];
-  const palette = ["#ffffff", "#e9e4ff", "#acaaff", "#ffd9a8", "#9fe8ff", "#ffb7dc"];
+  const palette = ["#ffffff", "#ffffff", "#f4f0ff", "#d9d3ff", "#ffe9c8", "#c9f3ff", "#ffd6ea"];   // hot whites first: bloom lifts them
   const col = new THREE.Color();
   for (let i = 0; i < N; i++) {
     const dot = Math.random() < 0.55;                       // ~half are star points, the rest short streaks
     const a = Math.random() * Math.PI * 2, speed = 160 + Math.random() * 480;
-    const len = dot ? 1.6 + Math.random() * 2.2 : 6 + Math.random() * 22, w = dot ? len : 1 + Math.random() * 1.4;
+    const len = dot ? 2.2 + Math.random() * 2.8 : 8 + Math.random() * 26, w = dot ? len : 1.4 + Math.random() * 1.6;
     sp.push({ a, speed, len, w, dot, delay: Math.random() * 0.9, life: 1.3 + Math.random() * 1.3, tw: 3 + Math.random() * 6 });
     col.set(palette[i % palette.length]); sparks.setColorAt(i, col);
   }
@@ -66,7 +66,7 @@ function play(art) {
   // Post: light bloom so the sparks glow, and a whisper of dispersion on their edges.
   const composer = new EffectComposer(renderer, { multisampling: 0 });
   composer.addPass(new RenderPass(scene, camera));
-  const bloom = new BloomEffect({ intensity: 1.1, luminanceThreshold: 0.35, luminanceSmoothing: 0.25, mipmapBlur: true, radius: 0.6, levels: 5 });
+  const bloom = new BloomEffect({ intensity: 2.6, luminanceThreshold: 0.12, luminanceSmoothing: 0.2, mipmapBlur: true, radius: 0.55, levels: 5 });
   const aberration = new ChromaticAberrationEffect({ offset: new THREE.Vector2(0, 0), radialModulation: true, modulationOffset: 0.3 });
   composer.addPass(new EffectPass(camera, bloom, aberration));
 
@@ -91,7 +91,7 @@ function play(art) {
       m4.compose(v3, q, s3); sparks.setMatrixAt(i, m4);
     }
     sparks.instanceMatrix.needsUpdate = true;
-    sparks.material.opacity = 0.95 * (1 - ease((t - 2.2) / 0.9));
+    sparks.material.opacity = 1 - ease((t - 2.2) / 0.9);
 
     composer.render();
     if (t >= DURATION - 0.6) host.removeAttribute("data-on");
