@@ -760,3 +760,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .identity-card .card-footer b { margin-top: 0; }
 .identity-card .card-handle.is-unlinked { display: none; }
 .identity-card .front-tags { margin-top: 6px; }
+/* Card footer: name + id stack beside the QR without wrapping */
+.identity-card .card-footer > div { flex: 1; min-width: 0; }
+.identity-card .card-footer .donut-name { font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.identity-card .card-footer b { white-space: nowrap; }

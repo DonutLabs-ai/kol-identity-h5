@@ -116,6 +116,39 @@
     if (new URLSearchParams(location.search).get("tune") === "1") panel.setAttribute("data-open", "");
     renderPanel();
   }
+  /* ── Share / Save hand off to Yi's flashcard (public/flashcard/kol.html): the straight, front-facing card.
+        The artifact's own share modal / PNG export are bypassed (capture-phase listener runs before React). ── */
+  var CARD_BASE = window.DONUT_CARD_BASE || "https://donut-kol-card.vercel.app/flashcard/kol";
+  function cardUrl() {
+    var name = (document.querySelector(".reveal-card-mount .card-profile > h2") || {}).textContent || "Trader";
+    var type = ((document.querySelector(".reveal-copy h1") || {}).textContent || "").replace(/\.$/, "").trim();
+    var img = document.querySelector(".reveal-card-mount .portrait > img");
+    var q = new URLSearchParams({ user: name.trim(), type: type, code: "Donut2026", bare: "1" });
+    if (img && /^https?:/.test(img.src)) q.set("img", img.src);      // real URLs only (data URLs would not fit a link)
+    else q.set("img", new URL("img/preview-portrait.jpg", location.href).href);   // the approved placeholder portrait
+    return CARD_BASE + "?" + q.toString();
+  }
+  document.addEventListener("click", function (e) {
+    var share = e.target.closest && e.target.closest(".reveal-actions .reveal-share");
+    var save = e.target.closest && e.target.closest(".reveal-actions .secondary");
+    if (!share && !save) return;
+    e.preventDefault(); e.stopPropagation();
+    var url = cardUrl();
+    if (share) {
+      var type = ((document.querySelector(".reveal-copy h1") || {}).textContent || "").replace(/\.$/, "").trim();
+      var payload = { title: "My Donut trading identity", text: "My Donut trading identity: " + type + ". Find yours →", url: url };
+      if (navigator.share) navigator.share(payload).catch(function () {});
+      else if (navigator.clipboard) navigator.clipboard.writeText(url).then(function () { toast("Card link copied"); });
+      else window.open(url, "_blank", "noopener");
+    } else {
+      window.open(url, "_blank", "noopener");                          // the flashcard page: save it from there
+    }
+  }, true);
+  function toast(msg) {
+    var t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t);
+    setTimeout(function () { t.remove(); }, 2200);
+  }
+
   /* ── card face declutter: clone referral code into the top bar and the name into the footer (React owns the
         originals, so they are hidden by CSS rather than moved) ── */
   function decorateCard(card) {
