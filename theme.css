@@ -471,3 +471,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .field > .field-bottom { display: flex; }
 .required, .optional { display: inline; margin-left: 6px; font-size: 11px; vertical-align: 1px; }
 .wallet-field-heading .required { margin-left: 6px; }
+
+/* ── Wallet network pickers: official logos instead of glyphs; no redundant check on the selected option ── */
+.network-symbol { font-size: 0; color: transparent; width: 22px; height: 22px; flex: 0 0 22px; background: url(./logos/ethereum.png) center / contain no-repeat; }
+.network-symbol.solana { background-image: url(./logos/solana.png); }
+.address-network label > svg, .choices button.selected > svg:last-child { display: none; }   /* the radio dot already says "selected" */
