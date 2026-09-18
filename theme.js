@@ -125,6 +125,7 @@
       stage(reveal, false); tapHint();
       var mine = reveal.querySelector(".spectrum-type.is-yours");
       if (mine && !mine.dataset.shown) { mine.dataset.shown = "1"; setTimeout(function () { mine.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" }); }, 1200); }
+      autoScroll(reveal.querySelector(".spectrum-grid"));
     }
     // Flow pages: drop any stage layer the reused <main> carried over (it would only keep a video decoding).
     document.querySelectorAll(".donut-hero-bg").forEach(function (bg) {
@@ -208,6 +209,30 @@
     var s = currentStep();
     if (s > lastStep && lastStep >= 0) { pulse.classList.remove("is-on"); void pulse.offsetWidth; pulse.classList.add("is-on"); }
     lastStep = s;
+  }
+
+  /* ── archetype row: drifts sideways on its own (ping-pong), pauses while the user touches or hovers it ── */
+  function autoScroll(row) {
+    if (!row || row.dataset.auto || reduce.matches) return;
+    row.dataset.auto = "1";
+    var dir = 1, paused = false, resumeAt = 0, started = performance.now() + 2600;   // let the "yours" centring land first
+    var hold = function (ms) { paused = true; resumeAt = performance.now() + ms; };
+    ["pointerdown", "touchstart", "wheel"].forEach(function (t) { row.addEventListener(t, function () { hold(4000); }, { passive: true }); });
+    row.addEventListener("pointerenter", function () { paused = true; resumeAt = Infinity; });
+    row.addEventListener("pointerleave", function () { hold(800); });
+    (function step(now) {
+      if (!row.isConnected) return;
+      if (now > started && (!paused || now > resumeAt)) {
+        paused = false;
+        var max = row.scrollWidth - row.clientWidth;
+        if (max > 0) {
+          row.scrollLeft += 0.35 * dir;
+          if (row.scrollLeft >= max - 1) { dir = -1; hold(1200); }
+          if (row.scrollLeft <= 1) { dir = 1; hold(1200); }
+        }
+      }
+      requestAnimationFrame(step);
+    })(performance.now());
   }
 
   var target = document.getElementById("root") || document.body;

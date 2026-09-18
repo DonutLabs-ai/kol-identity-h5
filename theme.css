@@ -591,3 +591,28 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .avatar-row .upload-button { left: calc(50% + 26px); top: calc(8px + 120px - 38px); width: 38px; height: 38px; }
 .avatar-row .upload-button svg { display: none; }
 .avatar-row .upload-button::before { content: ""; width: 18px; height: 18px; background: currentColor; -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z'/><circle cx='12' cy='13' r='3'/></svg>") center / contain no-repeat; mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z'/><circle cx='12' cy='13' r='3'/></svg>") center / contain no-repeat; }
+
+/* ═══ Layout pass: one gutter token, consistent paddings, dawn band between the reveal stage and the footer ═══ */
+:root { --gutter: 20px; --content-max: 1100px; }
+@media (min-width: 761px) { :root { --gutter: 32px; } }
+.landing { padding-left: var(--gutter); padding-right: var(--gutter); }
+.form-area { padding: 24px var(--gutter) 56px; }
+.flow-rail { padding-left: var(--gutter); padding-right: var(--gutter); }
+.identity-reveal { padding-left: var(--gutter); padding-right: var(--gutter); padding-bottom: 8px; }
+.identity-reveal .reveal-topline { right: var(--gutter); }
+.reveal-layout, .identity-spectrum { max-width: var(--content-max); margin-left: auto; margin-right: auto; }
+.spectrum-grid { margin: 0 calc(-1 * var(--gutter)); padding-left: var(--gutter); padding-right: var(--gutter); }
+.site-footer { max-width: none; padding: 0 var(--gutter); height: 56px; }
+.site-footer > span:first-child { color: var(--muted-2); }
+/* After the reveal, the footer carries the website's dawn band so the dark stage never hard-cuts into the page ground. */
+.identity-reveal + .site-footer {
+  position: relative; height: auto; min-height: 0; padding: 200px var(--gutter) 28px; border: 0; align-items: flex-end;
+  background: linear-gradient(180deg, #050511 0%, #191337 22%, #7b63e6 46%, #dba98b 68%, var(--page-bg) 90%, var(--page-bg) 100%);
+}
+:root[data-theme="dark"] .identity-reveal + .site-footer { background: linear-gradient(180deg, #050511 0%, #191337 25%, #5a45b8 50%, #2a1d3a 78%, var(--page-bg) 100%); }
+@media (max-width: 760px) {
+  .form-area { padding: 20px var(--gutter) 48px; }
+  .flow-rail { padding: 18px var(--gutter) 0; }
+  .identity-reveal + .site-footer { padding-top: 150px; }
+}
+.spectrum-grid { scroll-snap-type: none; }   /* snap points fought the auto-drift (sub-pixel scrolls snapped back) */
