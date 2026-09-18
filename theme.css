@@ -672,3 +672,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .identity-reveal .reveal-topline .text-button { grid-auto-rows: min-content; align-content: center; justify-items: center; }
 /* Reveal actions: content-sized pills (the artifact stretched Share 1.15 / Save 1, squeezing Save's padding to 9px). */
 .reveal-actions button, .reveal-actions .reveal-share, .reveal-actions .secondary { flex: 0 0 auto !important; width: auto; min-width: 0; }
+/* …and equal widths for the pair, so Share and Save card line up as one unit. */
+.reveal-actions { gap: 10px; }
+.reveal-actions button, .reveal-actions .reveal-share, .reveal-actions .secondary { flex: 1 1 0 !important; max-width: 168px; min-width: 132px; }
