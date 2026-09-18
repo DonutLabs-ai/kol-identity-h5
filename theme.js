@@ -334,7 +334,7 @@
   function tapHint() {
     var sc = document.querySelector(".reveal-showcase");
     if (!sc || sc.querySelector(".reveal-tap")) return;
-    var hint = document.createElement("span"); hint.className = "reveal-tap"; hint.textContent = "Tap the card to flip";
+    var hint = document.createElement("span"); hint.className = "reveal-tap"; hint.textContent = T("Tap the card to flip");
     var mount = sc.querySelector(".reveal-card-mount"); (mount || sc).insertAdjacentElement("afterend", hint);
   }
 

@@ -1154,5 +1154,9 @@
  "Answer a few questions. D0 turns them into your card.": {
   "zh": "回答几个问题，D0 把它变成你的身份卡。",
   "ko": "몇 가지 질문에 답하면, D0가 당신의 카드로 만들어 드립니다."
+ },
+ "Tap the card to flip": {
+  "zh": "点击卡片翻面",
+  "ko": "카드를 탭하면 뒤집힙니다"
  }
 }
