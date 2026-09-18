@@ -453,13 +453,5 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .donut-tune .fit[data-clamped] { color: var(--violet); }
 @media (max-width: 760px) { .donut-tune { right: 12px; left: 12px; width: auto; bottom: 116px; } .donut-tune-toggle { right: 12px; bottom: 64px; } }
 
-/* About-you step: the prompt chips are the label row; the bare "About you" text under them is redundant. */
-.bio-hints { margin: 20px 0 10px; }
-.field:has(textarea) { font-size: 0; gap: 0; margin-top: 0; }          /* hides the label's bare text node */
-.field:has(textarea) > textarea { font-size: 14px; }
-.field:has(textarea) > .field-bottom { margin-top: 8px; }
-.field:has(textarea) small { font-size: 11px; }
-.bio-hints { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-.bio-hints::-webkit-scrollbar { display: none; }
-.bio-hints span { white-space: nowrap; flex: 0 0 auto; }
-@media (max-width: 760px) { .bio-hints { gap: 6px; } .bio-hints span { font-size: 12px; padding: 7px 11px; } }
+/* About-you step: no prompt chips, just the "About you" label above the textarea. */
+.bio-hints { display: none; }
