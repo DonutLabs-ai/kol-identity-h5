@@ -383,7 +383,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .hero-process i { background: rgb(255 255 255 / .2); }
 @keyframes donut-arrive { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 @keyframes donut-arrive-blur { from { opacity: 0; transform: translateY(22px); filter: blur(8px); } to { opacity: 1; transform: none; filter: none; } }
-@keyframes donut-spin-in { 0% { opacity: 0; transform: translateY(40px) rotateY(-720deg) scale(.82); } 18% { opacity: 1; } 100% { opacity: 1; transform: var(--card-tilt); } }   /* two full turns */
+@keyframes donut-spin-in { 0% { opacity: 0; transform: translateY(40px) rotateY(-720deg); } 18% { opacity: 1; } 100% { opacity: 1; transform: var(--card-tilt); } }   /* two full turns */
 @keyframes donut-float { 0%, 100% { transform: var(--card-tilt) translateY(0); } 50% { transform: var(--card-tilt) translateY(-8px); } }
 .hero-card { --card-tilt: rotate(var(--tilt-z, -6deg)) rotateX(var(--tilt-x, 6deg)) rotateY(var(--tilt-y, 12deg)); transform: var(--card-tilt); }
 
@@ -797,3 +797,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 
 /* the floating tune / theme toggles are dev tools: hidden unless the page is opened with ?tune=1 */
 body:not([data-tools]) .donut-tune-toggle, body:not([data-tools]) .donut-theme-toggle { display: none !important; }
+
+/* the card's stage box is a full-screen flex area on phones and was swallowing taps meant for the copy and CTA */
+.hero-art { pointer-events: none; }
+.hero-art .hero-card { pointer-events: auto; }

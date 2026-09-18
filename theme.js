@@ -77,7 +77,7 @@
       } catch (e) {}
     });
   }
-  var clamped = false, pendingClamp = false;
+  var clamped = false;
   function applyTune() {
     var landing = document.querySelector(".landing"); if (!landing) return;
     var t = cur();
@@ -90,16 +90,15 @@
     // never let the card sit on the copy: shrink until there is a 12px gap (phones stack them in one screen)
     clamped = false;
     var card = landing.querySelector(".hero-card"), h1 = landing.querySelector(".hero-copy h1");
-    // the opening spin distorts the card's rect while it runs, so measure only once it has settled (re-run then)
-    var running = card && card.getAnimations ? card.getAnimations().filter(function (a) {
+    // the opening spin distorts the card's rect while it runs, so measure at the settled pose: jump the finite
+    // animations to their end for the measurement and put them back in the same frame (nothing is painted between)
+    var running = landing.getAnimations ? landing.getAnimations({ subtree: true }).filter(function (a) {   // card spin, copy fade-up …
       var t = a.effect && a.effect.getTiming ? a.effect.getTiming() : {};
-      return a.playState === "running" && t.iterations !== Infinity;   // ignore the endless idle float, wait for the finite spin-in
+      return a.playState === "running" && t.iterations !== Infinity;
     }) : [];
-    if (running.length && !pendingClamp) {
-      pendingClamp = true;
-      Promise.all(running.map(function (a) { return a.finished; })).then(function () { pendingClamp = false; applyTune(); }, function () { pendingClamp = false; });
-    }
-    if (card && h1 && !running.length) {   // desktop too: short laptop viewports otherwise let the tilted corner touch the headline
+    var saved = running.map(function (a) { return a.currentTime; });
+    running.forEach(function (a) { try { a.currentTime = a.effect.getComputedTiming().endTime; } catch (e) {} });
+    if (card && h1) {   // desktop too: short laptop viewports otherwise let the tilted corner touch the headline
       for (var i = 0; i < 12; i++) {
         var c = card.getBoundingClientRect(), top = h1.getBoundingClientRect().top;
         if (c.bottom + 16 <= top) break;   // 16px: absorbs the idle float's few px of travel
@@ -108,6 +107,7 @@
         clamped = true;
       }
     }
+    running.forEach(function (a, i) { try { a.currentTime = saved[i]; } catch (e) {} });
     if (panel) renderPanel();
   }
   var panel = null, tuneBtn = null;
