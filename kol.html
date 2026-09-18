@@ -40,6 +40,11 @@
 .kol-flip.is-flipped{transform:rotateY(180deg)}
 .kol-flip>.ticket{backface-visibility:hidden;-webkit-backface-visibility:hidden}
 .kol-flip>.ticket.kol-back-face{position:absolute!important;inset:0;transform:rotateY(180deg)}
+/* WebKit ignores backface-visibility on these faces (foil blend layers flatten them), so the faces also swap visibility at the flip's midpoint */
+.kol-flip>.ticket{transition:visibility 0s .42s}
+.kol-flip>.ticket.kol-back-face{visibility:hidden}
+.kol-flip.is-flipped>.ticket.kol-back-face{visibility:visible}
+.kol-flip.is-flipped>.ticket:not(.kol-back-face){visibility:hidden}
 /* top notch = a real bite out of the ticket mask, same language as the
    side cutouts; the page shows through and the label sits in the void */
 .kol-flip>.ticket>.ticket-surface[data-astro-cid-bvaltcfr]{
