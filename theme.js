@@ -76,7 +76,7 @@
       } catch (e) {}
     });
   }
-  var clamped = false;
+  var clamped = false, pendingClamp = false;
   function applyTune() {
     var landing = document.querySelector(".landing"); if (!landing) return;
     var t = cur();
@@ -89,11 +89,20 @@
     // never let the card sit on the copy: shrink until there is a 12px gap (phones stack them in one screen)
     clamped = false;
     var card = landing.querySelector(".hero-card"), h1 = landing.querySelector(".hero-copy h1");
-    if (card && h1 && phone()) {
+    // the opening spin distorts the card's rect while it runs, so measure only once it has settled (re-run then)
+    var running = card && card.getAnimations ? card.getAnimations().filter(function (a) {
+      var t = a.effect && a.effect.getTiming ? a.effect.getTiming() : {};
+      return a.playState === "running" && t.iterations !== Infinity;   // ignore the endless idle float, wait for the finite spin-in
+    }) : [];
+    if (running.length && !pendingClamp) {
+      pendingClamp = true;
+      Promise.all(running.map(function (a) { return a.finished; })).then(function () { pendingClamp = false; applyTune(); }, function () { pendingClamp = false; });
+    }
+    if (card && h1 && !running.length) {   // desktop too: short laptop viewports otherwise let the tilted corner touch the headline
       for (var i = 0; i < 12; i++) {
         var c = card.getBoundingClientRect(), top = h1.getBoundingClientRect().top;
-        if (c.bottom + 12 <= top) break;
-        var z = parseFloat(landing.style.getPropertyValue("--card-zoom")) * ((top - 12 - c.top) / (c.bottom - c.top));
+        if (c.bottom + 16 <= top) break;   // 16px: absorbs the idle float's few px of travel
+        var z = parseFloat(landing.style.getPropertyValue("--card-zoom")) * ((top - 16 - c.top) / (c.bottom - c.top));
         landing.style.setProperty("--card-zoom", String(Math.max(0.4, Math.floor(z * 100) / 100)));
         clamped = true;
       }

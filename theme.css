@@ -771,9 +771,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .hero-card.has-flash, .reveal-card-mount.has-flash { width: 396px; height: 590px; }
 .hero-card.has-flash > .identity-card { transform: none !important; }
 .reveal-card-mount.has-flash { cursor: default; }
-@media (max-width: 760px) { .reveal-card-mount.has-flash { zoom: .95; } }
-.reveal-card-mount.has-flash { zoom: .85; }
-@media (max-width: 760px) { .reveal-card-mount.has-flash { zoom: .72; } }
+/* (reveal card scale lives in the WebKit-safe block at the end of this file) */
 
 /* tuning panel: phones get a compact bottom sheet so the card stays visible while sliding */
 .donut-tune label { margin: 6px 0; }
@@ -786,3 +784,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   body:has(.donut-tune[data-open]) .donut-theme-toggle, body:has(.donut-tune[data-open]) .donut-tune-toggle { bottom: calc(42svh + 12px + env(safe-area-inset-bottom)); }
   body:has(.donut-tune[data-open]) .donut-tune-toggle { bottom: calc(42svh + 64px + env(safe-area-inset-bottom)); }
 }
+
+/* ── WebKit-safe card scaling ─────────────────────────────────────────────────────────────────────────────
+   CSS `zoom` on an ancestor of an <iframe> leaks into the iframe's viewport in WebKit (100vw shrinks, the
+   document paints white blocks at the wrong offset). So flash hosts keep zoom at 1 and scale the iframe
+   with a transform instead, sizing the host box to match so layout and the headline clamp still work. */
+.hero-card.has-flash { zoom: 1; --flash-scale: var(--card-zoom, 1); }
+.reveal-card-mount.has-flash { --flash-scale: .85; }
+@media (max-width: 760px) { .reveal-card-mount.has-flash { --flash-scale: .72; } }
+.hero-card.has-flash, .reveal-card-mount.has-flash { width: calc(396px * var(--flash-scale)); height: calc(590px * var(--flash-scale)); zoom: 1; }
+.has-flash > .donut-flash { transform: scale(var(--flash-scale)); transform-origin: 0 0; }
