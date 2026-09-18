@@ -808,8 +808,11 @@ body:not([data-tools]) .donut-tune-toggle, body:not([data-tools]) .donut-theme-t
 :root[data-theme="light"] .spectrum-type.is-previewing { border-color: rgb(32 32 38 / .35); }
 .reveal-card-mount > .donut-flash { transition: filter .35s ease; }
 .reveal-card-mount.is-locked > .donut-flash { filter: brightness(.38) saturate(.5); }
-.reveal-card-mount.is-locked::after { content: "LOCKED"; position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; pointer-events: none;
+.reveal-card-mount.is-locked::after { content: "LOCKED"; position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; pointer-events: none; padding-top: 44px;
   font: 500 13px/1 var(--sans); letter-spacing: 4px; color: #fff; text-shadow: 0 2px 14px rgb(0 0 0 / .6); }
+.reveal-card-mount.is-locked::before { content: ""; position: absolute; left: 50%; top: 50%; z-index: 2; width: 36px; height: 36px; margin: -36px 0 0 -18px; pointer-events: none;
+  filter: drop-shadow(0 2px 10px rgb(0 0 0 / .6));
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><rect x='4.5' y='10.5' width='15' height='10' rx='2.5'/><path d='M8 10.5V7.5a4 4 0 0 1 8 0v3'/><circle cx='12' cy='15.5' r='1.2' fill='white' stroke='none'/></svg>") center / contain no-repeat; }
 
 /* form pages: the footer's hairline read as a stray rule under the last field */
 .site-footer { border-top: 0 !important; }
