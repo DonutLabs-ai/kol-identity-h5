@@ -59,6 +59,8 @@
     host.prepend(bg);
   }
   /* ── card tuning: size / y / tilt / copy bottom, per device class; auto-clamps so the card never covers the copy ── */
+  var I18N = window.DONUT_I18N || { lang: "en", t: function (x) { return x; }, en: function (x) { return x; }, langs: [], set: function () {} };
+  var T = I18N.t, EN = I18N.en;   // T: English → current language; EN: translated label → English key (type names)
   var TKEY = "donut-identity-card-tune";
   if (new URLSearchParams(location.search).get("tune") === "1") document.body.setAttribute("data-tools", "");   // shows the floating tune + theme toggles
   var phone = function () { return innerWidth <= 760; };
@@ -119,7 +121,18 @@
     running.forEach(function (a, i) { try { a.currentTime = saved[i]; } catch (e) {} });
     if (panel) renderPanel();
   }
-  var panel = null, tuneBtn = null;
+  var panel = null, tuneBtn = null, langBar = null;
+  function mountLang() {
+    if (langBar || !I18N.langs.length) return;
+    langBar = document.createElement("div"); langBar.className = "donut-lang"; langBar.setAttribute("role", "group"); langBar.setAttribute("aria-label", T("Language"));
+    I18N.langs.forEach(function (l) {
+      var b = document.createElement("button"); b.type = "button"; b.textContent = l[1]; b.lang = { en: "en", zh: "zh-CN", ko: "ko" }[l[0]];
+      if (l[0] === I18N.lang) b.setAttribute("aria-current", "true");
+      b.addEventListener("click", function () { if (l[0] !== I18N.lang) I18N.set(l[0]); });
+      langBar.appendChild(b);
+    });
+    document.body.appendChild(langBar);
+  }
   function renderPanel() {
     var t = cur();
     var fit = panel.querySelector(".fit");
@@ -174,7 +187,7 @@
     e.preventDefault(); e.stopPropagation();
     var url = cardUrl();
     if (share) {
-      var type = ((document.querySelector(".reveal-copy h1") || {}).textContent || "").replace(/\.$/, "").trim();
+      var type = EN(((document.querySelector(".reveal-copy h1") || {}).textContent || "").replace(/[.。]$/, "").trim());
       var payload = { title: "My Donut trading identity", text: "My Donut trading identity: " + type + ". Find yours →", url: url };
       if (navigator.share) navigator.share(payload).catch(function () {});
       else if (navigator.clipboard) navigator.clipboard.writeText(url).then(function () { toast("Card link copied"); });
@@ -191,7 +204,7 @@
   /* ── Yi's flashcard replaces the artifact card: same-origin iframe of ../flashcard/kol.html?embed=1 ── */
   var FLASH_SRC = "../flashcard/kol.html";
   function flashParams(user, type, img) {
-    var q = new URLSearchParams({ embed: "1", bare: "1", lang: "en", user: user, type: type, code: "Donut2026", skin: "amethyst" });   // one skin for every style (per Cory)
+    var q = new URLSearchParams({ embed: "1", bare: "1", lang: I18N.lang === "zh" ? "cn" : "en", user: user, type: EN(type), code: "Donut2026", skin: "amethyst" });   // one skin for every style (per Cory)
     if (img && /^https?:/.test(img)) q.set("img", img);
     return q.toString();
   }
@@ -225,7 +238,7 @@
   var previewType = null;
   document.addEventListener("click", function (e) {
     var tag = e.target.closest && e.target.closest(".spectrum-type"); if (!tag) return;
-    var label = ((tag.querySelector("small + span") || {}).textContent || "").trim();
+    var label = EN(((tag.querySelector("small + span") || {}).textContent || "").trim());
     previewType = (tag.classList.contains("is-yours") || previewType === label) ? null : label;
     document.querySelectorAll(".spectrum-type").forEach(function (x) { x.classList.toggle("is-previewing", !!previewType && x === tag); });
     flashSync();
@@ -241,13 +254,28 @@
     var mount = document.querySelector(".reveal-card-mount");
     if (mount) {
       var name = ((mount.querySelector(".card-profile > h2") || {}).textContent || "Trader").trim();
-      var type = ((document.querySelector(".reveal-copy h1") || {}).textContent || "").replace(/\.$/, "").trim();
+      var type = EN(((document.querySelector(".reveal-copy h1") || {}).textContent || "").replace(/[.。]$/, "").trim());
       var up = mount.querySelector(".portrait > img");
       var own = type || "Diamond Hands";
       var locked = !!previewType && previewType.toLowerCase() !== own.toLowerCase();
       var show = locked ? previewType : own;
       mountFlash(mount, name, show, (up && !locked) ? up.src : archetypePortrait(show));
       mount.classList.toggle("is-locked", locked);
+      // the badge lives beside the tilted mount (not inside it), so it stays flat; centred on the card's box
+      var par = mount.parentElement, badge = par && par.querySelector(":scope > .donut-locked");
+      if (locked && par) {
+        if (!badge) {
+          badge = document.createElement("div"); badge.className = "donut-locked"; badge.setAttribute("aria-hidden", "true");
+          badge.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg><span></span>';
+          if (getComputedStyle(par).position === "static") par.style.position = "relative";
+          par.appendChild(badge);
+        }
+        // write only on change: every DOM write here re-enters via the MutationObserver
+        var lbl = badge.querySelector("span"); if (lbl.textContent !== T("LOCKED")) lbl.textContent = T("LOCKED");
+        var pr = par.getBoundingClientRect(), mr = mount.getBoundingClientRect();
+        var lx = Math.round(mr.left - pr.left + mr.width / 2) + "px", ly = Math.round(mr.top - pr.top + mr.height / 2) + "px";
+        if (badge.style.left !== lx) badge.style.left = lx; if (badge.style.top !== ly) badge.style.top = ly;
+      } else if (badge) badge.remove();
     }
   }
 
@@ -269,8 +297,9 @@
     document.querySelectorAll(".identity-card").forEach(decorateCard);
     flashSync();
     var landing = document.querySelector(".landing");
-    if (landing) { stage(landing, true); if (!panel) mountPanel(); applyTune(); }   // applyTune is a no-op unless viewport/tune/card changed
+    if (landing) { stage(landing, true); if (!panel) mountPanel(); mountLang(); applyTune(); }   // applyTune is a no-op unless viewport/tune/card changed
     if (panel) { panel.style.display = landing ? "" : "none"; if (tuneBtn) tuneBtn.style.display = landing ? "" : "none"; }
+    if (langBar) langBar.style.display = landing ? "" : "none";
     var reveal = document.querySelector(".identity-reveal");
     if (reveal) {
       stage(reveal, false); tapHint();
@@ -401,7 +430,8 @@
     if (q.get("intro") !== "1" && reduce.matches) return;   // plays on every load (a refresh replays it); any tap skips
     document.documentElement.setAttribute("data-intro", "");
     var root = document.createElement("div"); root.className = "donut-intro"; root.setAttribute("role", "presentation");
-    root.innerHTML = '<div class="donut-intro-ring"></div><div class="donut-intro-copy"><h1>Test your Trading Personality on Donut D0</h1><p>presented by Donut.ai</p></div>';
+    root.innerHTML = '<div class="donut-intro-ring"></div><div class="donut-intro-copy"><h1></h1><p></p></div>';
+    root.querySelector("h1").textContent = T("Test your Trading Personality on Donut D0"); root.querySelector("p").textContent = T("presented by Donut.ai");
     var ring = root.querySelector(".donut-intro-ring");
     var W = innerWidth, H = innerHeight, ph = W <= 760;
     var CW = ph ? Math.min(340, W - 40) : 380, CH = Math.round(CW * 550 / 380);   // the fly-by card: Yi's ticket, pre-rendered (scripts/render-intro-cards.*)
