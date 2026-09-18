@@ -154,9 +154,65 @@
     var mount = sc.querySelector(".reveal-card-mount"); (mount || sc).insertAdjacentElement("afterend", hint);
   }
 
+  /* ── portrait: the avatar circle is the upload button ── */
+  document.addEventListener("click", function (e) {
+    var pv = e.target.closest && e.target.closest(".avatar-preview");
+    if (pv) { var inp = document.querySelector(".upload-button input[type=file]"); if (inp) inp.click(); }
+  });
+
+  /* ── card pseudo-3D: pointer (or idle sway) drives tilt + glare vars on every visible card face ── */
+  var faces = [];          // { el, tx, ty, gx, gy }
+  var pointer = null, lastMove = 0;
+  function collectFaces() {
+    faces = Array.prototype.map.call(document.querySelectorAll(".hero-card > .identity-card, .reveal-card-mount .identity-card"), function (el) {
+      if (!el.querySelector(":scope > .donut-glare")) { var g = document.createElement("div"); g.className = "donut-glare"; g.setAttribute("aria-hidden", "true"); el.appendChild(g); }
+      return { el: el, tx: 0, ty: 0, gx: 50, gy: 50 };
+    });
+  }
+  addEventListener("pointermove", function (e) { pointer = { x: e.clientX, y: e.clientY }; lastMove = performance.now(); }, { passive: true });
+  addEventListener("pointerleave", function () { pointer = null; });
+  var lerp = function (a, b, k) { return a + (b - a) * k; };
+  function tiltFrame(now) {
+    if (!reduce.matches) for (var i = 0; i < faces.length; i++) {
+      var f = faces[i], r = f.el.getBoundingClientRect(); if (!r.width) continue;
+      var nx, ny;
+      if (pointer && now - lastMove < 2500) {
+        // normalised offset from the card centre, softened beyond the card so far-away pointers only nudge it
+        var dx = (pointer.x - (r.left + r.width / 2)) / r.width, dy = (pointer.y - (r.top + r.height / 2)) / r.height;
+        var d = Math.hypot(dx, dy), soft = d > 0.5 ? 0.5 / d : 1;
+        nx = Math.max(-1, Math.min(1, dx * 2)) * soft; ny = Math.max(-1, Math.min(1, dy * 2)) * soft;
+      } else { // idle: slow figure-eight sway so the foil never sits dead
+        nx = Math.sin(now / 1900) * 0.35; ny = Math.cos(now / 2600) * 0.28;
+      }
+      f.tx = lerp(f.tx, -ny * 9, 0.12); f.ty = lerp(f.ty, nx * 11, 0.12);
+      f.gx = lerp(f.gx, 50 + nx * 38, 0.12); f.gy = lerp(f.gy, 50 + ny * 38, 0.12);
+      var st = f.el.style;
+      st.setProperty("--tx", f.tx.toFixed(2) + "deg"); st.setProperty("--ty", f.ty.toFixed(2) + "deg");
+      st.setProperty("--gx", f.gx.toFixed(1) + "%"); st.setProperty("--gy", f.gy.toFixed(1) + "%");
+      st.setProperty("--gp", (50 - nx * 45).toFixed(1) + "%"); st.setProperty("--ga", (115 + nx * 25).toFixed(1) + "deg");
+    }
+    requestAnimationFrame(tiltFrame);
+  }
+  requestAnimationFrame(tiltFrame);
+
+  /* ── step-complete pulse: glow from the screen edges whenever the flow advances ── */
+  var pulse = document.createElement("div"); pulse.className = "donut-pulse"; pulse.setAttribute("aria-hidden", "true"); document.body.appendChild(pulse);
+  var lastStep = -1;
+  function currentStep() {
+    if (document.querySelector(".identity-reveal")) return 4;
+    var btns = document.querySelectorAll(".steps button");
+    for (var i = 0; i < btns.length; i++) if (btns[i].classList.contains("active")) return i + 1;
+    return document.querySelector(".landing") ? 0 : lastStep;
+  }
+  function stepPulse() {
+    var s = currentStep();
+    if (s > lastStep && lastStep >= 0) { pulse.classList.remove("is-on"); void pulse.offsetWidth; pulse.classList.add("is-on"); }
+    lastStep = s;
+  }
+
   var target = document.getElementById("root") || document.body;
-  new MutationObserver(scan).observe(target, { childList: true, subtree: true });
-  scan();
+  new MutationObserver(function () { scan(); collectFaces(); stepPulse(); }).observe(target, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+  scan(); collectFaces(); stepPulse();
   var rt; addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(applyTune, 120); });
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(applyTune);
 })();
