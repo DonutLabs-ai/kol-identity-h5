@@ -12,7 +12,7 @@ import {
 
 const reduce = matchMedia("(prefers-reduced-motion: reduce)");
 const HOLD = (() => { const v = new URLSearchParams(location.search).get("fx"); return v && v.startsWith("hold") ? Number(v.slice(4)) || 0.9 : null; })();   // ?fx=hold1.2 freezes the timeline for inspection
-const DURATION = 3.0;          // seconds
+const DURATION = 3.4;          // seconds
 
 function ease(t) { return t < 0 ? 0 : t > 1 ? 1 : 1 - Math.pow(1 - t, 3); }
 function bell(t, a, b, c) { /* 0 → 1 (at b) → 0, between a and c */
@@ -56,7 +56,7 @@ function play(art) {
     const dot = Math.random() < 0.55;                       // ~half are star points, the rest short streaks
     const a = Math.random() * Math.PI * 2, speed = 160 + Math.random() * 480;
     const len = dot ? 1.6 + Math.random() * 2.2 : 6 + Math.random() * 22, w = dot ? len : 1 + Math.random() * 1.4;
-    sp.push({ a, speed, len, w, dot, delay: Math.random() * 0.7, life: 1.0 + Math.random() * 1.1, tw: 3 + Math.random() * 6 });
+    sp.push({ a, speed, len, w, dot, delay: Math.random() * 0.9, life: 1.3 + Math.random() * 1.3, tw: 3 + Math.random() * 6 });
     col.set(palette[i % palette.length]); sparks.setColorAt(i, col);
   }
   sparks.instanceColor && (sparks.instanceColor.needsUpdate = true);
@@ -77,7 +77,7 @@ function play(art) {
   function frame() {
     const t = HOLD != null ? HOLD : clock.getElapsedTime();
     // Dispersion: faint, only while the burst is live.
-    const ab = 0.0035 * bell(t, 0.1, 0.7, 2.2);
+    const ab = 0.0035 * bell(t, 0.1, 0.8, 2.6);
     aberration.offset.set(ab, ab * 0.6);
     // Sparks.
     for (let i = 0; i < N; i++) {
@@ -91,7 +91,7 @@ function play(art) {
       m4.compose(v3, q, s3); sparks.setMatrixAt(i, m4);
     }
     sparks.instanceMatrix.needsUpdate = true;
-    sparks.material.opacity = 0.95 * (1 - ease((t - 1.8) / 0.9));
+    sparks.material.opacity = 0.95 * (1 - ease((t - 2.2) / 0.9));
 
     composer.render();
     if (t >= DURATION - 0.6) host.removeAttribute("data-on");
@@ -111,6 +111,9 @@ function play(art) {
 }
 
 addEventListener("donut:landing", (e) => { const art = e.detail && e.detail.art; if (art) play(art); });
-// If theme.js fired before this module finished loading, catch the already-mounted landing.
-const pending = document.querySelector(".landing .hero-art[data-fx-played]:not(:has(.donut-fx))");
-if (pending && performance.now() < 4000) play(pending);
+// If theme.js fired before this module finished loading (vendor files still downloading), catch the mounted
+// landing as long as the card is still in its spin-in; otherwise wait for the next landing mount.
+const pending = document.querySelector(".landing .hero-art[data-fx-played]");
+if (pending && !pending.querySelector(".donut-fx") && performance.now() - Number(pending.dataset.fxAt || 0) < 2600) play(pending);
+// ?fx=replay lets reviewers re-run the burst without reloading: click anywhere on the landing.
+if (new URLSearchParams(location.search).get("fx") === "replay") addEventListener("click", () => { const a = document.querySelector(".landing .hero-art"); if (a) { a.querySelector(".donut-fx")?.remove(); play(a); } });

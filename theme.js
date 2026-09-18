@@ -56,7 +56,7 @@
   function burst(landing) {
     var art = landing.querySelector(".hero-art");
     if (!art || art.dataset.fxPlayed) return;
-    art.dataset.fxPlayed = "1";
+    art.dataset.fxPlayed = "1"; art.dataset.fxAt = String(performance.now());
     window.dispatchEvent(new CustomEvent("donut:landing", { detail: { art: art } }));
   }
 
