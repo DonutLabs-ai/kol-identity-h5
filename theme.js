@@ -225,7 +225,10 @@
     var portrait = archetypePortrait("Diamond Hands");
     if (!document.querySelector(".reveal-card-mount")) previewType = null;
     var landingCard = document.querySelector(".landing .hero-card");
-    if (landingCard) mountFlash(landingCard, "Donut Trader", "Diamond Hands", portrait);
+    if (landingCard) {
+      mountFlash(landingCard, "Donut Trader", "Diamond Hands", portrait);
+      if (!landingCard.querySelector(".donut-shine")) { var sh = document.createElement("div"); sh.className = "donut-shine"; sh.setAttribute("aria-hidden", "true"); sh.innerHTML = "<b></b><i></i><i></i><i></i><i></i>"; landingCard.appendChild(sh); }
+    }
     var mount = document.querySelector(".reveal-card-mount");
     if (mount) {
       var name = ((mount.querySelector(".card-profile > h2") || {}).textContent || "Trader").trim();
@@ -376,8 +379,13 @@
     })(performance.now());
   }
 
-  /* ── opening: the twelve cards fly past one by one, settle into a ring, the title lands, then the landing shows.
-        Once per session; ?intro=1 replays, ?intro=0 skips, reduced-motion skips, any tap skips. ── */
+  /* ── opening: the twelve card faces flick past horizontally at full size, settle into an upright ring, the title
+        lands, then the landing shows. Once per session; ?intro=1 replays, ?intro=0 skips, reduced-motion skips, any tap skips. ── */
+  var TAGLINES = { "Diamond Hands": "Make time your home ground.", "DCA Believer": "Give every persistence to time.", "Risk Explorer": "Beyond the edge, your coordinates.",
+    "Day Trader": "Your home ground is the present.", "Sniper": "Patience is your entry.", "Grid Executor": "Write the market's swings into rules.",
+    "Swing Hunter": "Every leg of the market has your rhythm.", "Momentum Rider": "Trends appear; you have your answer.", "Arb Researcher": "See the other possibility between prices.",
+    "Narrative Trader": "Read the story, write your call.", "Risk-First": "Confidence comes from clear boundaries.", "Contrarian": "When the crowd turns, you keep watching." };
+  var SKINS = ["amethyst", "amethyst", "rose", "rose", "onyx", "onyx", "emerald", "emerald", "amber", "amber", "aurora", "aurora"];   // Yi's pairing
   (function intro() {
     var q = new URLSearchParams(location.search);
     if (q.get("intro") === "0") return;
@@ -388,30 +396,26 @@
     var root = document.createElement("div"); root.className = "donut-intro"; root.setAttribute("role", "presentation");
     root.innerHTML = '<div class="donut-intro-ring"></div><div class="donut-intro-copy"><h1>Test your Trading Personality on Donut D0</h1><p>presented by Donut.ai</p></div>';
     var ring = root.querySelector(".donut-intro-ring");
-    // orbit carries the position (fly-by, then ring slot); the card inside counter-rotates so it stays upright while the ring turns
-    var cards = ARCHETYPES.map(function (t) {
+    var W = innerWidth, H = innerHeight, ph = W <= 760;
+    var CW = ph ? Math.min(250, W - 80) : 260, CH = Math.round(CW * 1.42);   // the fly-by card face (full size)
+    root.style.setProperty("--cw", CW + "px"); root.style.setProperty("--ch", CH + "px");
+    var imgs = [];
+    // orbit carries the position; the card face inside counter-rotates so it stays upright while the ring turns
+    var cards = ARCHETYPES.map(function (t, i) {
       var o = document.createElement("div"); o.className = "donut-intro-orbit";
-      var c = document.createElement("div"); c.className = "donut-intro-card";
-      var img = document.createElement("img"); img.src = archetypePortrait(t); img.alt = ""; img.decoding = "async"; c.appendChild(img);
+      var c = document.createElement("div"); c.className = "donut-intro-card skin-" + SKINS[i];
+      c.innerHTML = '<span class="notch">Donut Trader</span><div class="photo"></div><strong></strong><em></em>';
+      c.querySelector("strong").textContent = t; c.querySelector("em").textContent = TAGLINES[t] || "";
+      var img = document.createElement("img"); img.src = archetypePortrait(t); img.alt = ""; img.decoding = "async"; c.querySelector(".photo").appendChild(img); imgs.push(img);
       o.appendChild(c); ring.appendChild(o); return o;
     });
-    var W = innerWidth, H = innerHeight, ph = W <= 760;
-    var cw = ph ? 62 : 96, ch = Math.round(cw * 4 / 3);
+    var slot = ph ? 54 : 84, sc = slot / CW;   // ring slot size → scale of the full card
     var ringY = ph ? H * .40 : H * .5;
-    var R = ph ? Math.min(W / 2 - cw / 2 - 14, ringY - ch / 2 - 24) : Math.min(W, H) * .40 - ch / 2;
-    root.style.setProperty("--cw", cw + "px"); root.style.setProperty("--ch", ch + "px");
+    var R = ph ? Math.min(W / 2 - slot / 2 - 14, ringY - CH * sc / 2 - 24) : Math.min(W, H) * .40 - CH * sc / 2;
     root.style.setProperty("--ring-y", ringY + "px");
-    if (ph) { root.style.setProperty("--copy-y", (ringY + R + ch / 2 + 32) + "px"); root.style.setProperty("--copy-shift", "0"); root.style.setProperty("--copy-w", "320px"); }
-    else { root.style.setProperty("--copy-y", ringY + "px"); root.style.setProperty("--copy-shift", "-50%"); root.style.setProperty("--copy-w", Math.round((R - ch / 2) * 2 * .86) + "px"); }
+    if (ph) { root.style.setProperty("--copy-y", (ringY + R + CH * sc / 2 + 32) + "px"); root.style.setProperty("--copy-shift", "0"); root.style.setProperty("--copy-w", "320px"); }
+    else { root.style.setProperty("--copy-y", ringY + "px"); root.style.setProperty("--copy-shift", "-50%"); root.style.setProperty("--copy-w", Math.round((R - CH * sc / 2) * 2 * .86) + "px"); }
     document.body.appendChild(root);
-    var STAGGER = 120, FLY = 900;   // ~3 cards on screen at once
-    var fs = ph ? 1.9 : 1.5;   // fly-by cards are bigger than the ring slots so each one reads as a card
-    var from = "translate(" + Math.round(W * .6 + cw * fs) + "px, " + Math.round(H * .55 + ch * fs) + "px) rotate(-14deg) scale(" + fs + ")";
-    var to = "translate(" + Math.round(-W * .6 - cw * fs) + "px, " + Math.round(-H * .55 - ch * fs) + "px) rotate(-14deg) scale(" + fs + ")";
-    var fly = cards.map(function (c, i) {
-      return c.animate([{ transform: from, opacity: 0 }, { opacity: 1, offset: .12 }, { opacity: 1, offset: .88 }, { transform: to, opacity: 0 }],
-        { duration: FLY, delay: i * STAGGER, easing: "cubic-bezier(.3,.6,.2,1)", fill: "both" });
-    });
     var timers = [], done = false;
     function finish() {
       if (done) return; done = true;
@@ -422,19 +426,31 @@
       setTimeout(function () { root.remove(); }, 700);
     }
     root.addEventListener("click", finish);
-    var settleAt = (cards.length - 1) * STAGGER + FLY - 220;
-    timers.push(setTimeout(function () {
-      cards.forEach(function (c, i) {
-        var a = -90 + i * 30, rad = a * Math.PI / 180, x = Math.cos(rad) * R, y = Math.sin(rad) * R;
-        var ringTf = "translate(" + x.toFixed(1) + "px, " + y.toFixed(1) + "px)";   // upright slots
-        try { fly[i].cancel(); } catch (e) {}
-        c.animate([{ transform: "translate(" + (x * 2.6).toFixed(1) + "px, " + (y * 2.6).toFixed(1) + "px) rotate(-40deg) scale(.6)", opacity: 0 }, { transform: ringTf, opacity: 1 }],
-          { duration: 900, delay: i * 45, easing: "cubic-bezier(.2,.8,.2,1)", fill: "both" });
+    var STAGGER = 150, FLY = 780, flyY = ph ? H * .42 : H * .5;
+    function run() {
+      var from = "translate(" + Math.round(W / 2 + CW) + "px, " + Math.round(flyY) + "px) rotate(4deg)";
+      var to = "translate(" + Math.round(-W / 2 - CW) + "px, " + Math.round(flyY) + "px) rotate(-4deg)";
+      var fly = cards.map(function (c, i) {
+        return c.animate([{ transform: from, opacity: 0 }, { opacity: 1, offset: .1 }, { opacity: 1, offset: .9 }, { transform: to, opacity: 0 }],
+          { duration: FLY, delay: i * STAGGER, easing: "cubic-bezier(.35,.55,.2,1)", fill: "both" });
       });
-      ring.classList.add("is-ring");
-      root.classList.add("is-titled");
-    }, settleAt));
-    timers.push(setTimeout(finish, settleAt + 3000));
+      var settleAt = (cards.length - 1) * STAGGER + FLY - 260;
+      timers.push(setTimeout(function () {
+        cards.forEach(function (c, i) {
+          var a = -90 + i * 30, rad = a * Math.PI / 180, x = Math.cos(rad) * R, y = Math.sin(rad) * R;
+          try { fly[i].cancel(); } catch (e) {}
+          c.animate([{ transform: "translate(" + (x * 2.6).toFixed(1) + "px, " + (y * 2.6).toFixed(1) + "px) rotate(-30deg) scale(" + (sc * .6).toFixed(3) + ")", opacity: 0 },
+                     { transform: "translate(" + x.toFixed(1) + "px, " + y.toFixed(1) + "px) scale(" + sc.toFixed(3) + ")", opacity: 1 }],
+            { duration: 900, delay: i * 45, easing: "cubic-bezier(.2,.8,.2,1)", fill: "both" });
+        });
+        ring.classList.add("is-ring");
+        root.classList.add("is-titled");
+      }, settleAt));
+      timers.push(setTimeout(finish, settleAt + 3000));
+    }
+    // give the first faces a moment to decode so the flick starts with real portraits (capped at 1.2s)
+    var ready = Promise.all(imgs.slice(0, 4).map(function (im) { return im.decode ? im.decode().catch(function () {}) : Promise.resolve(); }));
+    Promise.race([ready, new Promise(function (r) { setTimeout(r, 1200); })]).then(run);
   })();
 
   var target = document.getElementById("root") || document.body;
