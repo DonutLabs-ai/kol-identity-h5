@@ -670,3 +670,5 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .identity-reveal .reveal-actions .reveal-share.has-liquid-glass { color: #1a1728 !important; }
 /* The hidden "Start over" text node is still an (empty) grid item; keep rows at content size and centre the block. */
 .identity-reveal .reveal-topline .text-button { grid-auto-rows: min-content; align-content: center; justify-items: center; }
+/* Reveal actions: content-sized pills (the artifact stretched Share 1.15 / Save 1, squeezing Save's padding to 9px). */
+.reveal-actions button, .reveal-actions .reveal-share, .reveal-actions .secondary { flex: 0 0 auto !important; width: auto; min-width: 0; }
