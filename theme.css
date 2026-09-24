@@ -135,16 +135,6 @@ html[data-step="0"] .site-footer { display: none; }   /* the footer is a sibling
 .donut-shine i:nth-of-type(4) { left: 82%; top: 55%; animation-delay: 1.4s; }
 @keyframes donut-twinkle { 0%, 58%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0) rotate(0deg); } 70% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(12deg); } 84% { opacity: 0; transform: translate(-50%, -50%) scale(.2) rotate(28deg); } }
 
-/* ── Modal (Connect X, wallet): glass sheet ── */
-.modal { background: var(--glass-strong); color: var(--ink); border: 0; border-radius: 28px; box-shadow: var(--shadow); -webkit-backdrop-filter: blur(30px) saturate(1.1); backdrop-filter: blur(30px) saturate(1.1); }
-html[data-step="0"] .modal, html[data-step="3"] .modal { background: rgb(22 20 32 / .82); }
-.modal::backdrop { background: rgb(5 5 7 / .55); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
-.modal h2 { font-size: clamp(30px, 4vw, 40px); line-height: 1.05; gap: 8px; }
-.modal > p { color: var(--muted); font-size: 14px; line-height: 1.7; }
-.modal .profile-row { background: var(--field-bg); border-radius: 18px; }
-.modal-close { color: var(--muted); }
-.modal .primary.full { width: 100%; }
-
 /* ── Flow pages (step-1, step-2): paper ground, our fields and chips ── */
 .workspace { max-width: 1180px; margin: 0 auto; padding: 48px var(--gutter) 64px; gap: clamp(32px, 5vw, 72px); }
 .work-panel { padding: 0; }
@@ -348,3 +338,88 @@ main.step-3 .result-panel .secondary svg, main.step-3 .follow-donut svg { width:
   .form-actions + .privacy { margin-top: 12px; }
 }
 .work-panel hr, .work-panel .divider, .work-panel .rule { border: 0; height: 1px; background: var(--line); margin: 20px 0 28px; }
+
+/* ── Sheets (Connect X · wallet): one spacing system ──────────────────────────────────────────
+   28px padding (24 on phones) · 8px rhythm: icon 40 → 24 → kicker → 10 → title → 12 → lede → 24 → row → 24 → actions
+   stacked actions 10px apart · quiet cancel as text · footnote 20px above, no rules · no strokes anywhere ── */
+.modal { width: min(440px, calc(100vw - 32px)); padding: 28px; border: 0; border-radius: 28px; color: var(--ink); box-shadow: var(--shadow);
+  background: var(--glass-strong); -webkit-backdrop-filter: blur(30px) saturate(1.1); backdrop-filter: blur(30px) saturate(1.1); }
+html[data-step="0"] .modal, html[data-step="3"] .modal { background: rgb(22 20 32 / .86); }
+.modal::backdrop { background: rgb(5 5 7 / .55); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.modal-close { right: 16px; top: 16px; width: 36px; height: 36px; padding: 0; border-radius: 50%; color: var(--muted); background: var(--glass); display: grid; place-items: center; }
+.modal-close svg { width: 18px; height: 18px; }
+.modal-icon { width: 40px; height: 40px; border: 0; border-radius: 12px; background: var(--glass); color: var(--ink); margin: 0 0 24px; }
+.modal-icon svg { width: 18px; height: 18px; }
+.modal .section-kicker { margin: 0 0 10px; color: var(--muted); font-size: 11px; letter-spacing: 2px; }
+.modal h2 { font-size: clamp(30px, 4vw, 36px); line-height: 1.05; margin: 0 0 12px; display: block; letter-spacing: -.02em; }
+.modal h2 em { display: inline; }
+.modal > p { margin: 0 0 24px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.modal .profile-row { display: flex; align-items: center; gap: 14px; margin: 0 0 24px; padding: 14px 16px; border: 0; border-radius: 18px; background: var(--field-bg); }
+.modal .profile-row img { width: 44px; height: 44px; }
+.modal .profile-row strong { font-size: 14px; color: var(--ink); }
+.modal .profile-row span { font-size: 12px; color: var(--muted); }
+.modal .profile-row > svg { margin-left: auto; color: var(--muted); width: 18px; height: 18px; }
+.modal .primary.full { width: 100%; min-height: 52px; font-size: 15px; margin: 0; }
+.modal .modal-cancel { display: block; width: auto; margin: 10px auto 0; padding: 10px 14px; min-height: 0; font-size: 13px; color: var(--muted); background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.modal .modal-cancel:hover { color: var(--ink); background: transparent; }
+.modal .prototype-note, .modal .demo-auth-note { margin: 20px 0 0; padding: 0; border: 0; text-align: center; font-size: 11px; line-height: 1.6; color: var(--muted-2); }
+/* wallet sheet */
+.modal .wallet-list { display: grid; gap: 8px; margin: 0 0 8px; }
+.modal .wallet-list > button { gap: 14px; padding: 12px 14px; border: 0; border-radius: 16px; background: var(--field-bg); color: var(--ink); min-height: 60px; }
+.modal .wallet-list > button:hover { background: var(--field-bg-focus); }
+.modal .wallet-list strong { font-size: 14px; color: var(--ink); }
+.modal .wallet-list small { font-size: 12px; color: var(--muted); }
+.modal .wallet-list > button > svg { color: var(--muted-2); }
+.modal .wallet-logo { width: 36px; height: 36px; border-radius: 12px; }
+.modal .wallet-preview { gap: 14px; padding: 0; margin: 0 0 20px; }
+.modal .wallet-preview strong { font-size: 16px; color: var(--ink); }
+.modal .field-label { margin: 0 0 8px; font-size: 13px; color: var(--ink); }
+.modal .network { gap: 8px; margin: 0 0 24px; }
+.modal .network button { min-height: 44px; padding: 10px 18px; border: 1px solid transparent; border-radius: 999px; background: var(--field-bg); color: var(--ink-2); font-size: 13px; }
+.modal .network button.chosen { background: rgb(120 85 239 / .12); border-color: var(--violet); color: var(--ink); }
+.modal .error { margin: 0 0 20px; padding: 12px 14px; font-size: 13px; }
+@media (max-width: 760px) {
+  .modal { padding: 24px 20px; width: calc(100vw - 24px); border-radius: 24px; }
+  .modal h2 { font-size: 30px; }
+  .modal .profile-row { padding: 12px 14px; }
+}
+
+/* ── Result reveal: the card arrives face-hidden in shadow, flashes, and comes up lit; the copy follows ──
+   0 → 1.1s: dark silhouette rises and turns · 1.1s: white flash on the face · 1.1 → 1.7s: lit, settles into its tilt
+   copy: kicker / title / tagline / actions fade up in sequence after the card lands ── */
+main.step-3 .studio .card-frame { animation: donut-reveal 1.7s cubic-bezier(.25, .6, .2, 1) both; }
+@keyframes donut-reveal {
+  0%   { opacity: 0; transform: translateY(60px) scale(.82) rotateY(-540deg); filter: brightness(.06) saturate(0); }
+  20%  { opacity: 1; }
+  62%  { transform: translateY(0) scale(.98) rotateY(-30deg); filter: brightness(.08) saturate(.2); }
+  66%  { filter: brightness(2.6) saturate(1.4); }
+  78%  { filter: brightness(1) saturate(1); }
+  100% { transform: var(--card-tilt); filter: none; }
+}
+main.step-3 .studio .card-frame::after { content: ""; position: absolute; inset: 0; z-index: 6; pointer-events: none; border-radius: 26px; background: #fff; opacity: 0; animation: donut-reveal-flash 1.7s linear both; }
+@keyframes donut-reveal-flash { 0%, 62% { opacity: 0; } 66% { opacity: .85; } 80%, 100% { opacity: 0; } }
+main.step-3 .result-panel > * { animation: donut-rise .7s cubic-bezier(.2, .7, .2, 1) both; }
+main.step-3 .result-panel > :nth-child(1) { animation-delay: 1.3s; }
+main.step-3 .result-panel > :nth-child(2) { animation-delay: 1.45s; }
+main.step-3 .result-panel > :nth-child(3) { animation-delay: 1.6s; }
+main.step-3 .result-panel > :nth-child(4) { animation-delay: 1.75s; }
+main.step-3 .result-panel > :nth-child(n+5) { animation-delay: 1.9s; }
+@keyframes donut-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+main.step-3 .card-under { animation: donut-rise .6s ease 1.8s both; }
+.result-arrival .result-panel, .result-arrival .studio { animation: none; }   /* Sean's arrival fade yields to the reveal */
+@media (prefers-reduced-motion: reduce) { main.step-3 .studio .card-frame, main.step-3 .studio .card-frame::after, main.step-3 .result-panel > *, main.step-3 .card-under { animation: none; } }
+
+/* ── audit leftovers ── */
+.modal h2 em, .work-panel h2 em { margin-left: .22em; }   /* the markup has no space before the accent word */
+.result-secondary { display: flex; gap: 10px; margin: 10px 0 0; max-width: 420px; }
+.result-secondary > button, .result-secondary > a { flex: 1 1 0; min-height: 48px; padding: 12px 18px; border: 0; border-radius: 999px; font: 500 14px var(--sans); color: #fff; background: rgb(255 255 255 / .12);
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; -webkit-backdrop-filter: blur(24px) saturate(.8); backdrop-filter: blur(24px) saturate(.8); }
+.result-secondary > button:hover, .result-secondary > a:hover { background: rgb(255 255 255 / .2); }
+.result-secondary svg { width: 16px; height: 16px; color: #fff; }
+.result-panel .edit-answers { margin-top: 14px; }
+.result-rule { width: 48px; height: 1px; background: rgb(255 255 255 / .25); margin: 18px 0 20px; border: 0; }
+.modal .account-address { margin: 0 0 20px; padding: 14px 16px; border-radius: 16px; background: var(--field-bg); font: 500 15px/1.2 var(--sans); color: var(--ink); letter-spacing: .02em; }
+.modal .connection-actions { display: flex; justify-content: space-between; gap: 12px; margin: 12px 0 0; }
+.modal .connection-actions button { padding: 10px 12px; font-size: 13px; color: var(--muted); background: transparent; border-radius: 999px; }
+.modal .connection-actions button:hover { color: var(--ink); background: var(--glass); }
+@media (max-width: 760px) { .result-secondary { max-width: none; } .result-rule { margin: 16px auto 18px; } }
