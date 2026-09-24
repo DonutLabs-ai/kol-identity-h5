@@ -1,40 +1,22 @@
-/* Donut skin runtime: theme toggle + the website's planet hero as the stage behind the landing and reveal.
-   The React bundle owns #root; we only observe it and add presentation-only layers (aria-hidden). */
+/* Donut website skin for Sean's KOL identity flow (app.js). Adds, without touching the React bundle:
+   planet-video stage behind the landing and the result, card sizing that never covers the headline (with a
+   tuning panel on ?tune=1), the opening card flick, cross-flare sparkles on the landing card, a step-complete
+   edge pulse, and steadier background video. Sean's own EN / 中文 toggle stays; it is only restyled. */
 (function () {
-  var root = document.documentElement;
-  var KEY = "donut-identity-theme";
+  "use strict";
   var reduce = matchMedia("(prefers-reduced-motion: reduce)");
+  var phone = function () { return innerWidth <= 760; };
+  var q = new URLSearchParams(location.search);
 
-  /* ── theme toggle ── */
-  function current() { return root.dataset.theme === "dark" ? "dark" : "light"; }
-  function apply(t) {
-    root.dataset.theme = t;
-    try { localStorage.setItem(KEY, t); } catch (e) {}
-    btn.setAttribute("aria-label", t === "dark" ? "Switch to light theme" : "Switch to dark theme");
-  }
-  var btn = document.createElement("button");
-  btn.type = "button";
-  btn.className = "donut-theme-toggle";
-  btn.innerHTML =
-    '<svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>' +
-    '<svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
-  btn.addEventListener("click", function () { apply(current() === "dark" ? "light" : "dark"); });
-  document.body.appendChild(btn);
-  apply(current());
-
-  /* ── hero stage: planet loop behind .landing, poster behind .identity-reveal ── */
+  /* ── hero stage: planet loop behind the landing (step-0), poster behind the result (step-3) ── */
   var MEDIA = "./media/";
   function stage(host, withVideo) {
-    // React reuses the <main> node between routes and only swaps its className, so a layer made for the
-    // landing can find itself inside the reveal (or a flow page). Rebuild when the kind no longer matches.
     var kind = withVideo ? "video" : "poster";
     var existing = host.querySelector(":scope > .donut-hero-bg");
     if (existing && existing.dataset.kind === kind) return;
     if (existing) existing.remove();
     var bg = document.createElement("div");
-    bg.className = "donut-hero-bg";
-    bg.dataset.kind = kind;
-    bg.setAttribute("aria-hidden", "true");
+    bg.className = "donut-hero-bg"; bg.dataset.kind = kind; bg.setAttribute("aria-hidden", "true");
     // poster sits underneath at all times, so a stalled or black frame never shows through
     var img = document.createElement("img");
     img.src = MEDIA + "hero-poster.jpg"; img.alt = ""; img.decoding = "async";
@@ -45,12 +27,11 @@
       v.setAttribute("muted", ""); v.setAttribute("playsinline", ""); v.setAttribute("webkit-playsinline", "");
       var src = document.createElement("source"); src.src = MEDIA + "hero-720.mp4"; src.type = "video/mp4";
       v.appendChild(src);
-      // native rate: fractional playbackRate stutters in some mobile webviews
       var hideT;
       function show() { clearTimeout(hideT); v.classList.add("is-playing"); }
       function hideSoon() { clearTimeout(hideT); hideT = setTimeout(function () { v.classList.remove("is-playing"); }, 1200); }
       v.addEventListener("playing", show); v.addEventListener("timeupdate", show);
-      v.addEventListener("waiting", hideSoon); v.addEventListener("stalled", hideSoon); v.addEventListener("suspend", function () { if (v.paused) hideSoon(); });
+      v.addEventListener("waiting", hideSoon); v.addEventListener("stalled", hideSoon);
       v.addEventListener("error", function () { v.classList.remove("is-playing"); });
       document.addEventListener("visibilitychange", function () { if (!document.hidden && v.isConnected) v.play().catch(function () {}); });
       bg.appendChild(v);
@@ -58,97 +39,77 @@
     }
     host.prepend(bg);
   }
-  /* ── card tuning: size / y / tilt / copy bottom, per device class; auto-clamps so the card never covers the copy ── */
-  var I18N = window.DONUT_I18N || { lang: "en", t: function (x) { return x; }, en: function (x) { return x; }, langs: [], set: function () {} };
-  var T = I18N.t, EN = I18N.en;   // T: English → current language; EN: translated label → English key (type names)
+  function clearStage(host) { var e = host && host.querySelector(":scope > .donut-hero-bg"); if (e) e.remove(); }
+
+  /* ── card tuning: size / y / tilt / copy gap per device class; clamps so the card never covers the headline ── */
   var TKEY = "donut-identity-card-tune";
-  if (new URLSearchParams(location.search).get("tune") === "1") document.body.setAttribute("data-tools", "");   // shows the floating tune + theme toggles
-  var phone = function () { return innerWidth <= 760; };
-  var DEFAULTS = { m: { zoom: 82, y: -30, tz: -6, ty: 12, copy: 22 }, d: { zoom: 90, y: 0, tz: -6, ty: 12, copy: 22 },
-                   card: { px: 50, py: 0, pz: 100, ink: 100, bg: 55 } };   // card face (portrait crop + notch label) is shared by phone/desktop   // the flashcard is narrower than the old card
+  var DEFAULTS = { m: { zoom: 78, y: 0, tz: -6, ty: 12, copy: 22 }, d: { zoom: 100, y: 0, tz: -6, ty: 12, copy: 22 },
+                   card: { px: 50, py: 0, pz: 100, ink: 100, bg: 55 } };
   function loadTune() { try { return Object.assign(JSON.parse(JSON.stringify(DEFAULTS)), JSON.parse(localStorage.getItem(TKEY) || "{}")); } catch (e) { return JSON.parse(JSON.stringify(DEFAULTS)); } }
   var tune = loadTune();
   function saveTune() { try { localStorage.setItem(TKEY, JSON.stringify(tune)); } catch (e) {} }
   function cur() { return tune[phone() ? "m" : "d"]; }
   var CARD_FIELDS = { px: 1, py: 1, pz: 1, ink: 1, bg: 1 };
   function bag(name) { return CARD_FIELDS[name] ? tune.card : cur(); }
-  // push the card-face values into every embedded flashcard (same origin, so CSS vars on its <html>)
+  // card-face values go into the embedded flashcard as CSS vars (same origin)
   function applyFlash() {
     var c = tune.card;
-    document.querySelectorAll(".donut-flash").forEach(function (f) {
+    document.querySelectorAll(".card-frame iframe").forEach(function (f) {
       try {
         var st = f.contentDocument && f.contentDocument.documentElement.style; if (!st) return;
-        st.setProperty("--photo-pos", c.px + "% " + c.py + "%");
-        st.setProperty("--photo-zoom", String(c.pz / 100));
-        st.setProperty("--notch-ink", String(c.ink / 100));
-        st.setProperty("--notch-bg", String(c.bg / 100));
+        st.setProperty("--photo-pos", c.px + "% " + c.py + "%"); st.setProperty("--photo-zoom", String(c.pz / 100));
+        st.setProperty("--notch-ink", String(c.ink / 100)); st.setProperty("--notch-bg", String(c.bg / 100));
       } catch (e) {}
     });
   }
-  var clamped = false;
-  var tuneKey = "";
+  var clamped = false, tuneKey = "";
   function applyTune(force) {
-    var landing = document.querySelector(".landing"); if (!landing) return;
-    var key = innerWidth + "x" + innerHeight + "|" + JSON.stringify(tune) + "|" + (landing.querySelector(".hero-card.has-flash") ? 1 : 0);
-    if (!force && key === tuneKey && landing.style.getPropertyValue("--card-zoom")) { applyFlash(); return; }
+    var hero = document.querySelector(".hero"); if (!hero) return;
+    var key = innerWidth + "x" + innerHeight + "|" + JSON.stringify(tune);
+    if (!force && key === tuneKey && hero.style.getPropertyValue("--card-zoom")) { applyFlash(); return; }
     tuneKey = key;
     var t = cur();
-    landing.style.setProperty("--card-zoom", String(t.zoom / 100));
-    landing.style.setProperty("--card-y", t.y + "px");
-    landing.style.setProperty("--tilt-z", t.tz + "deg");
-    landing.style.setProperty("--tilt-y", t.ty + "deg");
-    landing.style.setProperty("--copy-bottom", t.copy + "px");
+    hero.style.setProperty("--card-zoom", String(t.zoom / 100));
+    hero.style.setProperty("--card-y", t.y + "px");
+    hero.style.setProperty("--tilt-z", t.tz + "deg");
+    hero.style.setProperty("--tilt-y", t.ty + "deg");
+    hero.style.setProperty("--copy-bottom", t.copy + "px");
     applyFlash();
-    // never let the card sit on the copy: shrink until there is a 12px gap (phones stack them in one screen)
     clamped = false;
-    var card = landing.querySelector(".hero-card"), h1 = landing.querySelector(".hero-copy h1");
-    // the opening spin distorts the card's rect while it runs, so measure at the settled pose: jump the finite
-    // animations to their end for the measurement and put them back in the same frame (nothing is painted between)
-    var running = landing.getAnimations ? landing.getAnimations({ subtree: true }).filter(function (a) { return a.playState !== "finished"; }) : [];
+    var card = hero.querySelector(".hero-studio .card-frame"), h1 = hero.querySelector("h1");
+    // measure at the settled pose: finite animations jump to their end, the idle float to its resting frame
+    var running = hero.getAnimations ? hero.getAnimations({ subtree: true }).filter(function (a) { return a.playState !== "finished"; }) : [];
     var saved = running.map(function (a) { return a.currentTime; });
-    running.forEach(function (a) {   // finite (spin-in, copy fade-up) → their end pose; infinite (idle float) → their resting start
-      try { var t = a.effect.getComputedTiming(); a.currentTime = t.iterations === Infinity ? 0 : t.endTime; } catch (e) {}
-    });
-    if (card && h1) {   // desktop too: short laptop viewports otherwise let the tilted corner touch the headline
+    running.forEach(function (a) { try { var tm = a.effect.getComputedTiming(); a.currentTime = tm.iterations === Infinity ? 0 : tm.endTime; } catch (e) {} });
+    if (card && h1 && phone()) {
       for (var i = 0; i < 12; i++) {
         var c = card.getBoundingClientRect(), top = h1.getBoundingClientRect().top;
-        if (c.bottom + 16 <= top) break;   // 16px: absorbs the idle float's few px of travel
-        var z = parseFloat(landing.style.getPropertyValue("--card-zoom")) * ((top - 16 - c.top) / (c.bottom - c.top));
-        landing.style.setProperty("--card-zoom", String(Math.max(0.4, Math.floor(z * 100) / 100)));
+        if (c.bottom + 16 <= top) break;
+        var z = parseFloat(hero.style.getPropertyValue("--card-zoom")) * ((top - 16 - c.top) / (c.bottom - c.top));
+        hero.style.setProperty("--card-zoom", String(Math.max(0.4, Math.floor(z * 100) / 100)));
         clamped = true;
       }
     }
     running.forEach(function (a, i) { try { a.currentTime = saved[i]; } catch (e) {} });
     if (panel) renderPanel();
   }
-  var panel = null, tuneBtn = null, langBar = null;
-  function mountLang() {
-    if (langBar || !I18N.langs.length) return;
-    langBar = document.createElement("div"); langBar.className = "donut-lang"; langBar.setAttribute("role", "group"); langBar.setAttribute("aria-label", T("Language"));
-    I18N.langs.forEach(function (l) {
-      var b = document.createElement("button"); b.type = "button"; b.textContent = l[1]; b.lang = { en: "en", zh: "zh-CN", ko: "ko" }[l[0]];
-      if (l[0] === I18N.lang) b.setAttribute("aria-current", "true");
-      b.addEventListener("click", function () { if (l[0] !== I18N.lang) I18N.set(l[0]); });
-      langBar.appendChild(b);
-    });
-    document.body.appendChild(langBar);
-  }
+  var panel = null, tuneBtn = null;
   function renderPanel() {
-    var t = cur();
     var fit = panel.querySelector(".fit");
     fit.textContent = clamped ? "Size clamped so the card clears the headline" : "Card clears the headline";
     if (clamped) fit.setAttribute("data-clamped", ""); else fit.removeAttribute("data-clamped");
+    panel.querySelector("h4").textContent = "Card · " + (phone() ? "phone" : "desktop");
     panel.querySelectorAll("input").forEach(function (inp) { var v = bag(inp.name)[inp.name]; inp.value = v; inp.previousElementSibling.textContent = v + inp.dataset.unit; });
   }
   function mountPanel() {
+    if (panel) return;
     tuneBtn = document.createElement("button"); tuneBtn.type = "button"; tuneBtn.className = "donut-tune-toggle"; tuneBtn.setAttribute("aria-label", "Card tuning");
     tuneBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>';
     panel = document.createElement("div"); panel.className = "donut-tune"; panel.setAttribute("role", "region"); panel.setAttribute("aria-label", "Card tuning");
-    var fields = [["zoom", "Card size", "%", 40, 110, 1], ["y", "Card offset Y", "px", -160, 160, 1], ["tz", "Tilt", "°", -20, 20, 1], ["ty", "Turn (Y)", "°", -30, 30, 1], ["copy", "Copy bottom", "px", 0, 120, 1],
-                  ["px", "Portrait X", "%", 0, 100, 1], ["py", "Portrait Y", "%", 0, 100, 1], ["pz", "Portrait zoom", "%", 100, 180, 1],
-                  ["ink", "Label ink", "%", 20, 100, 1], ["bg", "Label backing", "%", 0, 100, 1]];
-    panel.innerHTML = "<h4>Card · " + (phone() ? "phone" : "desktop") + "</h4>" + fields.map(function (f) {
-      return '<label><span>' + f[1] + '</span><span>' + bag(f[0])[f[0]] + f[2] + '</span><input type="range" name="' + f[0] + '" min="' + f[3] + '" max="' + f[4] + '" step="' + f[5] + '" data-unit="' + f[2] + '"></label>';
+    var fields = [["zoom", "Card size", "%", 40, 120, 1], ["y", "Card offset Y", "px", -160, 160, 1], ["tz", "Tilt", "°", -20, 20, 1], ["ty", "Turn (Y)", "°", -30, 30, 1], ["copy", "Copy bottom", "px", 0, 120, 1],
+                  ["px", "Portrait X", "%", 0, 100, 1], ["py", "Portrait Y", "%", 0, 100, 1], ["pz", "Portrait zoom", "%", 100, 180, 1], ["ink", "Label ink", "%", 20, 100, 1], ["bg", "Label backing", "%", 0, 100, 1]];
+    panel.innerHTML = "<h4></h4>" + fields.map(function (f) {
+      return '<label><span>' + f[1] + '</span><span></span><input type="range" name="' + f[0] + '" min="' + f[3] + '" max="' + f[4] + '" step="' + f[5] + '" data-unit="' + f[2] + '"></label>';
     }).join("") + '<p class="fit"></p><div class="row"><button type="button" data-act="reset">Reset</button><button type="button" data-act="copy">Copy CSS</button></div>';
     panel.addEventListener("input", function (e) {
       var inp = e.target; if (inp.tagName !== "INPUT") return;
@@ -159,294 +120,73 @@
       var act = e.target.getAttribute("data-act");
       if (act === "reset") { tune[phone() ? "m" : "d"] = JSON.parse(JSON.stringify(DEFAULTS[phone() ? "m" : "d"])); tune.card = JSON.parse(JSON.stringify(DEFAULTS.card)); saveTune(); applyTune(true); }
       if (act === "copy") {
-        var t = cur(); var css = (phone() ? "@media (max-width: 760px) { .landing { " : ".landing { ") + "--card-zoom: " + (t.zoom / 100) + "; --card-y: " + t.y + "px; --tilt-z: " + t.tz + "deg; --tilt-y: " + t.ty + "deg; --copy-bottom: " + t.copy + "px; }" + (phone() ? " }" : "") + "\n/* card face */ .donut-flash { --photo-pos: " + tune.card.px + "% " + tune.card.py + "%; --photo-zoom: " + (tune.card.pz / 100) + "; --notch-ink: " + (tune.card.ink / 100) + "; --notch-bg: " + (tune.card.bg / 100) + "; }";
+        var t = cur(); var css = (phone() ? "@media (max-width: 760px) { .hero { " : ".hero { ") + "--card-zoom: " + (t.zoom / 100) + "; --card-y: " + t.y + "px; --tilt-z: " + t.tz + "deg; --tilt-y: " + t.ty + "deg; --copy-bottom: " + t.copy + "px; }" + (phone() ? " }" : "") +
+          "\n/* card face */ .card-frame iframe { --photo-pos: " + tune.card.px + "% " + tune.card.py + "%; --photo-zoom: " + (tune.card.pz / 100) + "; --notch-ink: " + (tune.card.ink / 100) + "; --notch-bg: " + (tune.card.bg / 100) + "; }";
         navigator.clipboard && navigator.clipboard.writeText(css).then(function () { e.target.textContent = "Copied"; setTimeout(function () { e.target.textContent = "Copy CSS"; }, 1200); });
       }
     });
     tuneBtn.addEventListener("click", function () { panel.toggleAttribute("data-open"); renderPanel(); });
     document.body.appendChild(tuneBtn); document.body.appendChild(panel);
-    if (new URLSearchParams(location.search).get("tune") === "1") panel.setAttribute("data-open", "");
+    if (q.get("tune") === "1") { document.body.setAttribute("data-tools", ""); panel.setAttribute("data-open", ""); }
     renderPanel();
   }
-  /* ── Share / Save hand off to Yi's flashcard (public/flashcard/kol.html): the straight, front-facing card.
-        The artifact's own share modal / PNG export are bypassed (capture-phase listener runs before React). ── */
-  var CARD_BASE = window.DONUT_CARD_BASE || "https://donut-kol-card.vercel.app/flashcard/kol";
-  function cardUrl() {
-    var name = (document.querySelector(".reveal-card-mount .card-profile > h2") || {}).textContent || "Trader";
-    var type = ((document.querySelector(".reveal-copy h1") || {}).textContent || "").replace(/\.$/, "").trim();
-    var img = document.querySelector(".reveal-card-mount .portrait > img");
-    var q = new URLSearchParams({ user: name.trim(), type: type, code: "Donut2026", bare: "1" });
-    if (img && /^https?:/.test(img.src)) q.set("img", img.src);      // real URLs only (data URLs would not fit a link)
-    else q.set("img", new URL("img/preview-portrait.jpg", location.href).href);   // the approved placeholder portrait
-    return CARD_BASE + "?" + q.toString();
-  }
-  document.addEventListener("click", function (e) {
-    var share = e.target.closest && e.target.closest(".reveal-actions .reveal-share");
-    var save = e.target.closest && e.target.closest(".reveal-actions .secondary");
-    if (!share && !save) return;
-    e.preventDefault(); e.stopPropagation();
-    var url = cardUrl();
-    if (share) {
-      var type = EN(((document.querySelector(".reveal-copy h1") || {}).textContent || "").replace(/[.。]$/, "").trim());
-      var payload = { title: "My Donut trading identity", text: "My Donut trading identity: " + type + ". Find yours →", url: url };
-      if (navigator.share) navigator.share(payload).catch(function () {});
-      else if (navigator.clipboard) navigator.clipboard.writeText(url).then(function () { toast("Card link copied"); });
-      else window.open(url, "_blank", "noopener");
-    } else {
-      window.open(url, "_blank", "noopener");                          // the flashcard page: save it from there
-    }
-  }, true);
-  function toast(msg) {
-    var t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t);
-    setTimeout(function () { t.remove(); }, 2200);
+
+  /* ── landing card: cross-flare sparkles sized to the ticket inside the iframe ── */
+  function mountShine(card) {
+    if (!card || card.querySelector(":scope > .donut-shine")) return;
+    var sh = document.createElement("div"); sh.className = "donut-shine"; sh.setAttribute("aria-hidden", "true");
+    sh.innerHTML = "<i></i><i></i><i></i><i></i>"; card.appendChild(sh);
   }
 
-  /* ── Yi's flashcard replaces the artifact card: same-origin iframe of ../flashcard/kol.html?embed=1 ── */
-  var FLASH_SRC = "../flashcard/kol.html";
-  function flashParams(user, type, img) {
-    var q = new URLSearchParams({ embed: "1", bare: "1", lang: I18N.lang === "zh" ? "cn" : "en", user: user, type: EN(type), code: "Donut2026", skin: "amethyst" });   // one skin for every style (per Cory)
-    if (img && /^https?:/.test(img)) q.set("img", img);
-    return q.toString();
-  }
-  function mountFlash(host, user, type, img) {
-    if (!host) return;
-    var existing = host.querySelector(":scope > .donut-flash");
-    var key = user + "|" + type + "|" + (img || "").slice(0, 64);
-    if (existing && existing.dataset.key === key) return;
-    if (existing) existing.remove();
-    var f = document.createElement("iframe");
-    f.className = "donut-flash"; f.dataset.key = key; f.title = "Your Donut identity card";
-    f.setAttribute("aria-label", "Your Donut identity card"); f.loading = "eager"; f.scrolling = "no";
-    f.width = "396"; f.height = "590";   // 380×550 ticket + notch + tilt room
-    f.src = FLASH_SRC + "?" + flashParams(user, type, /^https?:/.test(img || "") ? img : "");
-    f.addEventListener("load", function () {
-      if (img && /^data:/.test(img)) { try { var ph = f.contentDocument.querySelector(".kol-photo img"); if (ph) ph.src = img; } catch (e) {} }   // uploaded photo: same-origin, set directly
-      applyFlash();
-    });
-    host.classList.add("has-flash");
-    host.appendChild(f);
-  }
-  // one illustrated portrait per archetype (Cory's black-background set, img/archetypes/NN-slug.jpg), same order as Yi's TYPES
-  var ARCHETYPES = ["Diamond Hands", "DCA Believer", "Risk Explorer", "Day Trader", "Sniper", "Grid Executor", "Swing Hunter", "Momentum Rider", "Arb Researcher", "Narrative Trader", "Risk-First", "Contrarian"];
-  function archetypePortrait(type) {
-    var i = ARCHETYPES.findIndex(function (t) { return t.toLowerCase() === String(type || "").toLowerCase(); });
-    if (i < 0) return new URL("img/preview-portrait.jpg", location.href).href;
-    var slug = ARCHETYPES[i].toLowerCase().replace(/[^a-z]+/g, "-");
-    return new URL("img/archetypes/" + String(i + 1).padStart(2, "0") + "-" + slug + ".jpg", location.href).href;
-  }
-  // reveal: tapping another style's tag previews that card, dimmed and marked LOCKED; tapping YOU (or the same tag) returns
-  var previewType = null;
-  document.addEventListener("click", function (e) {
-    var tag = e.target.closest && e.target.closest(".spectrum-type"); if (!tag) return;
-    var label = EN(((tag.querySelector("small + span") || {}).textContent || "").trim());
-    previewType = (tag.classList.contains("is-yours") || previewType === label) ? null : label;
-    document.querySelectorAll(".spectrum-type").forEach(function (x) { x.classList.toggle("is-previewing", !!previewType && x === tag); });
-    flashSync();
-  }, true);
-  function flashSync() {
-    var portrait = archetypePortrait("Diamond Hands");
-    if (!document.querySelector(".reveal-card-mount")) previewType = null;
-    var landingCard = document.querySelector(".landing .hero-card");
-    if (landingCard) {
-      mountFlash(landingCard, "Donut Trader", "Diamond Hands", portrait);
-      if (!landingCard.querySelector(".donut-shine")) { var sh = document.createElement("div"); sh.className = "donut-shine"; sh.setAttribute("aria-hidden", "true"); sh.innerHTML = "<i></i><i></i><i></i><i></i>"; landingCard.appendChild(sh); }
+  /* ── step-complete pulse: a warm inner glow at the screen edge when the flow advances ── */
+  var pulse = null, lastStep = -1;
+  function stepPulse(step) {
+    if (step > lastStep && lastStep >= 0 && step > 0 && !reduce.matches) {
+      if (!pulse) { pulse = document.createElement("div"); pulse.className = "donut-pulse"; pulse.setAttribute("aria-hidden", "true"); document.body.appendChild(pulse); }
+      pulse.classList.remove("is-on"); void pulse.offsetWidth; pulse.classList.add("is-on");
     }
-    var mount = document.querySelector(".reveal-card-mount");
-    if (mount) {
-      var name = ((mount.querySelector(".card-profile > h2") || {}).textContent || "Trader").trim();
-      var type = EN(((document.querySelector(".reveal-copy h1") || {}).textContent || "").replace(/[.。]$/, "").trim());
-      var up = mount.querySelector(".portrait > img");
-      var own = type || "Diamond Hands";
-      var locked = !!previewType && previewType.toLowerCase() !== own.toLowerCase();
-      var show = locked ? previewType : own;
-      mountFlash(mount, name, show, (up && !locked) ? up.src : archetypePortrait(show));
-      mount.classList.toggle("is-locked", locked);
-      // the badge lives beside the tilted mount (not inside it), so it stays flat; centred on the card's box
-      var par = mount.parentElement, badge = par && par.querySelector(":scope > .donut-locked");
-      if (locked && par) {
-        if (!badge) {
-          badge = document.createElement("div"); badge.className = "donut-locked"; badge.setAttribute("aria-hidden", "true");
-          badge.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg><span></span>';
-          if (getComputedStyle(par).position === "static") par.style.position = "relative";
-          par.appendChild(badge);
-        }
-        // write only on change: every DOM write here re-enters via the MutationObserver
-        var lbl = badge.querySelector("span"); if (lbl.textContent !== T("LOCKED")) lbl.textContent = T("LOCKED");
-        var pr = par.getBoundingClientRect(), mr = mount.getBoundingClientRect();
-        var lx = Math.round(mr.left - pr.left + mr.width / 2) + "px", ly = Math.round(mr.top - pr.top + mr.height / 2) + "px";
-        if (badge.style.left !== lx) badge.style.left = lx; if (badge.style.top !== ly) badge.style.top = ly;
-      } else if (badge) badge.remove();
-    }
+    lastStep = step;
   }
 
-  /* ── card face declutter: clone referral code into the top bar and the name into the footer (React owns the
-        originals, so they are hidden by CSS rather than moved) ── */
-  function decorateCard(card) {
-    var ref = card.querySelector(".card-referral b"), top = card.querySelector(".card-top");
-    if (ref && top && !top.querySelector(".donut-ref")) { var r = document.createElement("span"); r.className = "donut-ref"; r.textContent = ref.textContent.trim(); top.appendChild(r); }
-    var name = card.querySelector(".card-profile > h2"), foot = card.querySelector(".card-footer > div");
-    if (name && foot) {
-      var n = foot.querySelector(".donut-name");
-      if (!n) { n = document.createElement("span"); n.className = "donut-name"; foot.prepend(n); }
-      if (n.textContent !== name.textContent) n.textContent = name.textContent;
-    }
-    var handle = card.querySelector(".card-handle");
-    if (handle) handle.classList.toggle("is-unlinked", /not linked/i.test(handle.textContent));
-  }
+  /* ── route scan: Sean's <main class="app step-N"> carries the step ── */
+  function currentStep() { var m = document.querySelector("main.app"); if (!m) return -1; var mm = /step-(\d)/.exec(m.className); return mm ? Number(mm[1]) : -1; }
   function scan() {
-    document.querySelectorAll(".identity-card").forEach(decorateCard);
-    flashSync();
-    var landing = document.querySelector(".landing");
-    if (landing) { stage(landing, true); if (!panel) mountPanel(); mountLang(); applyTune(); }   // applyTune is a no-op unless viewport/tune/card changed
-    if (panel) { panel.style.display = landing ? "" : "none"; if (tuneBtn) tuneBtn.style.display = landing ? "" : "none"; }
-    if (langBar) langBar.style.display = landing ? "" : "none";
-    var reveal = document.querySelector(".identity-reveal");
-    if (reveal) {
-      stage(reveal, false); tapHint();
-      var mine = reveal.querySelector(".spectrum-type.is-yours");
-      if (mine && !mine.dataset.shown) { mine.dataset.shown = "1"; setTimeout(function () {
-        var row = mine.parentElement; if (!row) return;   // scroll the row itself, never the page
-        row.scrollTo({ left: mine.offsetLeft - (row.clientWidth - mine.offsetWidth) / 2, behavior: "smooth" });
-      }, 1200); }
-      autoScroll(reveal.querySelector(".spectrum-grid"));
-    }
-    // Flow pages: drop any stage layer the reused <main> carried over (it would only keep a video decoding).
-    document.querySelectorAll(".donut-hero-bg").forEach(function (bg) {
-      var host = bg.parentElement;
-      if (!host || !(host.classList.contains("landing") || host.classList.contains("identity-reveal"))) bg.remove();
-    });
-  }
-  /* ── reveal: tap the card to flip it (drives the artifact's hidden Identity/Style switch) ── */
-  document.addEventListener("click", function (e) {
-    var mount = e.target.closest && e.target.closest(".reveal-card-mount");
-    if (!mount || mount.classList.contains("is-flipping") || mount.classList.contains("has-flash")) return;
-    var next = Array.prototype.find.call(document.querySelectorAll(".reveal-card-controls button"), function (b) { return !b.classList.contains("active"); });
-    if (!next) return;
-    mount.classList.add("is-flipping");
-    setTimeout(function () {
-      next.click();
-      requestAnimationFrame(function () {
-        mount.classList.remove("is-flipping"); mount.classList.add("is-flipping-in");
-        setTimeout(function () { mount.classList.remove("is-flipping-in"); }, 340);
-      });
-    }, 300);
-  });
-  function tapHint() {
-    var sc = document.querySelector(".reveal-showcase");
-    if (!sc || sc.querySelector(".reveal-tap")) return;
-    var hint = document.createElement("span"); hint.className = "reveal-tap"; hint.textContent = T("Tap the card to flip");
-    var mount = sc.querySelector(".reveal-card-mount"); (mount || sc).insertAdjacentElement("afterend", hint);
+    var main = document.querySelector("main.app"); if (!main) return;
+    var step = currentStep();
+    if (document.documentElement.getAttribute("data-step") !== String(step)) document.documentElement.setAttribute("data-step", String(step));
+    if (step === 0) { stage(main, true); mountPanel(); mountShine(main.querySelector(".hero-studio .card-frame")); applyTune(); }
+    else if (step === 3) { stage(main, false); }
+    else clearStage(main);
+    var show = step === 0 ? "" : "none";
+    if (tuneBtn && tuneBtn.style.display !== show) tuneBtn.style.display = show;
+    if (panel && panel.style.display !== show) panel.style.display = show;
+    // the flashcard iframe inside the studio: make sure the card-face vars land once it has loaded
+    document.querySelectorAll(".card-frame iframe").forEach(function (f) { if (!f.dataset.donutHooked) { f.dataset.donutHooked = "1"; f.addEventListener("load", applyFlash); } });
+    stepPulse(step);
   }
 
-  /* ── portrait: the avatar circle is the upload button ── */
-  document.addEventListener("click", function (e) {
-    var pv = e.target.closest && e.target.closest(".avatar-preview");
-    if (pv) { var inp = document.querySelector(".upload-button input[type=file]"); if (inp) inp.click(); }
-  });
-
-  /* ── card pseudo-3D: pointer (or idle sway) drives tilt + glare vars on every visible card face ── */
-  var faces = [];          // { el, tx, ty, gx, gy }
-  var pointer = null, lastMove = 0;
-  function collectFaces() {
-    faces = Array.prototype.map.call(document.querySelectorAll(".hero-card > .identity-card, .reveal-card-mount .identity-card"), function (el) {
-      if (!el.querySelector(":scope > .donut-glare")) { var g = document.createElement("div"); g.className = "donut-glare"; g.setAttribute("aria-hidden", "true"); el.appendChild(g); }
-      return { el: el, tx: 0, ty: 0, gx: 50, gy: 50 };
-    });
-  }
-  addEventListener("pointermove", function (e) { pointer = { x: e.clientX, y: e.clientY }; lastMove = performance.now(); }, { passive: true });
-  addEventListener("pointerleave", function () { pointer = null; });
-  var lerp = function (a, b, k) { return a + (b - a) * k; };
-  function tiltFrame(now) {
-    if (!reduce.matches) for (var i = 0; i < faces.length; i++) {
-      var f = faces[i], r = f.el.getBoundingClientRect(); if (!r.width) continue;
-      var nx, ny;
-      if (pointer && now - lastMove < 2500) {
-        // normalised offset from the card centre, softened beyond the card so far-away pointers only nudge it
-        var dx = (pointer.x - (r.left + r.width / 2)) / r.width, dy = (pointer.y - (r.top + r.height / 2)) / r.height;
-        var d = Math.hypot(dx, dy), soft = d > 0.5 ? 0.5 / d : 1;
-        nx = Math.max(-1, Math.min(1, dx * 2)) * soft; ny = Math.max(-1, Math.min(1, dy * 2)) * soft;
-      } else { // idle: slow figure-eight sway so the foil never sits dead
-        nx = Math.sin(now / 1900) * 0.35; ny = Math.cos(now / 2600) * 0.28;
-      }
-      f.tx = lerp(f.tx, -ny * 9, 0.12); f.ty = lerp(f.ty, nx * 11, 0.12);
-      f.gx = lerp(f.gx, 50 + nx * 38, 0.12); f.gy = lerp(f.gy, 50 + ny * 38, 0.12);
-      var st = f.el.style;
-      st.setProperty("--tx", f.tx.toFixed(2) + "deg"); st.setProperty("--ty", f.ty.toFixed(2) + "deg");
-      st.setProperty("--gx", f.gx.toFixed(1) + "%"); st.setProperty("--gy", f.gy.toFixed(1) + "%");
-      st.setProperty("--gp", (50 - nx * 45).toFixed(1) + "%"); st.setProperty("--ga", (115 + nx * 25).toFixed(1) + "deg");
-    }
-    requestAnimationFrame(tiltFrame);
-  }
-  requestAnimationFrame(tiltFrame);
-
-  /* ── step-complete pulse: glow from the screen edges whenever the flow advances ── */
-  var pulse = document.createElement("div"); pulse.className = "donut-pulse"; pulse.setAttribute("aria-hidden", "true"); document.body.appendChild(pulse);
-  var lastStep = -1;
-  function currentStep() {
-    if (document.querySelector(".identity-reveal")) return 4;
-    var btns = document.querySelectorAll(".steps button");
-    for (var i = 0; i < btns.length; i++) if (btns[i].classList.contains("active")) return i + 1;
-    return document.querySelector(".landing") ? 0 : lastStep;
-  }
-  function stepPulse() {
-    var s = currentStep();
-    if (s > lastStep && lastStep >= 0) { pulse.classList.remove("is-on"); void pulse.offsetWidth; pulse.classList.add("is-on"); }
-    lastStep = s;
-  }
-
-  /* ── archetype row: drifts sideways on its own (ping-pong), pauses while the user touches or hovers it ── */
-  function autoScroll(row) {
-    if (!row || row.dataset.auto || reduce.matches) return;
-    row.dataset.auto = "1";
-    var dir = 1, paused = false, resumeAt = 0, started = performance.now() + 1800;   // let the "yours" centring land first
-    var hold = function (ms) { paused = true; resumeAt = performance.now() + ms; };
-    // Only a deliberate interaction stops the drift (tap, drag, wheel); hovering does not. It resumes after 5s idle.
-    ["pointerdown", "touchstart", "wheel"].forEach(function (t) { row.addEventListener(t, function () { hold(5000); }, { passive: true }); });
-    (function step(now) {
-      if (!row.isConnected) return;
-      if (now > started && (!paused || now > resumeAt)) {
-        paused = false;
-        var max = row.scrollWidth - row.clientWidth;
-        if (max > 0) {
-          row.scrollLeft += 0.35 * dir;
-          if (row.scrollLeft >= max - 1) { dir = -1; hold(1200); }
-          if (row.scrollLeft <= 1) { dir = 1; hold(1200); }
-        }
-      }
-      requestAnimationFrame(step);
-    })(performance.now());
-  }
-
-  /* ── opening: the twelve card faces flick past horizontally at full size, settle into an upright ring, the title
-        lands, then the landing shows. Every load; ?intro=0 skips, reduced-motion skips, any tap skips. ── */
-  var TAGLINES = { "Diamond Hands": "Make time your home ground.", "DCA Believer": "Give every persistence to time.", "Risk Explorer": "Beyond the edge, your coordinates.",
-    "Day Trader": "Your home ground is the present.", "Sniper": "Patience is your entry.", "Grid Executor": "Write the market's swings into rules.",
-    "Swing Hunter": "Every leg of the market has your rhythm.", "Momentum Rider": "Trends appear; you have your answer.", "Arb Researcher": "See the other possibility between prices.",
-    "Narrative Trader": "Read the story, write your call.", "Risk-First": "Confidence comes from clear boundaries.", "Contrarian": "When the crowd turns, you keep watching." };
-  var SKINS = ARCHETYPES.map(function () { return "amethyst"; });   // every style wears the landing purple (Cory: unify)
+  /* ── opening: the twelve card faces flick past at full size, settle into an upright ring, the title lands.
+        Every load; ?intro=0 skips, reduced-motion skips, any tap skips. ── */
+  var ARCHETYPES = ["Diamond Hands", "DCA Believer", "Risk Explorer", "Day Trader", "Sniper", "Grid Executor", "Swing Hunter", "Momentum Rider", "Arb Researcher", "Narrative Trader", "Risk-First", "Contrarian"];
   (function intro() {
-    var q = new URLSearchParams(location.search);
     if (q.get("intro") === "0") return;
-    if (q.get("intro") !== "1" && reduce.matches) return;   // plays on every load (a refresh replays it); any tap skips
+    if (q.get("intro") !== "1" && reduce.matches) return;
     document.documentElement.setAttribute("data-intro", "");
     var root = document.createElement("div"); root.className = "donut-intro"; root.setAttribute("role", "presentation");
-    root.innerHTML = '<div class="donut-intro-ring"></div><div class="donut-intro-copy"><h1></h1><p></p></div>';
-    root.querySelector("h1").textContent = T("Test your Trading Personality on Donut D0"); root.querySelector("p").textContent = T("presented by Donut.ai");
+    root.innerHTML = '<div class="donut-intro-ring"></div><div class="donut-intro-copy"><h1>Test your Trading Personality on Donut D0</h1><p>presented by DonutAI</p></div>';
     var ring = root.querySelector(".donut-intro-ring");
     var W = innerWidth, H = innerHeight, ph = W <= 760;
-    var CW = ph ? Math.min(340, W - 40) : 380, CH = Math.round(CW * 550 / 380);   // the fly-by card: Yi's ticket, pre-rendered (scripts/render-intro-cards.*)
+    var CW = ph ? Math.min(340, W - 40) : 380, CH = Math.round(CW * 550 / 380);
     root.style.setProperty("--cw", CW + "px"); root.style.setProperty("--ch", CH + "px");
     var imgs = [];
-    // orbit carries the position; the card face inside counter-rotates so it stays upright while the ring turns
     var cards = ARCHETYPES.map(function (t, i) {
       var o = document.createElement("div"); o.className = "donut-intro-orbit";
       var c = document.createElement("div"); c.className = "donut-intro-card";
       var img = document.createElement("img"); img.alt = t; img.decoding = "async";
       img.src = new URL("img/intro/" + String(i + 1).padStart(2, "0") + "-" + t.toLowerCase().replace(/[^a-z]+/g, "-") + ".webp", location.href).href;
-      c.appendChild(img); imgs.push(img);
-      o.appendChild(c); ring.appendChild(o); return o;
+      c.appendChild(img); imgs.push(img); o.appendChild(c); ring.appendChild(o); return o;
     });
-    var slot = ph ? 54 : 84, sc = slot / CW;   // ring slot size → scale of the full card
+    var slot = ph ? 54 : 84, sc = slot / CW;
     var ringY = ph ? H * .40 : H * .5;
     var R = ph ? Math.min(W / 2 - slot / 2 - 14, ringY - CH * sc / 2 - 24) : Math.min(W, H) * .40 - CH * sc / 2;
     root.style.setProperty("--ring-y", ringY + "px");
@@ -463,7 +203,7 @@
       setTimeout(function () { root.remove(); }, 700);
     }
     root.addEventListener("click", finish);
-    var STAGGER = 260, FLY = 1350, flyY = ph ? H * .44 : H * .5;   // slower flick: each card is on screen ~0.6s
+    var STAGGER = 260, FLY = 1350, flyY = ph ? H * .44 : H * .5;
     function run() {
       var from = "translate(" + Math.round(W / 2 + CW) + "px, " + Math.round(flyY) + "px) rotate(4deg)";
       var to = "translate(" + Math.round(-W / 2 - CW) + "px, " + Math.round(flyY) + "px) rotate(-4deg)";
@@ -480,19 +220,17 @@
                      { transform: "translate(" + x.toFixed(1) + "px, " + y.toFixed(1) + "px) scale(" + sc.toFixed(3) + ")", opacity: 1 }],
             { duration: 900, delay: i * 45, easing: "cubic-bezier(.2,.8,.2,1)", fill: "both" });
         });
-        ring.classList.add("is-ring");
-        root.classList.add("is-titled");
+        ring.classList.add("is-ring"); root.classList.add("is-titled");
       }, settleAt));
       timers.push(setTimeout(finish, settleAt + 3000));
     }
-    // give the first faces a moment to decode so the flick starts with real portraits (capped at 1.2s)
     var ready = Promise.all(imgs.slice(0, 4).map(function (im) { return im.decode ? im.decode().catch(function () {}) : Promise.resolve(); }));
     Promise.race([ready, new Promise(function (r) { setTimeout(r, 1200); })]).then(run);
   })();
 
   var target = document.getElementById("root") || document.body;
-  new MutationObserver(function () { scan(); collectFaces(); stepPulse(); }).observe(target, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
-  scan(); collectFaces(); stepPulse();
+  new MutationObserver(function () { scan(); }).observe(target, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+  scan();
   var rt; addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(function () { applyTune(true); }, 120); });
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { applyTune(true); });
 })();
