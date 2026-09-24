@@ -425,3 +425,25 @@ main.step-3 .card-under { animation: donut-rise .6s ease 1.8s both; }
 @media (max-width: 760px) { .result-secondary { max-width: none; } .result-rule { margin: 16px auto 18px; } }
 .result-secondary .follow-donut, .result-secondary button { flex: 1 1 0; border: 0; border-radius: 999px; padding: 12px 18px; font-size: 14px; color: #fff; background: rgb(255 255 255 / .12); }
 .result-secondary .follow-donut:hover, .result-secondary button:hover { background: rgb(255 255 255 / .2); }
+
+/* ── result page: natural-width actions, no sticky card, no phantom padding ── */
+.share-x { width: auto; min-width: 240px; max-width: 100%; margin: 0; }
+.result-secondary { max-width: none; }
+.result-secondary > button, .result-secondary .follow-donut { flex: 0 1 auto; min-width: 150px; }
+@media (max-width: 760px) {
+  main.step-3 { min-height: 0; }
+  main.step-3 .workspace { padding: 12px var(--gutter) 28px; }
+  main.step-3 .workspace .studio { position: static; top: auto; }   /* the desktop column is sticky; the phone stack scrolls as one */
+  main.step-3 .work-panel { padding-bottom: 0; }   /* the 104px is for the fixed action bar on the form pages only */
+  main.step-3 .card-under { margin-top: 4px; }
+  main.step-3 .result-panel { padding-top: 12px; }
+  .share-x { width: auto; min-width: 0; padding: 14px 28px; }
+  .result-secondary { justify-content: center; }
+  .result-secondary > button, .result-secondary .follow-donut { min-width: 0; padding: 12px 20px; }
+  .result-panel .privacy { margin-bottom: 0; }
+}
+.result-secondary > button, .result-secondary .follow-donut { white-space: nowrap; }
+@media (max-width: 760px) {
+  .result-secondary { max-width: 340px; margin: 10px auto 0; }
+  .result-secondary > button, .result-secondary .follow-donut { flex: 1 1 0; min-width: 0; padding: 12px 14px; }
+}
