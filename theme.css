@@ -285,7 +285,6 @@ body:not([data-tools]) .donut-tune-toggle { display: none !important; }
   .questions legend { font-size: 19px; }
   .choices button { font-size: 14px; min-height: 50px; padding: 13px 14px; }
   .field input, .about textarea, input, textarea { font-size: 16px; }
-  .primary { width: 100%; }
   /* result */
   main.step-3 .workspace { display: flex; flex-direction: column; align-items: center; padding: 24px var(--gutter) 40px; }
   main.step-3 .workspace .studio { display: flex; width: 100%; }
@@ -330,3 +329,22 @@ main.step-3 .result-panel .secondary svg, main.step-3 .follow-donut svg { width:
   .result-panel hr, .result-panel .rule { margin: 14px auto; }
 }
 .result-panel button.secondary, .result-panel .secondary span, .result-panel .follow-donut span, .result-panel .secondary * { font-size: 14px !important; }
+
+/* ── Flow actions ──
+   Desktop: Back (quiet) left, primary right, natural widths, one row.
+   Phone: the primary lives in a fixed bottom bar over the safe area (thumb zone, full width within the gutters);
+   Back is a round icon pinned top-left, like the restart button on the result page. ── */
+.form-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 32px; }
+.form-actions .primary { width: auto; min-width: 180px; }
+@media (max-width: 760px) {
+  .work-panel { padding-bottom: 104px; }   /* room for the fixed bar */
+  .form-actions { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; margin: 0; padding: 12px var(--gutter) calc(12px + env(safe-area-inset-bottom));
+    background: linear-gradient(180deg, rgb(239 237 249 / 0), var(--page-bg) 40%); }
+  .form-actions .primary { width: 100%; min-height: 52px; font-size: 15px; }
+  .form-actions .back { position: fixed; top: calc(12px + env(safe-area-inset-top)); left: 16px; z-index: 41; width: 40px; height: 40px; padding: 0; border-radius: 50%; font-size: 0; gap: 0;
+    color: var(--ink); background: var(--glass); -webkit-backdrop-filter: blur(20px) saturate(.9); backdrop-filter: blur(20px) saturate(.9); display: grid; place-items: center; }
+  .form-actions .back svg { width: 18px; height: 18px; }
+  .steps { margin-top: 44px; }   /* clears the pinned Back button */
+  .form-actions + .privacy { margin-top: 12px; }
+}
+.work-panel hr, .work-panel .divider, .work-panel .rule { border: 0; height: 1px; background: var(--line); margin: 20px 0 28px; }
