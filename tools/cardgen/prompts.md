@@ -1,95 +1,131 @@
 # Card-art prompts — KOL avatar → Donut Trader card
 
-v5 (2026-09-29, after round 2): this is an **image EDIT of the KOL's own X profile picture**, not a new character.
+v6 (2026-09-29, after round 3): an **image EDIT of the KOL's own X profile picture** in which the subject performs
+their trading type's signature action with its signature gear (the 12-character design set). v5 kept only a light
+motif and lost the types. v7 re-derives the art direction from the moodboard (coloured liquid chrome, few big star
+flares, slow-shutter prismatic light trails, complementary cobalt-violet vs molten gold, minimal iconic poster, film).
 Whatever the avatar shows — a person, an anime drawing, pixel art, an owl, a rocket — must stay recognisable at a
 glance; only the rendering changes (Cory's moodboard: film-shot liquid chrome, disco glitter, star-filter glints,
 long-exposure light trails, deep ultramarine-violet) plus one small trading-type motif. Only the avatar is attached.
 `generate.mjs` sends **Base** + the type's section. Bump `prompt_version` whenever this file changes.
 
-prompt_version: 2026-09-29.5
+prompt_version: 2026-09-29.7
 
 ## Base
 
 EDIT the attached profile picture into a collectible trading-card image, vertical 3:4.
 
 KEEP (most important): the same subject, recognisable at first glance to anyone who knows this avatar — the same
-person with the same face, features, hairstyle, glasses, headwear and expression; or, if it is not a person, the same
-creature, character or object with its silhouette and signature details. Keep the avatar's pose, angle and composition
-(extend the canvas to 3:4 around it). Keep its key colours as accents. Do not replace the subject with someone or
-something else, do not change their age or gender, do not re-pose them. Remove any text, logos, magazine mastheads or
-watermarks that appear in the avatar.
+person with the same face, features, skin tone, hairstyle, glasses, headwear and facial hair; or, if it is not a person,
+the same creature, character or object with its silhouette, colours and signature details. Do not replace the subject
+with someone or something else and do not change their age or gender. Remove any text, logos, magazine mastheads or
+watermarks from the avatar. If the avatar is a drawing, anime or pixel art, keep the character drawn-looking with
+its own design — do not turn it into a realistic human.
 
-RESTYLE it to look like a 1970s–80s retro-futurist album-cover photograph shot on 35mm film through a star filter:
-the subject rendered with liquid mirror-chrome and disco-ball glitter surfaces (chrome on clothing, hair highlights,
-edges and props; a person's face stays human, softly lit and recognisable, with chrome reflections only on the skin's
-highlights). Crisp four-point star glints on every specular highlight, long-exposure light trails sweeping past, soft
-halation bloom, visible film grain, slight chromatic fringing. Surreal, minimal, iconic — one subject, lots of dark
-space. It must look like a photograph of a chrome/glitter sculpture or a film still, NOT a painting, NOT anime, NOT a
-glossy 3D render.
+ACT (equally important): the subject performs the TRADING TYPE's signature action with its signature gear, exactly as
+described below — this is what makes the card theirs. Re-pose the body and hands as needed; keep the face and head
+recognisable. A creature holds or uses the gear with its own limbs; an object (a rocket, a logo-like shape) carries the
+gear and action as part of the scene in a playful, natural way. Frame from the knees or waist up — full body only when
+the action needs it — with the face large enough to recognise and the gear fully visible.
 
-PALETTE: deep ultramarine-to-violet night background (#0b0a2a, #1a1466, #3b1f73) with Donut purple (#7a3dff) in the
-reflections; highlights, glints and light trails in warm ivory and gold (#fff6e0, #e9c77b, #d9a441), with occasional
-electric-violet and lilac-pink reflections. No green.
+ART DIRECTION — 1970s–80s album-cover art made with practical in-camera effects and shot on slide film:
+- LIQUID CHROME that reflects colour, never grey steel: mirror-smooth, slightly molten surfaces on the gear, the
+  clothing and hair highlights, cool electric-violet and cobalt on the shadow side and hot molten gold-orange on the
+  lit side, like chrome reflecting a sunset. A person's face stays human and recognisable, lit with a warm key and a
+  cool rim.
+- A FEW BIG STAR FLARES: two or three large four/six-point cross flares on the very brightest points (the gear, an
+  eye glint, a chrome edge) — not glitter sprinkled everywhere. Disco-mirror glitter only as an accent on one surface.
+- SLOW-SHUTTER LIGHT PAINTING: long, smooth, fluid light trails sweeping through the frame with prismatic rainbow
+  fringes at their edges; the moving gear leaves a motion smear.
+- PRISM CAUSTICS: iridescent spectral refraction where light passes through glass, gems or chrome edges.
+- COMPOSITION: an iconic poster — one heroic subject, bold graphic silhouette, low-angle hero light with a strong rim,
+  generous negative space, on a flat saturated backdrop (deep cobalt-to-violet gradient, or near-black with a single
+  soft glow).
+- FILM: heavy fine grain, halation glow around every light, deep rich blacks, gentle soft-focus fall-off at the edges,
+  slight vignette.
+It must read as a photograph of a real chrome-and-light effects shoot — NOT a digital painting, NOT anime shading on
+a person, NOT a clean 3D render. Less is more: fewer, bigger, more deliberate effects.
+
+PALETTE (saturated, complementary): deep cobalt-ultramarine and Donut violet (#12104a, #1a1466, #3b1f73, #7a3dff) for
+the backdrop and cool reflections; molten gold, amber and warm ivory (#ffb347, #e9c77b, #fff3d6) for hot reflections,
+flares and trails; spectral rainbow only in trail fringes and prism caustics. High contrast. The gear may carry the
+type's accent colour named below.
 
 Clean edges, no border, no frame, no text, letters, numbers or logos anywhere. No cigarettes, cigars, alcohol or drugs.
 
 ## diamond_hands
 
-Motif: a large faceted diamond in liquid chrome and glitter, held close or floating just in front of the subject,
-throwing star glints — calm, unshakeable conviction.
+Diamond Hands — calm, unwavering conviction. Gear: one large faceted AMETHYST diamond. Action: facing the viewer,
+shoulders square, holding the diamond securely at centre chest with both hands, direct steady gaze, serene resolute
+expression.
 
 ## hodler
 
-Motif: a neat tower of identical gold coins beside the subject, one coin being added, each coin edge flashing a tiny
-star glint — steady accumulation.
+DCA Believer — disciplined, steady accumulation. Gear: a compact handheld rail of identical, evenly spaced small
+AMETHYST crystals, a plain dark stool. Action: seated sideways, leaning in, one hand placing one more crystal into the
+next empty slot, eyes on it, patient focus.
 
 ## degen
 
-Motif: a single glowing faceted orb shooting past with a long gold light trail, the subject's gaze following it —
-bold risk-taking.
+Risk Explorer — bold, deliberate exploration. Gear: a small dark floating stepping stone and one ROSE-PINK faceted
+waypoint orb. Action: stepping onto the stone and reaching for the orb, glancing back over the shoulder at the viewer
+with a confident grin.
 
 ## scalper
 
-Motif: three small translucent candlestick-shaped blocks in chrome-edged glass hovering near the subject, one mid-flick
-with a short light streak — fast precise action.
+Day Trader — alert, immediate, precise. Gear: three small ROSE-PINK translucent candlestick-shaped blocks floating
+close by. Action: leaning forward, knees bent, one hand snapping across the body to tap one block, the other ready,
+sharp eyes on the fingertip.
 
 ## sniper
 
-Motif: a thin horizontal gold light line crossing the frame at eye level like a laser sight into empty space, with one
-precise star glint where it meets the edge — patience and precision (no weapon needed; no target).
+Sniper — patience and precision, never firing. Gear: a sleek ONYX-and-silver sci-fi precision rifle. Action: low
+one-knee kneel, rifle shouldered and aimed horizontally into empty space, eye at the sight, completely composed; no
+target, no muzzle flash.
 
 ## grid_farmer
 
-Motif: a delicate chrome lattice of evenly spaced glinting nodes behind the subject like a halo grid — methodical
-execution.
+Grid Executor — methodical execution. Gear: a compact rigid ONYX-and-silver lattice with glinting nodes, a minimal dark
+stool. Action: seated upright and symmetrical, both hands precisely adjusting two nodes, chin tucked, eyes on the
+lattice.
 
 ## swing_hunter
 
-Motif: one smooth gold light-trail wave with a clear crest and trough flowing past the subject — timing the swing.
+Swing Hunter — timing the next wave. Gear: a short sculptural EMERALD ribbon wave with one clear crest and one trough.
+Action: low sideways half-crouch, one hand tracing the wave, eyes on the next trough, poised.
 
 ## momentum_chaser
 
-Motif: long parallel light trails rushing diagonally up-right past the subject as if at speed, hair or edges swept by
-motion — riding momentum.
+Momentum Rider — riding a strong established direction. Gear: a sleek dark floating board with one EMERALD directional
+accent. Action: standing sideways on the board tilted up toward the upper right, leaning into the motion, arms spread
+for balance, hair swept back, determined gaze ahead.
 
 ## arbitrageur
 
-Motif: two near-identical glowing gold prisms floating at slightly different heights beside the subject, a fine light
-beam linking them — seeing the gap.
+Arb Researcher — analytical comparison. Gear: a small optical lens and two near-identical AMBER-GOLD faceted prisms
+floating at slightly different heights. Action: bent slightly forward, lens raised between the prisms, other hand
+adjusting one, head tilted, examining the difference — the lens never hides the face.
 
 ## narrative_trader
 
-Motif: fine golden threads of light spiralling around the subject like a story being written in the air — reading the
-narrative early.
+Narrative Trader — reading the story ahead. Gear: a compact translucent AMBER book of abstract pictures (no writing)
+with three short golden threads rising from its pages. Action: seated sideways, book open in one hand, the other
+selecting one thread, eyes lifted to it, a knowing look.
 
 ## risk_monk
 
-Motif: a crisp translucent chrome-edged shield of light curving in front of one side of the subject — clear boundaries.
+Risk-First — assured, clear boundaries. Gear: a crisp translucent curved shield with AURORA (teal-lilac-pink)
+reflections and a small luminous core. Action: side-on stance, feet planted, one palm supporting the shield close to
+the body, the other hand holding the core, head turned to the viewer with a direct resolute gaze.
 
 ## bottom_fisher
 
-Motif: a single gold light trail diving down then turning sharply upward past the subject — buying when others fear.
+Contrarian — patient, independent observation. Gear: a small unmarked optical observation device and one small AURORA
+prism. Action: back three-quarter view as if they just stopped walking, device held behind them, looking back over the
+shoulder at the prism low at one side, calm and contemplative.
 
 ## unresolved
 
-Motif: a small spinning multi-faceted glitter token catching light near the subject — still choosing their path.
+Style Explorer — still writing their story. Gear: a small multi-faceted token that shows a different colour on each
+face. Action: relaxed three-quarter pose, turning the token between two fingers as if deciding which face to show,
+curious open expression.
