@@ -75,11 +75,18 @@ The front end polls every 3 s for up to 4 min, then keeps the fallback.
        { "type": "image_url", "image_url": { "url": "data:image/jpeg;base64,<avatar>" } },
        { "type": "text", "text": "<Base>\n\n<type section>" } ] }] }
    ```
+   **Look references (chosen 2026-09-29, "B"):** after the avatar, attach two style images, each preceded by the text
+   `LOOK REFERENCE n — copy only its film grain, colour grade, light, chrome and glint treatment. Do NOT copy its
+   subject, objects, composition, pose or any text:`. In the prototype these are two moodboard tiles
+   (`generate.mjs --style …`, kept local because they're third-party art). **Before production, replace them with
+   Donut-owned reference images** (e.g. approved generated cards), for licensing and consistency.
    The image comes back as a data URL in `choices[0].message.images[0].image_url.url`. `usage.cost` holds the charge.
    Set a timeout of 240 s. Retry once on 5xx or timeout. Never retry a moderation or refusal response.
 5. **Store.** Decode the PNG (1024×1024, about 1.7 MB), convert it to WebP at q≈85 (roughly 200 KB), and upload it to
    the CDN under the cache-key hash. Save the job record: user, type, prompt_version, model, cost, latency.
-6. **Fail safe.** On any error, set `failed` with `fallback_url` pointing to the type's default art (§5).
+6. **Don't bake in film grain.** The H5 adds the grain in CSS over the card art (`identity/theme.js`, `grainCards`),
+   so the stored image stays clean and the grain looks the same on every card.
+7. **Fail safe.** On any error, set `failed` with `fallback_url` pointing to the type's default art (§5).
 
 ## 5. Type ids
 

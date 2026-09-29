@@ -275,6 +275,21 @@
     }
   }
   addEventListener("resize", function () { fitKey = ""; fitResult(); });
+  /* film grain over the card art (Cory 2026-09-29: "add film grain in CSS, not in the AI image") — SVG noise, overlay
+     blend, a few steps of jitter so it lives like film; still under reduced motion. The art window's ::before/::after
+     already carry Sean's foil tint, so the grain is its own layer. */
+  var GRAIN_SVG = "data:image/svg+xml;utf8," + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.62' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncR type='linear' slope='2.4' intercept='-.7'/><feFuncG type='linear' slope='2.4' intercept='-.7'/><feFuncB type='linear' slope='2.4' intercept='-.7'/></feComponentTransfer></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>").replace(/%2523/g, "%23");
+  var GRAIN_CSS = ".kol-photo>.donut-grain{position:absolute;inset:-40%;z-index:2;pointer-events:none;background:url(\"" + GRAIN_SVG + "\") repeat;background-size:160px;mix-blend-mode:hard-light;opacity:.2;animation:donut-grain .9s steps(5) infinite}" +
+    "@keyframes donut-grain{0%{transform:translate(0,0)}20%{transform:translate(-6%,4%)}40%{transform:translate(5%,-5%)}60%{transform:translate(-4%,-7%)}80%{transform:translate(7%,3%)}100%{transform:translate(0,0)}}" +
+    "@media (prefers-reduced-motion: reduce){.kol-photo>.donut-grain{animation:none}}";
+  function grainCards() {
+    document.querySelectorAll(".card-frame iframe").forEach(function (f) {
+      var doc; try { doc = f.contentDocument; } catch (e) { return; }
+      if (!doc || !doc.head) return;
+      if (!doc.getElementById("donut-grain-css")) { var st = doc.createElement("style"); st.id = "donut-grain-css"; st.textContent = GRAIN_CSS; doc.head.appendChild(st); }
+      doc.querySelectorAll(".kol-photo").forEach(function (ph) { if (!ph.querySelector(":scope > .donut-grain")) { var g = doc.createElement("i"); g.className = "donut-grain"; g.setAttribute("aria-hidden", "true"); ph.appendChild(g); } });
+    });
+  }
   function dressBack() {
     var title = document.querySelector("main.step-3 .result-panel h2"); if (!title) return;
     var key = TYPE_KEYS[title.textContent.trim().toLowerCase()], copy = key && BACK_COPY[key]; if (!copy) return;
@@ -394,7 +409,8 @@
     if (tuneBtn && tuneBtn.style.display !== show) tuneBtn.style.display = show;
     if (panel && panel.style.display !== show) panel.style.display = show;
     // the flashcard iframe inside the studio: make sure the card-face vars land once it has loaded
-    document.querySelectorAll(".card-frame iframe").forEach(function (f) { if (!f.dataset.donutHooked) { f.dataset.donutHooked = "1"; f.addEventListener("load", function () { applyFlash(); dressBack(); }); } });
+    document.querySelectorAll(".card-frame iframe").forEach(function (f) { if (!f.dataset.donutHooked) { f.dataset.donutHooked = "1"; f.addEventListener("load", function () { applyFlash(); dressBack(); grainCards(); }); } });
+    grainCards();
     stepPulse(step);
   }
 
