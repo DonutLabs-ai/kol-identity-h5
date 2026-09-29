@@ -1,109 +1,95 @@
 # Card-art prompts — KOL avatar → Donut Trader card
 
-v4 (2026-09-29, Cory's moodboard): only the KOL's X avatar is attached — the style lives entirely in this text.
-Direction: 70s–80s airbrushed album-cover retro-futurism — liquid chrome, glitter mosaic, star-filter glints, light
-streaks, film grain — in Donut's palette (midnight violet with warm ivory / gold light). v3 was 1960s spy poster. `generate.mjs` sends **Base** + the type's section. Bump `prompt_version`
-whenever this file changes — the backend caches on it.
+v5 (2026-09-29, after round 2): this is an **image EDIT of the KOL's own X profile picture**, not a new character.
+Whatever the avatar shows — a person, an anime drawing, pixel art, an owl, a rocket — must stay recognisable at a
+glance; only the rendering changes (Cory's moodboard: film-shot liquid chrome, disco glitter, star-filter glints,
+long-exposure light trails, deep ultramarine-violet) plus one small trading-type motif. Only the avatar is attached.
+`generate.mjs` sends **Base** + the type's section. Bump `prompt_version` whenever this file changes.
 
-prompt_version: 2026-09-29.4
+prompt_version: 2026-09-29.5
 
 ## Base
 
-Create ONE illustrated trading-card portrait, vertical 3:4, single image, no panels.
+EDIT the attached profile picture into a collectible trading-card image, vertical 3:4.
 
-The attached image is the IDENTITY reference: the person whose card this is. Keep them clearly recognisable — face
-shape, skin tone, hairstyle and hair colour, eye shape, facial hair, glasses and any signature accessory. Keep their
-apparent gender presentation and age; always depict an adult. If the attached image is not a person (a logo, NFT,
-animal, object, rocket or abstract art), invent an original adult human character whose hair, palette and one
-accessory echo it. Never reproduce logos, text, magazine covers or trademarked characters from the reference.
+KEEP (most important): the same subject, recognisable at first glance to anyone who knows this avatar — the same
+person with the same face, features, hairstyle, glasses, headwear and expression; or, if it is not a person, the same
+creature, character or object with its silhouette and signature details. Keep the avatar's pose, angle and composition
+(extend the canvas to 3:4 around it). Keep its key colours as accents. Do not replace the subject with someone or
+something else, do not change their age or gender, do not re-pose them. Remove any text, logos, magazine mastheads or
+watermarks that appear in the avatar.
 
-STYLE: a 1970s–80s airbrushed sci-fi album-cover / paperback illustration, the kind shot on film with a star filter:
-liquid chrome and mirror-polished metal, glitter and sequin-mosaic surfaces that catch light, crisp four-point
-star-filter glints and lens sparkles, long-exposure light streaks and a little motion blur trailing the prop, soft
-analog film grain and slight halation. Surreal, minimal, iconic composition — one hero, one prop, lots of dark space.
-The FACE stays recognisable and softly airbrushed (not chrome); chrome, glitter and light belong to the wardrobe,
-the hair highlights and the prop. Not anime, not flat vector, not plastic 3D render.
+RESTYLE it to look like a 1970s–80s retro-futurist album-cover photograph shot on 35mm film through a star filter:
+the subject rendered with liquid mirror-chrome and disco-ball glitter surfaces (chrome on clothing, hair highlights,
+edges and props; a person's face stays human, softly lit and recognisable, with chrome reflections only on the skin's
+highlights). Crisp four-point star glints on every specular highlight, long-exposure light trails sweeping past, soft
+halation bloom, visible film grain, slight chromatic fringing. Surreal, minimal, iconic — one subject, lots of dark
+space. It must look like a photograph of a chrome/glitter sculpture or a film still, NOT a painting, NOT anime, NOT a
+glossy 3D render.
 
-PALETTE (strict): deep midnight violet and indigo-purple (#0d0820, #1c1236, #3b1f73, #7a3dff) for the background,
-shadows and wardrobe; warm ivory, cream and gold (#fff6e0, #f6ecd2, #e9c77b, #d9a441) for every highlight, glint,
-light streak and chrome reflection. A touch of lilac-pink in reflections is fine. No green, no cobalt blue, no red.
+PALETTE: deep ultramarine-to-violet night background (#0b0a2a, #1a1466, #3b1f73) with Donut purple (#7a3dff) in the
+reflections; highlights, glints and light trails in warm ivory and gold (#fff6e0, #e9c77b, #d9a441), with occasional
+electric-violet and lilac-pink reflections. No green.
 
-WARDROBE: a sleek retro-futurist suit or high-collar jacket in deep purple with chrome-edged panels, or a
-glitter-mosaic finish on the shoulders, fitted to the person; elegant, never revealing.
-
-FRAMING: waist-up to three-quarter-length hero portrait, face large and in sharp focus in the upper half, the prop from
-the type description clearly visible and glinting. BACKDROP: near-black midnight violet with a soft vignette, a few
-tiny star glints and at most one sweep of warm light streaks — no scenery, planets, crowds or second character.
-
-No text, letters, numbers, title lettering, logos, watermark or border anywhere. Anatomically correct hands.
+Clean edges, no border, no frame, no text, letters, numbers or logos anywhere. No cigarettes, cigars, alcohol or drugs.
 
 ## diamond_hands
 
-Diamond Hands — unwavering, calm conviction. Front-facing, shoulders square, holding a large faceted diamond that
-glows warm ivory against the chest with both gloved hands. Direct steady gaze at the viewer, the faint smile of someone
-who never sells the bottom.
+Motif: a large faceted diamond in liquid chrome and glitter, held close or floating just in front of the subject,
+throwing star glints — calm, unshakeable conviction.
 
 ## hodler
 
-DCA Believer — disciplined, patient accumulation. Three-quarter view, calmly placing one small gold coin onto a neat,
-evenly stacked column of identical coins held in the other hand, eyes on the stack, quiet contented focus.
+Motif: a neat tower of identical gold coins beside the subject, one coin being added, each coin edge flashing a tiny
+star glint — steady accumulation.
 
 ## degen
 
-Risk Explorer — bold, deliberate exploration. Glancing back over one shoulder toward the viewer with a daring grin,
-one hand reaching toward a single glowing faceted orb just out of frame edge, coat or jacket swinging with motion.
+Motif: a single glowing faceted orb shooting past with a long gold light trail, the subject's gaze following it —
+bold risk-taking.
 
 ## scalper
 
-Day Trader — alert, immediate, precise. Leaning forward, one hand snapping toward one of three small glowing
-translucent candlestick-shaped blocks floating in front of them, sharp eyes locked on it, a sleek chrome wrist device
-on the other arm.
+Motif: three small translucent candlestick-shaped blocks in chrome-edged glass hovering near the subject, one mid-flick
+with a short light streak — fast precise action.
 
 ## sniper
 
-Sniper — patience and precision, never firing. Calm profile facing image right, eye near the scope of a sleek
-chrome-and-ivory retro-futurist long rifle held steady and angled away into empty space, completely composed; no muzzle
-flash, no target.
+Motif: a thin horizontal gold light line crossing the frame at eye level like a laser sight into empty space, with one
+precise star glint where it meets the edge — patience and precision (no weapon needed; no target).
 
 ## grid_farmer
 
-Grid Executor — methodical execution. Front-facing, chin slightly lowered, both hands precisely adjusting two gold nodes
-on a compact chrome lattice held at chest height, the concentration of an engineer running a flawless system.
+Motif: a delicate chrome lattice of evenly spaced glinting nodes behind the subject like a halo grid — methodical
+execution.
 
 ## swing_hunter
 
-Swing Hunter — timing the next wave. Three-quarter view, one hand tracing a short sculptural ivory ribbon with one clear
-crest and trough in front of them, eyes on the next trough, poised and unhurried.
+Motif: one smooth gold light-trail wave with a clear crest and trough flowing past the subject — timing the swing.
 
 ## momentum_chaser
 
-Momentum Rider — riding a strong established direction. Body angled toward the upper right, leaning into motion, hair
-and jacket swept back as if by speed, determined gaze to the far upper right, one gloved hand on a sleek chrome jet-pack
-harness strap.
+Motif: long parallel light trails rushing diagonally up-right past the subject as if at speed, hair or edges swept by
+motion — riding momentum.
 
 ## arbitrageur
 
-Arb Researcher — analytical comparison. Head tilted inquisitively, holding a small chrome loupe up between two
-near-identical glowing gold prisms at slightly different heights, eyes examining the tiny difference, lens never hiding
-the face.
+Motif: two near-identical glowing gold prisms floating at slightly different heights beside the subject, a fine light
+beam linking them — seeing the gap.
 
 ## narrative_trader
 
-Narrative Trader — reading the story ahead. Three-quarter view, a slim open book of abstract glowing pictures (no
-writing) in one hand, the other lifting a single fine golden thread rising from its pages, eyes on the thread, a knowing
-half-smile.
+Motif: fine golden threads of light spiralling around the subject like a story being written in the air — reading the
+narrative early.
 
 ## risk_monk
 
-Risk-First — assured, clear boundaries. Turned slightly side-on, one palm raised holding up a crisp translucent curved
-ivory-gold shield close to the body, the other hand relaxed, direct resolute gaze at the viewer.
+Motif: a crisp translucent chrome-edged shield of light curving in front of one side of the subject — clear boundaries.
 
 ## bottom_fisher
 
-Contrarian — patient, independent observation. Looking back over one shoulder, chin slightly down, holding a small
-chrome observation lens, calm contemplative expression while everyone else has looked away.
+Motif: a single gold light trail diving down then turning sharply upward past the subject — buying when others fear.
 
 ## unresolved
 
-Style Explorer — still writing their story. Relaxed three-quarter portrait, one hand turning a small glowing multi-faceted
-token as if deciding which face to show, curious open expression.
+Motif: a small spinning multi-faceted glitter token catching light near the subject — still choosing their path.

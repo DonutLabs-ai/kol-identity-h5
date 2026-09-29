@@ -49,8 +49,8 @@ async function generate(type, avatar, p, apiKey) {
     method: "POST",
     headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json", "X-Title": "Donut KOL Identity card-art prototype" },
     body: JSON.stringify({ model, modalities: ["image", "text"], messages: [{ role: "user", content: [
-      { type: "text", text },
-      { type: "text", text: "Identity reference (the KOL):" }, { type: "image_url", image_url: { url: avatar } }
+      { type: "text", text: "The profile picture to edit:" }, { type: "image_url", image_url: { url: avatar } },
+      { type: "text", text }
     ] }] })
   });
   const body = await res.json().catch(() => ({}));
