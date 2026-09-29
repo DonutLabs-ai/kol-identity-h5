@@ -828,3 +828,8 @@ html[lang^="zh"] .donut-summon .ds-reading { letter-spacing: .06em; }
   .donut-intro-copy h1 { font-size: clamp(22px, 6.4vw, 26px); line-height: 1.1; }
   .donut-intro-copy p { margin-top: 10px; font-size: 12px; }
 }
+/* status line in the display serif, no dot (Cory 2026-09-29) */
+.donut-summon .ds-reading { font: 400 22px / 1.2 var(--serif); letter-spacing: -.01em; gap: 0; }
+.donut-summon .ds-reading i { display: none; }
+@media (max-width: 760px) { .donut-summon .ds-reading { font-size: 20px; } }
+html[lang^="zh"] .donut-summon .ds-reading { font: 400 17px / 1.3 var(--sans); letter-spacing: .06em; }
