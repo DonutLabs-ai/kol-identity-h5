@@ -1,121 +1,109 @@
 # Card-art prompts — KOL avatar → Donut Trader card
 
-Refined from Cory's 12-character set (2026-09-29). `generate.mjs` sends the **Base** block, then the type's section.
-Image 1 = the KOL's X avatar (identity only). Image 2 = our existing art for that type in `identity/img/archetypes/`
-(style, costume and composition reference). Bump `prompt_version` whenever this file changes — the backend caches on it.
+v3 (2026-09-29, after Cory's first test round): only the KOL's X avatar is attached — the style lives entirely in this
+text. Direction: 1960s spy-thriller film poster meets space-age retro-futurism, in Donut's palette (deep amethyst
+purples with warm ivory / pale-gold light). `generate.mjs` sends **Base** + the type's section. Bump `prompt_version`
+whenever this file changes — the backend caches on it.
 
-prompt_version: 2026-09-29.2
+prompt_version: 2026-09-29.3
 
 ## Base
 
-Create ONE premium anime trading-card character illustration, portrait 3:4, single image, no panels.
+Create ONE illustrated trading-card portrait, vertical 3:4, single image, no panels.
 
-Two reference images are attached.
-IMAGE 1 is the IDENTITY reference: the person whose card this is. Keep them recognisable — face shape, skin tone,
-hairstyle and hair colour, eye shape, facial hair, glasses and any signature accessory (cap, earrings, headphones).
-Keep their apparent gender presentation and age; always depict an adult. If IMAGE 1 is not a photo or drawing of a
-person (a logo, NFT, animal, object or abstract art), invent an original adult human character whose hair colour,
-palette and one accessory echo it — never reproduce logos, text or trademarked characters.
-IMAGE 2 is the STYLE, COSTUME and COMPOSITION reference: match its polished anime rendering, line quality, lighting,
-proportions, framing and the pose described below. Do NOT copy IMAGE 2's face or hair — the face and hair come only
-from IMAGE 1.
+The attached image is the IDENTITY reference: the person whose card this is. Keep them clearly recognisable — face
+shape, skin tone, hairstyle and hair colour, eye shape, facial hair, glasses and any signature accessory. Keep their
+apparent gender presentation and age; always depict an adult. If the attached image is not a person (a logo, NFT,
+animal, object, rocket or abstract art), invent an original adult human character whose hair, palette and one
+accessory echo it. Never reproduce logos, text, magazine covers or trademarked characters from the reference.
 
-Donut's look is RETRO-FUTURIST: 1970s–80s space-age optimism rendered with modern polish — rounded chrome and pearl
-details, soft iridescent (lilac-pink-cyan) highlights like holographic foil, gently airbrushed shading and a faint
-film-print softness on the character. The character's pose, prop and expression must read instantly as their
-TRADING PERSONALITY (described below) — it is a trading-card hero portrait, not a generic avatar.
+STYLE: a painted 1960s spy-thriller film-poster illustration crossed with space-age retro-futurism — confident
+leading-character portrait, dramatic cinematic key light and warm rim light, sleek tailored silhouettes, rounded
+chrome and pearl gadgets, a hint of rocket-age optimism. Gouache/airbrush painting with fine halftone grain and a
+slightly matte printed-poster finish. Not anime, not photoreal, not 3D render.
 
-Costume (the Donut uniform): glossy dark-purple high-neck fitted futuristic suit with zipper and panel seams, purple
-gloves and knee armour, tailored to the person's build and presentation; tasteful and non-revealing.
+PALETTE (strict): deep amethyst and violet purples (#1c1236, #3b1f73, #7a3dff) for shadows, wardrobe and backdrop;
+warm ivory, cream and pale gold (#f6ecd2, #ecd9a6, #d9b56a) for light, highlights and metal. Small touches of
+lilac-pink allowed. No green, no teal, no saturated red or blue.
 
-Show the whole figure — all hair, hands, feet and props inside the canvas with a generous black margin. Solid uniform
-pure BLACK #000000 background: no environment, floor, ground shadow, fog, particles, stars, gradients or background
-light. Crisp clean silhouette, restrained coloured highlights on the character and solid props only, easy to cut out.
-No text, letters, numbers, symbols, labels, logos, watermark or border anywhere. Anatomically correct hands, coherent
-pose, one character only.
+WARDROBE: a sharply tailored retro-futurist outfit in deep purple — e.g. a slim high-collar jacket or tuxedo-cut suit
+with subtle panel seams, pale-gold or chrome fastenings, optional gloves — fitted to the person; elegant, never
+revealing.
+
+FRAMING: waist-up to three-quarter-length hero portrait, face large and in sharp focus in the upper half of the frame,
+the prop from the type description clearly visible. BACKDROP: a simple graphic poster background in the palette only —
+flat deep purple with soft concentric light rings or a single warm spotlight glow behind the head. No scenery, no
+crowds, no second character.
+
+No text, letters, numbers, title lettering, logos, watermark or border anywhere. Anatomically correct hands.
 
 ## diamond_hands
 
-Amethyst purple prop accents. Diamond Hands — unwavering, calm, confident holding. Stands firmly, directly FRONT
-FACING, shoulders square to camera, holding one large faceted amethyst diamond securely at centre chest with both
-gloved hands. Head exactly frontal and level, eyes LOOK DIRECTLY AT THE VIEWER, serene resolute expression. Only the
-character and the diamond.
+Diamond Hands — unwavering, calm conviction. Front-facing, shoulders square, holding a large faceted diamond that
+glows warm ivory against the chest with both gloved hands. Direct steady gaze at the viewer, the faint smile of someone
+who never sells the bottom.
 
 ## hodler
 
-Amethyst purple prop accents. DCA Believer — disciplined, steady accumulation. Seated SIDEWAYS on a small plain dark
-stool, legs angled toward image right, leaning gently forward. One hand places a single small amethyst crystal into the
-next empty slot of a compact handheld rail of identical, evenly spaced crystals held in the other hand. Head turned
-toward IMAGE RIGHT and down in a two-thirds side view, gaze on the crystal being placed, patient focused expression,
-not looking at the viewer. Only the character, stool and crystal rail.
+DCA Believer — disciplined, patient accumulation. Three-quarter view, calmly placing one small gold coin onto a neat,
+evenly stacked column of identical coins held in the other hand, eyes on the stack, quiet contented focus.
 
 ## degen
 
-Rose pink prop accents. Risk Explorer — bold, deliberate exploration. Full-body BACK VIEW stepping onto a small dark
-floating stepping stone, one hand reaching toward a single solid rose faceted orb, the other arm balancing. Torso faces
-away; head turns back OVER THE LEFT SHOULDER toward the camera with a confident small smile, face clearly visible. No
-abyss or scenery. Only the character, the stepping stone and the orb.
+Risk Explorer — bold, deliberate exploration. Glancing back over one shoulder toward the viewer with a daring grin,
+one hand reaching toward a single glowing faceted orb just out of frame edge, coat or jacket swinging with motion.
 
 ## scalper
 
-Rose pink prop accents. Day Trader — alert, immediate, precise. Full figure leaning forward dynamically, knees slightly
-bent, right arm reaching quickly across the body toward one of three small solid pink translucent candlestick-shaped
-blocks floating nearby, other hand ready. Head turned toward IMAGE LEFT in three-quarter view, chin level, sharp eyes
-on the fingertip, not the viewer. Three plain unmarked blocks only — no screens, trails or backdrop.
+Day Trader — alert, immediate, precise. Leaning forward, one hand snapping toward one of three small glowing
+translucent candlestick-shaped blocks floating in front of them, sharp eyes locked on it, a sleek chrome wrist device
+on the other arm.
 
 ## sniper
 
-Onyx and silver prop accents. Sniper — patience and precision, never firing. Full-body LOW ONE-KNEE KNEEL, stable
-composed silhouette, shouldering a sleek silver-black sci-fi precision rifle aimed horizontally toward IMAGE RIGHT into
-empty space, support hand under the barrel. Head in a clear RIGHT-FACING near-profile, eye aligned with the sight,
-cheek near the stock. No helmet or goggles; keep the person's own hair. No reticle, muzzle flash or effects. Only the
-character and the rifle.
+Sniper — patience and precision, never firing. Calm profile facing image right, eye near the scope of a sleek
+chrome-and-ivory retro-futurist long rifle held steady and angled away into empty space, completely composed; no muzzle
+flash, no target.
 
 ## grid_farmer
 
-Onyx and silver prop accents. Grid Executor — methodical execution. Sits FRONTALLY upright on a minimal dark stool,
-straight spine, symmetrical posture, both gloved hands precisely adjusting two silver nodes on a compact rigid lattice
-held in front of the torso. Head frontal, chin tucked, eyes lowered to the lattice, quiet disciplined expression. Small
-metallic lattice prop only — no background grid or HUD.
+Grid Executor — methodical execution. Front-facing, chin slightly lowered, both hands precisely adjusting two gold nodes
+on a compact chrome lattice held at chest height, the concentration of an engineer running a flawless system.
 
 ## swing_hunter
 
-Emerald green prop accents. Swing Hunter — timing the next wave. Low athletic SIDEWAYS half-crouch, weight over the
-bent leg, other leg extended, torso angled to image left. One hand traces a compact sculptural emerald ribbon with one
-clear crest and trough in front of them, other arm balancing behind. Head LEFT-FACING, chin down, eyes on the next
-trough, serious attentive expression. Only the character and the short opaque emerald wave — no floor or light trails.
+Swing Hunter — timing the next wave. Three-quarter view, one hand tracing a short sculptural ivory ribbon with one clear
+crest and trough in front of them, eyes on the next trough, poised and unhurried.
 
 ## momentum_chaser
 
-Emerald green prop accents. Momentum Rider — riding a strong established direction. Full body standing sideways on a
-small sleek dark floating board tilted up toward IMAGE RIGHT, leaning into the movement, arms spread for balance, hair
-swept back. Head RIGHT-FACING, chin slightly raised, gaze to the far upper right, determined confident expression. The
-board has one restrained emerald directional accent — no light stream, particles or scenery.
+Momentum Rider — riding a strong established direction. Body angled toward the upper right, leaning into motion, hair
+and jacket swept back as if by speed, determined gaze to the far upper right, one gloved hand on a sleek chrome jet-pack
+harness strap.
 
 ## arbitrageur
 
-Amber gold prop accents. Arb Researcher — analytical comparison. Standing, bent slightly forward, holding a small
-optical lens between two near-identical amber faceted prisms floating at slightly different heights, other hand
-adjusting the nearer prism. Head turned toward IMAGE LEFT in two-thirds view, tilted inquisitively, eyes examining the
-difference, thoughtful expression. The lens never hides the face. No screens, equations or scenery.
+Arb Researcher — analytical comparison. Head tilted inquisitively, holding a small chrome loupe up between two
+near-identical glowing gold prisms at slightly different heights, eyes examining the tiny difference, lens never hiding
+the face.
 
 ## narrative_trader
 
-Amber gold prop accents. Narrative Trader — interpretation and judgment. Sits SIDEWAYS on a small plain dark stool,
-knees angled to image left, one hand holding open a compact translucent amber book of ONLY abstract pictures (no
-writing), the other selecting one of three short golden threads rising above the pages. Head turned toward IMAGE RIGHT
-in three-quarter view, eyes lifted from the book to the chosen thread, discerning expression. No floating pages.
+Narrative Trader — reading the story ahead. Three-quarter view, a slim open book of abstract glowing pictures (no
+writing) in one hand, the other lifting a single fine golden thread rising from its pages, eyes on the thread, a knowing
+half-smile.
 
 ## risk_monk
 
-Aurora teal-lilac-pink accents on the shield. Risk-First — assured, clear boundaries. Stable SIDE-ON stance, feet
-planted, torso angled to image left, one palm extended toward IMAGE LEFT supporting a crisp translucent curved shield
-close to the body, the other hand holding a small luminous core at their side. Head turned back to the CAMERA, chin
-slightly tucked, direct resolute gaze. The shield is a solid, edged prop with restrained reflections — no light spill.
+Risk-First — assured, clear boundaries. Turned slightly side-on, one palm raised holding up a crisp translucent curved
+ivory-gold shield close to the body, the other hand relaxed, direct resolute gaze at the viewer.
 
 ## bottom_fisher
 
-Aurora teal-lilac-pink accents on compact props. Contrarian — patient, independent observation. Full-figure BACK
-THREE-QUARTER VIEW, body toward image left as if they just stopped walking, one hand behind holding a small unmarked
-optical device. Head turned back OVER THE RIGHT SHOULDER, chin slightly down, eyes on one small aurora prism low at
-image right, calm contemplative expression, not the viewer. No crowd, arrows or scenery.
+Contrarian — patient, independent observation. Looking back over one shoulder, chin slightly down, holding a small
+chrome observation lens, calm contemplative expression while everyone else has looked away.
+
+## unresolved
+
+Style Explorer — still writing their story. Relaxed three-quarter portrait, one hand turning a small glowing multi-faceted
+token as if deciding which face to show, curious open expression.

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-/* Card-art prototype: KOL avatar + trading type → Donut Trader card illustration (3:4, black background).
+/* Card-art prototype: KOL avatar + trading type → Donut Trader card illustration (3:4). Only the avatar is attached;
+   the style is all in prompts.md (v3: 1960s spy-poster retro-futurism, Donut purple + ivory/gold).
    Reference implementation for the backend endpoint (see BACKEND.md). Node 18+, no dependencies.
 
    node tools/cardgen/generate.mjs --avatar ./me.jpg --type scalper
@@ -43,15 +44,13 @@ async function dataUrl(src) {
 async function generate(type, avatar, p, apiKey) {
   const i = TYPES.indexOf(type); if (i < 0) throw new Error("unknown type " + type + " — one of " + TYPES.join(", "));
   const text = p.base + "\n\n" + p.types[type];
-  const style = await dataUrl(join(ROOT, "identity/img/archetypes", ART[i] + ".jpg"));
   const t0 = Date.now();
   const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json", "X-Title": "Donut KOL Identity card-art prototype" },
     body: JSON.stringify({ model, modalities: ["image", "text"], messages: [{ role: "user", content: [
       { type: "text", text },
-      { type: "text", text: "IMAGE 1 — identity reference (the KOL):" }, { type: "image_url", image_url: { url: avatar } },
-      { type: "text", text: "IMAGE 2 — style, costume and composition reference:" }, { type: "image_url", image_url: { url: style } }
+      { type: "text", text: "Identity reference (the KOL):" }, { type: "image_url", image_url: { url: avatar } }
     ] }] })
   });
   const body = await res.json().catch(() => ({}));
@@ -73,9 +72,8 @@ if (args.pack) {
   const { copyFile } = await import("node:fs/promises");
   for (const type of list) {
     const dir = join(outDir, "pack", `${who}--${type}`); await mkdir(dir, { recursive: true });
-    await writeFile(join(dir, "prompt.txt"), `Attach 1-identity first, then 2-style. prompt_version ${p.version}\n\n` + p.base + "\n\n" + p.types[type] + "\n");
+    await writeFile(join(dir, "prompt.txt"), `Attach 1-identity. prompt_version ${p.version}\n\n` + p.base + "\n\n" + p.types[type] + "\n");
     if (/^https?:/.test(src)) await writeFile(join(dir, "1-identity.jpg"), Buffer.from(avatar.split(",")[1], "base64")); else await copyFile(src, join(dir, "1-identity" + extname(src)));
-    await copyFile(join(ROOT, "identity/img/archetypes", ART[TYPES.indexOf(type)] + ".jpg"), join(dir, "2-style.jpg"));
     console.log("▸ pack " + dir);
   }
   process.exit(0);
