@@ -5,3 +5,4 @@ node_modules
 .env
 tools/cardgen/out/
 tools/cardgen/avatars/
+tools/cardgen/style-refs/
