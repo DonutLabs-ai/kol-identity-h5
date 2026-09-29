@@ -110,7 +110,7 @@ The front end polls every 3 s for up to 4 min, then keeps the fallback.
 
 | | |
 |---|---|
-| Latency | text-only prompt: 124–157 s (median about 137 s). With the three reference images (v8, current): 156–206 s |
+| Latency | text-only prompt: 124–157 s (median about 137 s). With the three reference images (v8, current): 156–217 s (median about 198 s) |
 | Cost | $0.238–0.246 per image |
 | Output | PNG 1024×1024 (the prompt asks for 3:4; the model returns a square, which matches the square art window) |
 | Cheaper model for testing | `openai/gpt-5-image-mini`. Also available: `openai/gpt-5-image`, `google/gemini-3-pro-image`, `google/gemini-2.5-flash-image` |
