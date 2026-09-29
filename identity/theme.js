@@ -148,6 +148,29 @@
     lastStep = step;
   }
 
+  var ARCHETYPES = ["Diamond Hands", "DCA Believer", "Risk Explorer", "Day Trader", "Sniper", "Grid Executor", "Swing Hunter", "Momentum Rider", "Arb Researcher", "Narrative Trader", "Risk-First", "Contrarian"];
+
+  /* ── result: the other eleven trader types, locked, under the card and copy (Cory 2026-09-29) ── */
+  var ARCHETYPE_FILES = ["01-diamond-hands", "02-dca-believer", "03-risk-explorer", "04-day-trader", "05-sniper", "06-grid-executor", "07-swing-hunter", "08-momentum-rider", "09-arb-researcher", "10-narrative-trader", "11-risk-first", "12-contrarian"];
+  function mountLocked(main) {
+    var ws = main.querySelector(".workspace"); if (!ws || ws.querySelector(":scope > .donut-locked")) return;
+    var zh = (document.documentElement.lang || "").toLowerCase().indexOf("zh") === 0;
+    var title = (main.querySelector(".result-panel h2") || {}).textContent || "";
+    var mine = ARCHETYPES.findIndex(function (t) { return title.toLowerCase().replace(/[^a-z]/g, "").indexOf(t.toLowerCase().replace(/[^a-z]/g, "")) !== -1; });
+    var box = document.createElement("section"); box.className = "donut-locked"; box.setAttribute("aria-label", zh ? "其他交易人格" : "Other trader types");
+    var head = document.createElement("div"); head.className = "donut-locked-head";
+    head.innerHTML = "<h3>" + (zh ? "其他交易人格" : "Other trader types") + "</h3><p>" + (zh ? "邀请朋友测试，解锁他们的卡片。" : "Invite friends to test; each one unlocks their card.") + "</p>";
+    var row = document.createElement("div"); row.className = "donut-locked-row";
+    var lock = '<span class="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>' + (zh ? "待解锁" : "Locked") + "</span>";
+    ARCHETYPES.forEach(function (t, i) {
+      if (i === mine) return;
+      var c = document.createElement("div"); c.className = "donut-locked-card";
+      c.innerHTML = '<img alt="" loading="lazy" decoding="async">' + lock + '<span class="name">' + t + "</span>";
+      c.querySelector("img").src = new URL("img/archetypes/" + ARCHETYPE_FILES[i] + ".jpg", location.href).href;
+      row.appendChild(c);
+    });
+    box.appendChild(head); box.appendChild(row); ws.appendChild(box);
+  }
   /* ── route scan: Sean's <main class="app step-N"> carries the step ── */
   function currentStep() { var m = document.querySelector("main.app"); if (!m) return -1; var mm = /step-(\d)/.exec(m.className); return mm ? Number(mm[1]) : -1; }
   function scan() {
@@ -155,7 +178,7 @@
     var step = currentStep();
     if (document.documentElement.getAttribute("data-step") !== String(step)) document.documentElement.setAttribute("data-step", String(step));
     if (step === 0) { stage(main, true); mountPanel(); mountShine(main.querySelector(".hero-studio .card-frame")); applyTune(); }
-    else if (step === 3) { stage(main, false); }
+    else if (step === 3) { stage(main, false); mountLocked(main); }
     else clearStage(main);
     var show = step === 0 ? "" : "none";
     if (tuneBtn && tuneBtn.style.display !== show) tuneBtn.style.display = show;
@@ -167,7 +190,6 @@
 
   /* ── opening: the twelve card faces flick past at full size, settle into an upright ring, the title lands.
         Every load; ?intro=0 skips, reduced-motion skips, any tap skips. ── */
-  var ARCHETYPES = ["Diamond Hands", "DCA Believer", "Risk Explorer", "Day Trader", "Sniper", "Grid Executor", "Swing Hunter", "Momentum Rider", "Arb Researcher", "Narrative Trader", "Risk-First", "Contrarian"];
   (function intro() {
     if (q.get("intro") === "0") return;
     if (q.get("intro") !== "1" && reduce.matches) return;
