@@ -820,3 +820,11 @@ html[lang^="zh"] .donut-summon .ds-reading { letter-spacing: .06em; }
    flat stacking keeps the perspective but paints in DOM order — halo, seal, glow, then the card on top */
 .donut-summon .ds-stage { transform-style: flat; perspective: 1400px; }
 .donut-summon .ds-card::before { opacity: .6; }
+/* intro: logo + title + byline sit together in the ring's centre on every screen */
+.donut-intro > .donut-intro-logo { display: none !important; }
+.donut-intro-copy > .donut-intro-logo { display: block !important; }
+@media (max-width: 760px) {
+  .donut-intro-copy > .donut-intro-logo { width: 84px; margin-bottom: 14px; }
+  .donut-intro-copy h1 { font-size: clamp(22px, 6.4vw, 26px); line-height: 1.1; }
+  .donut-intro-copy p { margin-top: 10px; font-size: 12px; }
+}

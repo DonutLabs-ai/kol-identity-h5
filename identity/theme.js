@@ -419,11 +419,11 @@
       c.appendChild(img); imgs.push(img); o.appendChild(c); ring.appendChild(o); return o;
     });
     var slot = ph ? 54 : 84, sc = slot / CW;
-    var ringY = ph ? H * .40 : H * .5;
+    var ringY = H * .5;   /* phones too: the title now lives inside the ring (Cory 2026-09-29), so the ring centres on the screen */
     var R = ph ? Math.min(W / 2 - slot / 2 - 14, ringY - CH * sc / 2 - 24) : Math.min(W, H) * .40 - CH * sc / 2;
     root.style.setProperty("--ring-y", ringY + "px");
-    if (ph) { root.style.setProperty("--copy-y", (ringY + R + CH * sc / 2 + 32) + "px"); root.style.setProperty("--copy-shift", "0"); root.style.setProperty("--copy-w", "320px"); }
-    else { root.style.setProperty("--copy-y", ringY + "px"); root.style.setProperty("--copy-shift", "-50%"); root.style.setProperty("--copy-w", Math.round((R - CH * sc / 2) * 2 * .86) + "px"); }
+    root.style.setProperty("--copy-y", ringY + "px"); root.style.setProperty("--copy-shift", "-50%");
+    root.style.setProperty("--copy-w", Math.round((R - CH * sc / 2) * 2 * (ph ? .84 : .86)) + "px");
     document.body.appendChild(root);
     var timers = [], done = false;
     function finish() {
