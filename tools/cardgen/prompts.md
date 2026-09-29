@@ -1,11 +1,11 @@
 # Card-art prompts — KOL avatar → Donut Trader card
 
-v3 (2026-09-29, after Cory's first test round): only the KOL's X avatar is attached — the style lives entirely in this
-text. Direction: 1960s spy-thriller film poster meets space-age retro-futurism, in Donut's palette (deep amethyst
-purples with warm ivory / pale-gold light). `generate.mjs` sends **Base** + the type's section. Bump `prompt_version`
+v4 (2026-09-29, Cory's moodboard): only the KOL's X avatar is attached — the style lives entirely in this text.
+Direction: 70s–80s airbrushed album-cover retro-futurism — liquid chrome, glitter mosaic, star-filter glints, light
+streaks, film grain — in Donut's palette (midnight violet with warm ivory / gold light). v3 was 1960s spy poster. `generate.mjs` sends **Base** + the type's section. Bump `prompt_version`
 whenever this file changes — the backend caches on it.
 
-prompt_version: 2026-09-29.3
+prompt_version: 2026-09-29.4
 
 ## Base
 
@@ -17,23 +17,23 @@ apparent gender presentation and age; always depict an adult. If the attached im
 animal, object, rocket or abstract art), invent an original adult human character whose hair, palette and one
 accessory echo it. Never reproduce logos, text, magazine covers or trademarked characters from the reference.
 
-STYLE: a painted 1960s spy-thriller film-poster illustration crossed with space-age retro-futurism — confident
-leading-character portrait, dramatic cinematic key light and warm rim light, sleek tailored silhouettes, rounded
-chrome and pearl gadgets, a hint of rocket-age optimism. Gouache/airbrush painting with fine halftone grain and a
-slightly matte printed-poster finish. Not anime, not photoreal, not 3D render.
+STYLE: a 1970s–80s airbrushed sci-fi album-cover / paperback illustration, the kind shot on film with a star filter:
+liquid chrome and mirror-polished metal, glitter and sequin-mosaic surfaces that catch light, crisp four-point
+star-filter glints and lens sparkles, long-exposure light streaks and a little motion blur trailing the prop, soft
+analog film grain and slight halation. Surreal, minimal, iconic composition — one hero, one prop, lots of dark space.
+The FACE stays recognisable and softly airbrushed (not chrome); chrome, glitter and light belong to the wardrobe,
+the hair highlights and the prop. Not anime, not flat vector, not plastic 3D render.
 
-PALETTE (strict): deep amethyst and violet purples (#1c1236, #3b1f73, #7a3dff) for shadows, wardrobe and backdrop;
-warm ivory, cream and pale gold (#f6ecd2, #ecd9a6, #d9b56a) for light, highlights and metal. Small touches of
-lilac-pink allowed. No green, no teal, no saturated red or blue.
+PALETTE (strict): deep midnight violet and indigo-purple (#0d0820, #1c1236, #3b1f73, #7a3dff) for the background,
+shadows and wardrobe; warm ivory, cream and gold (#fff6e0, #f6ecd2, #e9c77b, #d9a441) for every highlight, glint,
+light streak and chrome reflection. A touch of lilac-pink in reflections is fine. No green, no cobalt blue, no red.
 
-WARDROBE: a sharply tailored retro-futurist outfit in deep purple — e.g. a slim high-collar jacket or tuxedo-cut suit
-with subtle panel seams, pale-gold or chrome fastenings, optional gloves — fitted to the person; elegant, never
-revealing.
+WARDROBE: a sleek retro-futurist suit or high-collar jacket in deep purple with chrome-edged panels, or a
+glitter-mosaic finish on the shoulders, fitted to the person; elegant, never revealing.
 
-FRAMING: waist-up to three-quarter-length hero portrait, face large and in sharp focus in the upper half of the frame,
-the prop from the type description clearly visible. BACKDROP: a simple graphic poster background in the palette only —
-flat deep purple with soft concentric light rings or a single warm spotlight glow behind the head. No scenery, no
-crowds, no second character.
+FRAMING: waist-up to three-quarter-length hero portrait, face large and in sharp focus in the upper half, the prop from
+the type description clearly visible and glinting. BACKDROP: near-black midnight violet with a soft vignette, a few
+tiny star glints and at most one sweep of warm light streaks — no scenery, planets, crowds or second character.
 
 No text, letters, numbers, title lettering, logos, watermark or border anywhere. Anatomically correct hands.
 
