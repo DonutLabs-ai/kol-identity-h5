@@ -7,9 +7,10 @@ cobalt-violet against molten gold, a minimal iconic poster composition, film gra
 
 Only the avatar is attached. The backend (and `generate.mjs`) sends the **Base** section followed by the type's
 section, verbatim. Bump `prompt_version` whenever either changes — the backend's cache key includes it.
-History: v3 spy poster → v4 airbrush → v5 avatar edit (types lost) → v6 gear + actions back → v7 moodboard art direction.
+History: v3 spy poster → v4 airbrush → v5 avatar edit (types lost) → v6 gear + actions back → v7 moodboard art direction
+→ v8 Donut brand backdrop (violet with flowing amber / cream / periwinkle light ribbons, `refs/donut-ribbons.webp`).
 
-prompt_version: 2026-09-29.7
+prompt_version: 2026-09-29.8
 
 ## Base
 
@@ -46,10 +47,11 @@ ART DIRECTION — 1970s–80s album-cover art made with practical in-camera effe
 It must read as a photograph of a real chrome-and-light effects shoot — NOT a digital painting, NOT anime shading on
 a person, NOT a clean 3D render. Less is more: fewer, bigger, more deliberate effects.
 
-PALETTE (saturated, complementary): deep cobalt-ultramarine and Donut violet (#12104a, #1a1466, #3b1f73, #7a3dff) for
-the backdrop and cool reflections; molten gold, amber and warm ivory (#ffb347, #e9c77b, #fff3d6) for hot reflections,
-flares and trails; spectral rainbow only in trail fringes and prism caustics. High contrast. The gear may carry the
-type's accent colour named below.
+PALETTE AND BACKDROP (Donut brand — overrides any other reference's colours): a deep Donut-violet background
+(#3c0996 fading to #20033c and near-black #09000a at the edges) with a few broad, soft, out-of-focus flowing light
+ribbons sweeping through it in warm amber-orange (#c86b38 → #f08a2c), cream (#f2e4d6) and periwinkle (#6760cd), grainy
+and dreamy like a long-exposure light painting. The same amber, cream and periwinkle light the subject and reflect in
+the chrome. No cobalt-blue sky, no green. The gear may carry the type's accent colour named below.
 
 Clean edges, no border, no frame, no text, letters, numbers or logos anywhere. No cigarettes, cigars, alcohol or drugs.
 

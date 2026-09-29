@@ -50,7 +50,8 @@ async function generate(type, avatar, p, apiKey) {
     headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json", "X-Title": "Donut KOL Identity card-art prototype" },
     body: JSON.stringify({ model, modalities: ["image", "text"], messages: [{ role: "user", content: [
       { type: "text", text: "The profile picture to edit:" }, { type: "image_url", image_url: { url: avatar } },
-      ...styleRefs.flatMap((u, k) => [{ type: "text", text: `LOOK REFERENCE ${k + 1} — copy only its film grain, colour grade, light, chrome and glint treatment. Do NOT copy its subject, objects, composition, pose or any text:` }, { type: "image_url", image_url: { url: u } }]),
+      ...styleRefs.flatMap((u, k) => [{ type: "text", text: `LOOK REFERENCE ${k + 1} — copy only its film grain, light, chrome and glint treatment (not its colours). Do NOT copy its subject, objects, composition, pose or any text:` }, { type: "image_url", image_url: { url: u } }]),
+      ...(brandRef ? [{ type: "text", text: "DONUT BRAND BACKGROUND REFERENCE — use exactly this palette and these soft flowing light ribbons for the background and the colour of the light. Its colours win over every other reference:" }, { type: "image_url", image_url: { url: brandRef } }] : []),
       { type: "text", text }
     ] }] })
   });
@@ -65,6 +66,8 @@ const p = await prompts(), apiKey = args.pack ? null : await key();
 const src = args.avatar || (args.x ? "https://unavatar.io/x/" + String(args.x).replace(/^@/, "") : null);
 if (!src) { console.error("need --avatar <path|url> or --x <handle>"); process.exit(1); }
 /* --style a.webp,b.webp — optional look-only references (moodboard tiles), attached after the avatar */
+/* the Donut brand backdrop (our own asset, tracked in refs/) is attached by default; --no-brand turns it off */
+const brandRef = args["no-brand"] ? null : await dataUrl(join(HERE, "refs/donut-ribbons.webp"));
 const styleRefs = await Promise.all(String(args.style || "").split(",").filter(Boolean).map((f) => dataUrl(f)));
 const avatar = await dataUrl(src), who = args.x ? String(args.x).replace(/^@/, "") : basename(src).replace(/\.[^.]+$/, "");
 const list = args.type === "all" ? TYPES : [args.type || "diamond_hands"];
