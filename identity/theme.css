@@ -573,3 +573,214 @@ main.step-1 .workspace .card-under, main.step-2 .workspace .card-under { visibil
   .donut-locked-row { margin: 0 calc(-1 * var(--gutter)); padding: 4px var(--gutter) 12px; }
   .donut-locked-card { flex-basis: 132px; }
 }
+
+/* ═══ D0 analysis → card summoning (Cory 2026-09-29: "魔卡少女樱卡片召唤") ═════════════════════════
+   Sean's dialog keeps its 8.2s clock and four lines of copy; everything else in it is hidden and the
+   stage below takes over: the unknown card rises to the centre, a perspective seal (the astrolabe)
+   draws itself beneath, a scan line sweeps the card, the six answers light up on the seal and join
+   into a constellation, the seal flares, and the result page opens with a coin burst on the card.
+   The choreography runs on the Web Animations API (theme.js), so app.css's animation:none has no say. */
+.d0-analysis .analysis-shell > :not(.analysis-body), .d0-analysis .analysis-visual, .d0-analysis .analysis-bottom, .d0-analysis .analysis-live { display: none !important; }
+.d0-analysis { background: #07060c !important; }
+.d0-analysis::backdrop { background: #07060c !important; }
+.d0-analysis .analysis-shell { position: relative; min-height: 100svh; display: block; }
+.d0-analysis .analysis-body { position: absolute; left: 0; right: 0; bottom: max(40px, 6svh); z-index: 3; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0 20px; pointer-events: none; }
+.d0-analysis .analysis-kicker { font: 400 12px / 1 var(--sans); letter-spacing: var(--tracking-eyebrow); text-transform: uppercase; color: rgb(255 255 255 / .5); margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+.d0-analysis .analysis-kicker span { width: 6px; height: 6px; border-radius: 50%; background: var(--violet); display: inline-block; }
+.d0-analysis h1 { margin: 0; font: 400 clamp(26px, 3.2vw, 40px) / 1.08 var(--serif); letter-spacing: var(--tracking-display); color: #fff; text-wrap: balance; }
+.d0-analysis .analysis-subtitle { margin: 10px 0 0; font: 400 14px / 1.45 var(--sans); color: rgb(255 255 255 / .6); max-width: 46ch; }
+.donut-summon { position: absolute; inset: 0; z-index: 2; overflow: hidden; pointer-events: none; perspective: 1400px; }
+.donut-summon .ds-cancel { position: absolute; top: calc(14px + env(safe-area-inset-top)); right: 16px; z-index: 5; pointer-events: auto; width: 40px; height: 40px; border: 0; border-radius: 50%; display: grid; place-items: center; color: #fff; background: rgb(255 255 255 / .1); cursor: pointer; }
+.donut-summon .ds-cancel svg { width: 18px; height: 18px; }
+.donut-summon .ds-stage { position: absolute; left: 50%; top: 42%; width: 0; height: 0; transform-style: preserve-3d; }
+/* the seal: a flat disc under the card, in perspective */
+.donut-summon .ds-seal { position: absolute; left: calc(var(--seal) / -2); top: calc(var(--seal) / -2 + var(--card-h) * .46); width: var(--seal); height: var(--seal); transform: rotateX(66deg); transform-origin: 50% 50%; opacity: 0; }
+.donut-summon .ds-seal svg { width: 100%; height: 100%; overflow: visible; }
+.donut-summon .ds-seal .ring { fill: none; stroke: rgb(202 186 255 / .8); stroke-width: 1; }
+.donut-summon .ds-seal .ring.faint { stroke: rgb(202 186 255 / .3); stroke-width: .6; }
+.donut-summon .ds-seal .ticks { fill: none; stroke: rgb(202 186 255 / .55); stroke-width: 1; }
+.donut-summon .ds-seal .star { fill: none; stroke: rgb(172 170 255 / .7); stroke-width: .9; }
+.donut-summon .ds-seal .glyph { fill: rgb(202 186 255 / .8); }
+.donut-summon .ds-seal .constellation { fill: none; stroke: #fff; stroke-width: 1.4; stroke-linejoin: round; filter: drop-shadow(0 0 6px rgb(190 170 255 / .9)); }
+.donut-summon .ds-seal .node { fill: #fff; filter: drop-shadow(0 0 6px #cdbcff); }
+.donut-summon .ds-seal .glow { fill: radial-gradient(circle, #fff, transparent); }
+.donut-summon .ds-halo { position: absolute; left: calc(var(--seal) / -2); top: calc(var(--seal) / -2 + var(--card-h) * .46); width: var(--seal); height: var(--seal); border-radius: 50%; transform: rotateX(66deg); background: radial-gradient(circle, rgb(120 85 239 / .55) 0%, rgb(120 85 239 / .18) 38%, transparent 62%); opacity: 0; }
+/* the unknown card, upright at the centre */
+.donut-summon .ds-card { position: absolute; left: calc(var(--card-w) / -2); top: calc(var(--card-h) / -2); width: var(--card-w); height: var(--card-h); border-radius: calc(var(--card-w) * .068); overflow: hidden;
+  background: linear-gradient(168deg, #f4f1ff 0%, #d9d2f5 55%, #e7e1fb 100%); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .7), 0 0 0 1px rgb(120 85 239 / .25); opacity: 0; }
+.donut-summon .ds-card > .q { position: absolute; inset: 0; display: grid; place-items: center; font: 400 calc(var(--card-w) * .42) / 1 var(--serif); color: rgb(120 85 239 / .6); }
+.donut-summon .ds-card > .grid { position: absolute; inset: 0; background-image: linear-gradient(rgb(120 85 239 / .14) 1px, transparent 1px), linear-gradient(90deg, rgb(120 85 239 / .14) 1px, transparent 1px); background-size: 24px 24px; opacity: 0; clip-path: inset(0 0 100% 0); }
+.donut-summon .ds-card > .scan { position: absolute; left: -10%; right: -10%; top: 0; height: 3px; background: linear-gradient(90deg, transparent, #fff 20%, #fff 80%, transparent); box-shadow: 0 0 14px 3px rgb(190 170 255 / .9), 0 0 40px 8px rgb(120 85 239 / .5); opacity: 0; }
+.donut-summon .ds-card > .scan::after { content: ""; position: absolute; left: 0; right: 0; top: 3px; height: 90px; background: linear-gradient(180deg, rgb(190 170 255 / .38), transparent); }
+.donut-summon .ds-flare { position: absolute; left: -50vw; top: -50vh; width: 100vw; height: 100vh; background: radial-gradient(circle at 50% 50%, #fff 0%, rgb(220 212 255 / .8) 12%, rgb(120 85 239 / .3) 30%, transparent 55%); opacity: 0; }
+.donut-summon { --card-h: clamp(260px, 38svh, 434px); --card-w: calc(var(--card-h) * .691); --seal: calc(var(--card-h) * 1.4); }
+@media (max-width: 760px) { .donut-summon { --card-h: clamp(220px, 34svh, 304px); --seal: min(calc(var(--card-h) * 1.4), calc(100vw - 24px)); } .donut-summon .ds-stage { top: 40%; } .d0-analysis h1 { font-size: 26px; } .d0-analysis .analysis-body { bottom: max(28px, 4svh); } }
+@media (prefers-reduced-motion: reduce) { .donut-summon .ds-card { opacity: 1; } .donut-summon .ds-seal, .donut-summon .ds-halo { opacity: .7; } }
+
+/* ── Cory 2026-09-29 (screenshots): no eyebrow on the analysis or the result, no lead line; on phones the result card
+   is bigger and truly centred. base.css's `.workspace .studio .card-frame { width: 414px }` outranks the zoomed width,
+   leaving the scaled card pinned to the left of a 414px box — restate the width at the same specificity. ── */
+.d0-analysis .analysis-kicker, .result-panel .section-kicker, .result-panel .lead { display: none; }
+@media (max-width: 760px) {
+  main.step-3 .card-frame { --card-zoom: .9; }
+  main.step-3 .workspace .studio .card-frame { width: calc(414px * var(--card-zoom)); height: calc(575px * var(--card-zoom)); }
+  .result-panel .result-quote { max-width: none; margin-left: auto; margin-right: auto; text-align: center; }
+}
+@media (max-width: 440px) { main.step-3 .card-frame { --card-zoom: .8; } }
+@media (max-width: 360px) { main.step-3 .card-frame { --card-zoom: .72; } }
+
+/* ── Result actions, one row (Cory 2026-09-29): Share · Save · Follow in three equal columns at the md tier, one icon each,
+   short labels; Edit my answers and nothing else beneath. The panel becomes a 3-column grid and .result-secondary
+   dissolves (display: contents) so its two buttons sit in the same row as Share without touching Sean's markup. ── */
+.result-panel .privacy { display: none; }
+.result-panel { display: grid; grid-template-columns: repeat(3, minmax(0, 148px)); column-gap: 8px; row-gap: 0; justify-content: start; align-content: start; }
+.result-panel > * { grid-column: 1 / -1; }
+.result-panel > .result-secondary { display: contents; }
+.result-panel .share-x, .result-panel .result-secondary > button, .result-panel .result-secondary > .follow-donut {
+  grid-column: auto; box-sizing: border-box; width: 100%; min-width: 0; max-width: none; margin: 4px 0 0; flex: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap;
+  padding: var(--ctl-md-pad) 12px; border-radius: 999px; font-size: 0 !important; line-height: var(--ctl-md-line); min-height: 0; height: auto;
+}
+.result-panel .share-x::after, .result-panel .result-secondary > button::after, .result-panel .result-secondary > .follow-donut::after {
+  font: 500 var(--ctl-md-font) / var(--ctl-md-line) var(--sans); letter-spacing: -.01em; color: #fff;
+}
+.result-panel .share-x::after { content: "Share"; }
+.result-panel .result-secondary > button::after { content: "Save"; }
+.result-panel .result-secondary > button[disabled]::after { content: "Saving…"; }
+.result-panel .result-secondary > .follow-donut::after { content: "Follow"; }
+html[lang^="zh"] .result-panel .share-x::after { content: "分享"; }
+html[lang^="zh"] .result-panel .result-secondary > button::after { content: "保存"; }
+html[lang^="zh"] .result-panel .result-secondary > button[disabled]::after { content: "保存中…"; }
+html[lang^="zh"] .result-panel .result-secondary > .follow-donut::after { content: "关注"; }
+.result-panel .share-x svg, .result-panel .result-secondary > button svg { display: block !important; width: 16px; height: 16px; flex: 0 0 16px; color: #fff; }
+.result-panel .share-x svg ~ svg, .result-panel .follow-donut svg { display: none !important; }   /* drop the external-link glyph; Follow gets a plus */
+.result-panel .follow-donut::before { content: ""; width: 16px; height: 16px; flex: 0 0 16px; background: #fff;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E") center / contain no-repeat; }
+.result-panel .result-secondary > button, .result-panel .result-secondary > .follow-donut { background: rgb(255 255 255 / .06); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .28); }
+.result-panel .result-secondary > button:hover, .result-panel .result-secondary > .follow-donut:hover { background: rgb(255 255 255 / .12); }
+.result-panel .edit-answers { justify-self: start; margin-top: 12px; }
+@media (max-width: 760px) {
+  .result-panel { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 420px; margin-left: auto; margin-right: auto; justify-content: stretch; }
+  .result-panel .edit-answers { justify-self: center; }
+}
+
+/* ── Locked row drifts (theme.js marquee): no snap while it moves, edges fade into the page ── */
+.donut-locked-row.is-marquee { scroll-snap-type: none; -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); }
+.donut-locked-row.is-marquee .donut-locked-card { scroll-snap-align: none; }
+
+/* ── Phone form bar + dialog primaries (Cory 2026-09-29: "no more stretched, undesigned buttons"; Back had a round fill
+   floating over the form and its icon sat high because the hidden label became a second grid row).
+   Phones: one bottom bar, Back (quiet sm, icon + label) on the left, the primary hugging its label on the right — nothing
+   pinned over the content. Dialogs: the primary hugs its label, centred, "Not now" beneath. ── */
+@media (max-width: 760px) {
+  .form-actions { justify-content: space-between; gap: 12px; padding: 10px var(--gutter) calc(10px + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--page-bg) 88%, transparent); -webkit-backdrop-filter: blur(16px) saturate(1.1); backdrop-filter: blur(16px) saturate(1.1);
+    box-shadow: inset 0 1px 0 var(--line); }
+  .form-actions .primary { width: auto; min-width: 0; flex: 0 0 auto; margin-left: auto; padding: var(--ctl-lg-pad); gap: var(--ctl-lg-gap); }
+  .form-actions .back { position: static; width: auto; height: auto; min-height: 0; flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: var(--ctl-sm-gap);
+    padding: var(--ctl-sm-pad); border-radius: 999px; font-size: var(--ctl-sm-font); line-height: var(--ctl-sm-line); color: var(--muted);
+    background: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .form-actions .back:hover, .form-actions .back:active { color: var(--ink); background: rgb(128 128 140 / .12); }
+  .form-actions .back svg { width: var(--ctl-sm-icon); height: var(--ctl-sm-icon); flex: 0 0 auto; }
+  .steps { margin-top: 16px; }
+  .work-panel { padding-bottom: 88px; }
+}
+.modal .primary.full { width: auto; max-width: 100%; margin: 4px auto 0; display: flex; padding: var(--ctl-lg-pad); gap: var(--ctl-lg-gap); }
+.modal .primary.full + .modal-cancel { display: flex; margin: 6px auto 0; }
+
+/* ── Phone landing = one centred group (Cory 2026-09-29: content sat too low, headline visibly off-centre).
+   The card joins the flow above the copy instead of floating at 50% − 14vh while the copy hugs the bottom, so card,
+   headline and CTA centre together, biased upward by the larger bottom padding. theme.js shrinks the card when the group
+   would overflow the screen. The zh headline ends in a full-width "？" whose glyph carries ~½em of blank on the right —
+   trimmed so the line centres by its ink. ── */
+@media (max-width: 760px) {
+  main.step-0 .hero { justify-content: center; padding: calc(40px + env(safe-area-inset-top)) var(--gutter) calc(48px + var(--copy-bottom, 22px) + env(safe-area-inset-bottom)); }
+  main.step-0 .hero-studio { position: relative; inset: auto; flex: 0 0 auto; width: 100%; height: calc(575px * var(--card-zoom, 1)); margin: 0 0 28px; }
+  /* the tilt (rotateY 12° under perspective) throws the card ~29 card-px right of its box; pull it back so its ink centres */
+  main.step-0 .hero-studio .card-frame { top: 0; translate: calc(-50% - 29px * var(--card-zoom, 1)) var(--card-y, 0px); }
+}
+html[lang^="zh"] .hero h1 em { margin-right: -.5em; }
+@supports (text-spacing-trim: trim-both) { html[lang^="zh"] .hero h1 em { margin-right: 0; text-spacing-trim: trim-both; } }
+
+/* ── Analysis stage v2 (Cory 2026-09-29: "no pure black", "the card shape doesn't match the result card").
+   Background: the site's planet poster under a violet night tint — the same world the result page opens on, not #090610.
+   Card: the flashcard's own silhouette (../flashcard ticket mask + the top-notch bite, same 292×423 geometry), amethyst fill,
+   a dark art window where the portrait will land ("?" inside) and faint name/tag bars — the result card, still unrevealed.
+   The mask clips box-shadow, so the glow lives on a layer behind the card. ── */
+.d0-analysis, .d0-analysis::backdrop { background: #151036 url("media/hero-poster.jpg") 50% 30% / cover no-repeat !important; }   /* beats the #07060c !important above */
+.d0-analysis .analysis-shell { background:
+    radial-gradient(60% 42% at 50% 42%, rgb(120 85 239 / .30), transparent 70%),
+    linear-gradient(180deg, rgb(22 16 58 / .58) 0%, rgb(20 15 52 / .74) 45%, rgb(16 12 42 / .9) 100%); }
+.donut-summon .ds-stage::before { content: ""; position: absolute; left: calc(var(--card-w) * -1); top: calc(var(--card-h) * -.75); width: calc(var(--card-w) * 2); height: calc(var(--card-h) * 1.5);
+  background: radial-gradient(closest-side, rgb(178 150 255 / .42), rgb(120 85 239 / .16) 55%, transparent); pointer-events: none; }
+.donut-summon .ds-card { border-radius: 0; box-shadow: none !important;
+  background: linear-gradient(155deg, #f1e2ff 0%, #cfaaf5 28%, #a57ce9 60%, #dcc3fa 100%);
+  -webkit-mask: url("../flashcard/_astro/ticket-mask.Dktmghxg.svg") center / 100% 100% no-repeat,
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 292 423'><path d='M72 0c14 0 8 24 22 24h104c14 0 8-24 22-24z' fill='black'/></svg>") center / 100% 100% no-repeat;
+  -webkit-mask-composite: source-out;
+  mask: url("../flashcard/_astro/ticket-mask.Dktmghxg.svg") center / 100% 100% no-repeat,
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 292 423'><path d='M72 0c14 0 8 24 22 24h104c14 0 8-24 22-24z' fill='black'/></svg>") center / 100% 100% no-repeat;
+  mask-composite: subtract; }
+/* the art window, where the portrait lands (front of the real card: ~7% sides, below the notch, ~58% tall) */
+.donut-summon .ds-card > .q { inset: 9.5% 7.5% 36% 7.5%; border-radius: calc(var(--card-w) * .05);
+  background: radial-gradient(90% 70% at 50% 45%, #2a1a52 0%, #140c2c 60%, #0b0718 100%); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .14);
+  color: rgb(222 208 255 / .85); text-shadow: 0 0 24px rgb(178 150 255 / .8); font-size: calc(var(--card-w) * .3); }
+/* name + tag placeholders */
+.donut-summon .ds-card::after { content: ""; position: absolute; left: 22%; right: 22%; top: 70%; height: 16%;
+  background: linear-gradient(rgb(40 20 80 / .22), rgb(40 20 80 / .22)) 50% 0 / 78% 16% no-repeat,
+    linear-gradient(rgb(255 255 255 / .5), rgb(255 255 255 / .5)) 50% 48% / 56% 18% no-repeat,
+    linear-gradient(rgb(40 20 80 / .14), rgb(40 20 80 / .14)) 50% 100% / 90% 10% no-repeat; border-radius: 4px; }
+.donut-summon .ds-card > .grid { background-image: linear-gradient(rgb(255 255 255 / .22) 1px, transparent 1px), linear-gradient(90deg, rgb(255 255 255 / .22) 1px, transparent 1px); }
+
+/* ── Result reveal v2 (Cory 2026-09-29: "one phone screen", "reveal should be fun, not abstract").
+   Phones: tighter rhythm so card → title → quote → actions land in the first screen (theme.js fitResult shrinks the card
+   to make the action row clear the fold). The quote is the type's "most likely to say"; green/red flags follow the actions. ── */
+.result-panel .result-quote { font: 400 clamp(18px, 2vw, 22px) / 1.3 var(--serif); letter-spacing: -.01em; color: rgb(255 255 255 / .86); margin: 6px 0 0; text-wrap: balance; }
+.donut-flags { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 20px; max-width: 460px; }
+.donut-flags .flag { padding: 12px 14px; border-radius: 14px; background: rgb(255 255 255 / .05); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .12); text-align: left; }
+.donut-flags .flag span { display: inline-flex; align-items: center; gap: 6px; font: 500 11px / 1 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: rgb(255 255 255 / .55); }
+.donut-flags .flag span::before { content: ""; width: 6px; height: 6px; border-radius: 50%; }
+.donut-flags .flag.green span::before { background: #5ee29a; box-shadow: 0 0 8px rgb(94 226 154 / .6); }
+.donut-flags .flag.red span::before { background: #ff6b7d; box-shadow: 0 0 8px rgb(255 107 125 / .6); }
+.donut-flags .flag p { margin: 8px 0 0; font: 400 14px / 1.35 var(--sans); letter-spacing: -.01em; color: #fff; }
+html[lang^="zh"] .donut-flags .flag span { letter-spacing: .04em; }
+@media (max-width: 760px) {
+  main.step-3 .workspace { padding-top: 12px; }
+  main.step-3 .workspace .studio .card-under { margin-top: 4px; }
+  .result-panel { padding-top: 8px; }
+  .result-panel h2 { margin: 2px 0 0; font-size: clamp(34px, 9.5vw, 44px); }
+  .result-panel .result-quote { font-size: 17px; }
+  .result-panel .result-rule { display: none; }
+  .result-panel .share-x, .result-panel .result-secondary > button, .result-panel .result-secondary > .follow-donut { margin-top: 16px; }
+  .result-panel .edit-answers { margin-top: 8px; }
+  .donut-flags { margin: 16px auto 0; width: 100%; }
+}
+@media (max-width: 760px) {
+  main.step-3 .workspace { row-gap: 14px; }
+  main.step-3 .result-panel { padding-top: 0; }
+}
+html[lang^="zh"] .result-panel .result-quote { font: 400 16px / 1.5 var(--sans); letter-spacing: 0; color: rgb(255 255 255 / .82); }
+
+/* ── Cory 2026-09-29: logo in the intro ring's empty centre (phones; on desktop the title owns the centre, so the logo
+   sits above it); "Your trading personality is" over the type name (Sean's kicker, relabelled); the card-back read repeated
+   under the quote; the flip button clears the tilted card instead of hiding under it. ── */
+.donut-intro-logo { display: block; width: 116px; aspect-ratio: 73.3578 / 24; background: #fff; opacity: 0; transition: opacity .9s ease .45s;
+  -webkit-mask: url("../flashcard/kol-logo.svg") center / contain no-repeat; mask: url("../flashcard/kol-logo.svg") center / contain no-repeat; }
+.donut-intro.is-titled .donut-intro-logo { opacity: 1; }
+.donut-intro > .donut-intro-logo { position: absolute; left: 50%; top: var(--ring-y, 50%); transform: translate(-50%, -50%); }
+.donut-intro-copy > .donut-intro-logo { width: 96px; margin: 0 auto 18px; opacity: 1; transition: none; }
+@media (max-width: 760px) { .donut-intro-copy > .donut-intro-logo { display: none; } }
+@media (min-width: 761px) { .donut-intro > .donut-intro-logo { display: none; } }
+
+.result-panel .section-kicker { display: block !important; margin: 0; font-size: 0; }
+.result-panel .section-kicker .dot { display: none; }
+.result-panel .section-kicker::after { content: "Your trading personality is"; font: 400 13px / 1.4 var(--sans); letter-spacing: .02em; text-transform: none; color: rgb(255 255 255 / .6); }
+html[lang^="zh"] .result-panel .section-kicker::after { content: "你的交易人格是"; letter-spacing: .04em; }
+.result-panel .donut-desc { margin: 10px 0 0; max-width: 460px; font: 400 14px / 1.55 var(--sans); letter-spacing: -.005em; color: rgb(255 255 255 / .66); text-wrap: pretty; }
+main.step-3 .workspace .studio .card-under { position: relative; z-index: 3; margin-top: 18px !important; }
+@media (max-width: 760px) { .result-panel .section-kicker { text-align: center; } .result-panel .donut-desc { margin: 8px auto 0; text-align: center; font-size: 13.5px; } }
+/* the result card sat 20px low (top: 20px) and the flip button 25px high (top: -25px) — both offsets ignore layout, so they overlapped */
+main.step-3 .workspace .studio .card-frame { top: 0 !important; }
+main.step-3 .workspace .studio .card-under { top: 0 !important; margin-top: 14px !important; }
+@media (max-width: 760px) { main.step-3 .workspace { padding-top: 22px !important; } }
