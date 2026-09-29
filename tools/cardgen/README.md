@@ -1,12 +1,13 @@
 # cardgen — KOL avatar → Donut Trader card art (prototype)
 
-- `prompts.md`: refined prompt set (Base + one section per type). Bump `prompt_version` when you edit it.
-- `generate.mjs`: calls OpenRouter with IMAGE 1 = avatar (identity) and IMAGE 2 = our art for that type (style, costume, pose).
-- `BACKEND.md`: the endpoint Sean needs to request.
+- `BACKEND.md`: **integration spec for the backend** (API, pipeline, costs, ops, front-end hooks).
+- `prompts.md`: the prompt set (Base + one section per type). Bump `prompt_version` when you edit it.
+- `generate.mjs`: reference implementation of the OpenRouter call (edits the avatar; no other image attached).
+- `codex-batch.sh`: fallback that generates through the local Codex CLI's image tool.
 
 ```
-node tools/cardgen/generate.mjs --avatar path/to/avatar.jpg --type all
+NODE_USE_ENV_PROXY=1 node tools/cardgen/generate.mjs --avatar path/to/avatar.jpg --type all
 ```
 
-Put `OPENROUTER_API_KEY=…` in the repo-root `.env` (gitignored). Output goes to `tools/cardgen/out/` (gitignored).
-Must run from a region where OpenRouter serves the image models (the office network gets a 403).
+Put `OPENROUTER_API_KEY=…` in the repo-root `.env` (gitignored). Output goes to `tools/cardgen/out/` (gitignored);
+test avatars live in `tools/cardgen/avatars/` (gitignored — real people's pictures stay local).

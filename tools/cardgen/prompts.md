@@ -1,13 +1,13 @@
 # Card-art prompts — KOL avatar → Donut Trader card
 
-v6 (2026-09-29, after round 3): an **image EDIT of the KOL's own X profile picture** in which the subject performs
-their trading type's signature action with its signature gear (the 12-character design set). v5 kept only a light
-motif and lost the types. v7 re-derives the art direction from the moodboard (coloured liquid chrome, few big star
-flares, slow-shutter prismatic light trails, complementary cobalt-violet vs molten gold, minimal iconic poster, film).
-Whatever the avatar shows — a person, an anime drawing, pixel art, an owl, a rocket — must stay recognisable at a
-glance; only the rendering changes (Cory's moodboard: film-shot liquid chrome, disco glitter, star-filter glints,
-long-exposure light trails, deep ultramarine-violet) plus one small trading-type motif. Only the avatar is attached.
-`generate.mjs` sends **Base** + the type's section. Bump `prompt_version` whenever this file changes.
+An **image EDIT of the KOL's own X profile picture**: whatever the avatar shows (a person, an anime drawing, pixel art,
+an owl, a rocket) stays recognisable, while the subject performs their trading type's signature action with its gear,
+restyled to Cory's moodboard — coloured liquid chrome, a few big star flares, slow-shutter prismatic light trails,
+cobalt-violet against molten gold, a minimal iconic poster composition, film grain.
+
+Only the avatar is attached. The backend (and `generate.mjs`) sends the **Base** section followed by the type's
+section, verbatim. Bump `prompt_version` whenever either changes — the backend's cache key includes it.
+History: v3 spy poster → v4 airbrush → v5 avatar edit (types lost) → v6 gear + actions back → v7 moodboard art direction.
 
 prompt_version: 2026-09-29.7
 
