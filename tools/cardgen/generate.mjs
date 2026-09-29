@@ -61,12 +61,25 @@ async function generate(type, avatar, p, apiKey) {
   return { img, secs: ((Date.now() - t0) / 1000).toFixed(1), usage: body.usage, note: msg.content, text };
 }
 
-const apiKey = await key(), p = await prompts();
+const p = await prompts(), apiKey = args.pack ? null : await key();
 const src = args.avatar || (args.x ? "https://unavatar.io/x/" + String(args.x).replace(/^@/, "") : null);
 if (!src) { console.error("need --avatar <path|url> or --x <handle>"); process.exit(1); }
 const avatar = await dataUrl(src), who = args.x ? String(args.x).replace(/^@/, "") : basename(src).replace(/\.[^.]+$/, "");
 const list = args.type === "all" ? TYPES : [args.type || "diamond_hands"];
 await mkdir(outDir, { recursive: true });
+/* --pack: no API call — write prompt.txt + the two reference images per type, for pasting into ChatGPT's image tool
+   (the route the original 12 were made with) when the API is unavailable, e.g. region-blocked */
+if (args.pack) {
+  const { copyFile } = await import("node:fs/promises");
+  for (const type of list) {
+    const dir = join(outDir, "pack", `${who}--${type}`); await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, "prompt.txt"), `Attach 1-identity first, then 2-style. prompt_version ${p.version}\n\n` + p.base + "\n\n" + p.types[type] + "\n");
+    if (/^https?:/.test(src)) await writeFile(join(dir, "1-identity.jpg"), Buffer.from(avatar.split(",")[1], "base64")); else await copyFile(src, join(dir, "1-identity" + extname(src)));
+    await copyFile(join(ROOT, "identity/img/archetypes", ART[TYPES.indexOf(type)] + ".jpg"), join(dir, "2-style.jpg"));
+    console.log("▸ pack " + dir);
+  }
+  process.exit(0);
+}
 for (const type of list) for (let k = 0; k < n; k++) {
   try {
     const r = await generate(type, avatar, p, apiKey), m = /^data:image\/(\w+);base64,(.+)$/.exec(r.img);

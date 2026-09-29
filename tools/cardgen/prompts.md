@@ -4,7 +4,7 @@ Refined from Cory's 12-character set (2026-09-29). `generate.mjs` sends the **Ba
 Image 1 = the KOL's X avatar (identity only). Image 2 = our existing art for that type in `identity/img/archetypes/`
 (style, costume and composition reference). Bump `prompt_version` whenever this file changes — the backend caches on it.
 
-prompt_version: 2026-09-29.1
+prompt_version: 2026-09-29.2
 
 ## Base
 
@@ -19,6 +19,11 @@ palette and one accessory echo it — never reproduce logos, text or trademarked
 IMAGE 2 is the STYLE, COSTUME and COMPOSITION reference: match its polished anime rendering, line quality, lighting,
 proportions, framing and the pose described below. Do NOT copy IMAGE 2's face or hair — the face and hair come only
 from IMAGE 1.
+
+Donut's look is RETRO-FUTURIST: 1970s–80s space-age optimism rendered with modern polish — rounded chrome and pearl
+details, soft iridescent (lilac-pink-cyan) highlights like holographic foil, gently airbrushed shading and a faint
+film-print softness on the character. The character's pose, prop and expression must read instantly as their
+TRADING PERSONALITY (described below) — it is a trading-card hero portrait, not a generic avatar.
 
 Costume (the Donut uniform): glossy dark-purple high-neck fitted futuristic suit with zipper and panel seams, purple
 gloves and knee armour, tailored to the person's build and presentation; tasteful and non-revealing.

@@ -4,3 +4,4 @@ node_modules
 .claude/
 .env
 tools/cardgen/out/
+tools/cardgen/avatars/
