@@ -335,7 +335,7 @@
     var zh = (document.documentElement.lang || "").toLowerCase().indexOf("zh") === 0;
     var root = document.createElement("div"); root.className = "donut-summon"; root.setAttribute("aria-hidden", "true");
     root.innerHTML = '<button type="button" class="ds-cancel" aria-label="' + (zh ? "返回问卷" : "Back to questionnaire") + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg></button>' +
-      '<div class="ds-stage"><div class="ds-halo"></div><div class="ds-seal"></div><div class="ds-card"><span class="q">?</span><i class="grid"></i><i class="scan"></i></div><div class="ds-flare"></div></div>';
+      '<div class="ds-stage"><p class="ds-reading"><i></i>' + (zh ? "D0 正在解读你的交易人格" : "D0 is reading your personality type") + '</p><div class="ds-halo"></div><div class="ds-seal"></div><div class="ds-glow"></div><div class="ds-card"><span class="q">?</span><i class="grid"></i><i class="scan"></i></div><div class="ds-flare"></div></div>';
     var seal = root.querySelector(".ds-seal"); seal.appendChild(sealSvg(answers.length === 6 ? answers : [-1, -1, -1, -1, -1, -1]));
     root.querySelector(".ds-cancel").addEventListener("click", function () { var b = dlg.querySelector(".analysis-top button"); b ? b.click() : dlg.dispatchEvent(new Event("cancel", { cancelable: true })); });
     dlg.appendChild(root);
@@ -364,6 +364,10 @@
     /* 6400–8200: the seal flares, the card lifts and brightens, and the stage goes to white as the result opens */
     seal.animate([{ filter: "brightness(1)" }, { filter: "brightness(2.2)" }, { filter: "brightness(1.2)" }], { duration: 1400, delay: 6500, easing: E, fill: "both" });
     card.animate([{ boxShadow: "inset 0 0 0 1px rgb(255 255 255 / .7), 0 0 0 1px rgb(120 85 239 / .25)" }, { boxShadow: "inset 0 0 0 1px #fff, 0 0 44px 8px rgb(190 170 255 / .7)" }], { duration: 1200, delay: 6600, easing: E, fill: "both" });
+    /* the reveal: the card swells and lights up just before the result opens (scale is its own property, so it stacks on the rise/breathe transforms) */
+    root.querySelector(".ds-reading").animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, delay: 6100, fill: "forwards" });   /* reading done */
+    card.animate([{ scale: 1, filter: "brightness(1)" }, { scale: 1.18, filter: "brightness(1.28)" }], { duration: 1500, delay: 6300, easing: E, fill: "both" });
+    root.querySelector(".ds-glow").animate([{ opacity: 0, transform: "scale(.7)" }, { opacity: 1, transform: "scale(1.3)" }], { duration: 1500, delay: 6200, easing: E, fill: "both" });
     flare.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 450, delay: 7750, easing: "ease-in", fill: "both" });
   }
   function revealBurst(main) {

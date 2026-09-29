@@ -784,3 +784,39 @@ main.step-3 .workspace .studio .card-under { position: relative; z-index: 3; mar
 main.step-3 .workspace .studio .card-frame { top: 0 !important; }
 main.step-3 .workspace .studio .card-under { top: 0 !important; margin-top: 14px !important; }
 @media (max-width: 760px) { main.step-3 .workspace { padding-top: 22px !important; } }
+
+/* ── Analysis: a bigger astrolabe (it read as a small ring under the card) and a breathing status line above the card ── */
+.donut-summon { --seal: min(calc(var(--card-h) * 1.9), 96vw); }   /* desktop: ring bottom stays clear of the headline */
+@media (max-width: 760px) { .donut-summon { --seal: min(calc(var(--card-h) * 2.2), calc(100vw + 40px)); } }
+.donut-summon .ds-reading { position: absolute; left: -50vw; width: 100vw; top: calc(var(--card-h) / -2 - 52px); margin: 0; display: flex; align-items: center; justify-content: center; gap: 10px;
+  font: 400 15px / 1.2 var(--sans); letter-spacing: .01em; color: rgb(236 228 255 / .92); opacity: 0; animation: ds-reading-in .8s ease .5s forwards, ds-breathe 2.6s ease-in-out 1.3s infinite; }
+.donut-summon .ds-reading i { width: 7px; height: 7px; border-radius: 50%; background: #c9b6ff; box-shadow: 0 0 0 0 rgb(201 182 255 / .6); animation: ds-ping 2.6s ease-out 1.3s infinite; }
+html[lang^="zh"] .donut-summon .ds-reading { letter-spacing: .06em; }
+@keyframes ds-reading-in { to { opacity: 1; } }
+@keyframes ds-breathe { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+@keyframes ds-ping { 0% { box-shadow: 0 0 0 0 rgb(201 182 255 / .6); } 70%, 100% { box-shadow: 0 0 0 10px rgb(201 182 255 / 0); } }
+@media (prefers-reduced-motion: reduce) { .donut-summon .ds-reading, .donut-summon .ds-reading i { animation: none; opacity: 1; } }
+
+/* ── Analysis card v3 (Cory 2026-09-29): same holographic foil as the revealed card while D0 reads — brushed rings + a
+   drifting iridescent conic + a passing sheen; a bigger "?"; it swells and glows on reveal (theme.js, .ds-glow behind it);
+   the stage sits a little higher so the larger astrolabe clears the headline. ── */
+@property --ds-foil { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+.donut-summon .ds-stage { top: 38% !important; }
+.donut-summon .ds-card::before { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(115deg, transparent 36%, rgb(255 255 255 / .5) 50%, transparent 64%),
+    repeating-radial-gradient(circle at 50% 50%, rgb(255 255 255 / .14) 0 1px, transparent 1px 3px),
+    radial-gradient(90% 60% at 18% 12%, rgb(255 186 238 / .7), transparent 62%),
+    radial-gradient(90% 60% at 88% 64%, rgb(150 196 255 / .6), transparent 62%),
+    conic-gradient(from var(--ds-foil) at 50% 50%, rgb(255 168 228 / .5), rgb(176 160 255 / .45), rgb(140 216 255 / .45), rgb(190 255 228 / .4), rgb(255 238 176 / .42), rgb(255 168 228 / .5));
+  background-size: 260% 100%, auto, auto, auto, auto; background-position: 140% 0, 0 0, 0 0, 0 0, 0 0;
+  opacity: .85; animation: ds-foil 7s linear infinite; }
+@keyframes ds-foil { to { --ds-foil: 360deg; background-position: -140% 0, 0 0, 0 0, 0 0, 0 0; } }
+.donut-summon .ds-card > .q { font-size: calc(var(--card-w) * .4); }
+.donut-summon .ds-glow { position: absolute; left: calc(var(--card-w) * -1.1); top: calc(var(--card-h) * -.85); width: calc(var(--card-w) * 2.2); height: calc(var(--card-h) * 1.7);
+  border-radius: 50%; background: radial-gradient(closest-side, rgb(255 255 255 / .75), rgb(206 186 255 / .5) 35%, rgb(120 85 239 / .22) 62%, transparent); opacity: 0; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .donut-summon .ds-card::before { animation: none; } }
+/* the seal disc and the card shared one 3D context, so the disc's near half sliced across the card's bottom (a hard band);
+   flat stacking keeps the perspective but paints in DOM order — halo, seal, glow, then the card on top */
+.donut-summon .ds-stage { transform-style: flat; perspective: 1400px; }
+.donut-summon .ds-card::before { opacity: .6; }
