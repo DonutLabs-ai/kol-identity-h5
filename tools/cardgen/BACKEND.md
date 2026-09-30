@@ -172,3 +172,17 @@ props and likeness on its own. The combination is the first result that matches 
 Cost/latency per card: ≈ $0.40 and ≈ 4 min end to end. Cache key must include both prompt versions and both models.
 Open point: Gemini drifts to cobalt without the brand ribbon; with it, backgrounds converge — background variety should
 come from a stage-1 reference chosen from the "漸變流線感，速度" set, kept subordinate.
+
+## 12. Fast path — one Gemini call (2026-09-30 evening, Cory: "sacrifice some quality, cut redundant steps")
+
+`harness/fast.mjs`: a single `google/gemini-3-pro-image` call with a short prompt written for Gemini (identity + the
+type's action + the look in five lines). Measured on Chris / CZ / Elon, all in parallel:
+
+| variant | inputs | time | cost | result |
+|---|---|---|---|---|
+| **B** | avatar only | **~30 s** | ~$0.14 | likeness good, action + gear correct, brand palette right; flatter, less glare than the two-model pipeline |
+| A | avatar + 1 glare tile | ~55 s | ~$0.15 | more chrome/glitter; Elon's rocket became a chrome surfer (reference content leaked) |
+
+B is the production default when speed matters: it meets the 30 s target and keeps identity and type readable. The
+two-model pipeline (§11, ~3 min) stays as the "premium" path for pre-generated KOL cards. Both share the cache key
+scheme; add the variant name to the key.
