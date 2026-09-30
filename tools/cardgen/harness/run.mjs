@@ -4,13 +4,14 @@
 
    NODE_USE_ENV_PROXY=1 node tools/cardgen/harness/run.mjs [--rounds 3] [--cap 20] [--subjects cz_binance:risk_monk,chriszhu:diamond_hands]
        [--model openai/gpt-5.4-image-2] [--judge anthropic/claude-sonnet-5.5] [--refs default|all|a,b,c] [--no-brand]
-       [--notes "human art-director notes for the judge"] [--name my-run] [--parallel 3]
+       [--notes "human art-director notes for the judge"] [--name my-run] [--parallel 3] [--no-finish]
 
    Subjects default to the 7 test avatars. Each round for a subject costs ~$0.25 (image) + ~$0.03 (judge). */
 import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { join, basename, extname } from "node:path";
-import { apiKey, loadPrompts, buildPrompt, generateImage, judgeImage, judgeRefs, Budget, STYLE_DIR, DEFAULT_REFS, CARDGEN, TYPES } from "./lib.mjs";
+import { apiKey, loadPrompts, buildPrompt, generateImage, judgeImage, judgeRefs, Budget, STYLE_DIR, DEFAULT_REFS, CARDGEN, TYPES, HERE } from "./lib.mjs";
 
 const args = Object.fromEntries(process.argv.slice(2).reduce((a, v, i, all) => (v.startsWith("--") ? a.concat([[v.slice(2), all[i + 1] && !all[i + 1].startsWith("--") ? all[i + 1] : true]]) : a), []));
 const ROUNDS = Number(args.rounds || 3), CAP = Number(args.cap || 20);
@@ -47,9 +48,12 @@ async function subjectLoop({ who, type }) {
     rec.rounds.push(round);
     try {
       const g = await generateImage({ key, model: MODEL, prompt, avatarPath: avatar, refs, brandPath: brand, budget });
-      await writeFile(join(dir, `r${r}.png`), g.png); Object.assign(round, { image: `${who}/r${r}.png`, gen_cost: +g.cost.toFixed(3), gen_secs: +g.secs.toFixed(1) });
+      await writeFile(join(dir, `r${r}.png`), g.png); Object.assign(round, { raw: `${who}/r${r}.png`, image: `${who}/r${r}.png`, gen_cost: +g.cost.toFixed(3), gen_secs: +g.secs.toFixed(1) });
+      /* the print finish (finish.py) is applied before judging, so the judge scores what the product will show */
+      let judged = g.png;
+      if (!args["no-finish"]) { try { execFileSync("python3", [join(HERE, "finish.py"), join(dir, `r${r}.png`), join(dir, `r${r}.fin.png`)], { stdio: "ignore" }); judged = await readFile(join(dir, `r${r}.fin.png`)); round.image = `${who}/r${r}.fin.png`; round.finished = true; } catch (e) { round.finish_error = e.message; } }
       await save();
-      const j = await judgeImage({ key, model: JUDGE, imagePng: g.png, avatarPath: avatar, moodRefs: mood, styleBlock: style, typeSection: prompts.types[type], budget, humanNotes: run.notes, dna });
+      const j = await judgeImage({ key, model: JUDGE, imagePng: judged, avatarPath: avatar, moodRefs: mood, styleBlock: style, typeSection: prompts.types[type], budget, humanNotes: run.notes, dna });
       Object.assign(round, { scores: j.scores, overall: j.overall, critique: j.critique, fixes: j.fixes, judge_cost: +j.cost.toFixed(3) });
       console.log(`  ${who} r${r}: overall ${j.overall}  ${Object.entries(j.scores || {}).map(([k, v]) => k.split("_")[0] + " " + v).join(" · ")}  ($${budget.spent.toFixed(2)} total)`);
       style = j.revised_style_block || style;
