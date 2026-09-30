@@ -4,7 +4,7 @@
 
    NODE_USE_ENV_PROXY=1 node tools/cardgen/harness/run.mjs [--rounds 3] [--cap 20] [--subjects cz_binance:risk_monk,chriszhu:diamond_hands]
        [--model openai/gpt-5.4-image-2] [--judge anthropic/claude-sonnet-5.5] [--refs default|all|a,b,c] [--no-brand]
-       [--notes "human art-director notes for the judge"] [--name my-run] [--parallel 3] [--no-finish] [--ref-mode look|style] [--style-text full|minimal] [--refs-first]
+       [--notes "human art-director notes for the judge"] [--name my-run] [--parallel 3] [--no-finish] [--ref-mode look|style] [--style-text full|minimal] [--refs-first] [--bare]
 
    Subjects default to the 7 test avatars. Each round for a subject costs ~$0.25 (image) + ~$0.03 (judge). */
 import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
@@ -46,7 +46,8 @@ async function subjectLoop({ who, type }) {
   const MINIMAL = "STYLE: match the attached STYLE REFERENCE images exactly — their medium, rendering, light, glare, star flares, streaks, grain and finish. Do not fall back to a clean modern digital-illustration or 3D-render look. Background: deep violet with flowing amber, cream and periwinkle light, like the brand reference.";
   let style = String(args["style-text"] || "full") === "minimal" ? MINIMAL : prompts.style;
   for (let r = 0; r < ROUNDS; r++) {
-    const prompt = buildPrompt(prompts, style, type), round = { n: r, style };
+    /* --bare: one sentence, no rules — tests whether our constraints were suppressing the reference style */
+    const prompt = args.bare ? `Make this person's trading-card portrait in exactly the style of the attached reference images. Trading type: ${type.replace("_", " ")}.` : buildPrompt(prompts, style, type), round = { n: r, style: args.bare ? "(bare)" : style };
     rec.rounds.push(round);
     try {
       const g = await generateImage({ key, model: MODEL, prompt, avatarPath: avatar, refs, brandPath: brand, budget, refMode: String(args["ref-mode"] || "look"), refsFirst: !!args["refs-first"] });
