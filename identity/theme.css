@@ -878,3 +878,7 @@ main.step-3 .workspace .studio { display: flex; flex-direction: column; align-it
 .donut-summon .ds-card.is-shell > .grid, .donut-summon .ds-card.is-shell > .scan { z-index: 2; border-radius: 26px; }
 .donut-summon .ds-card.is-shell > .grid { inset: 2% 4%; }
 .donut-summon .ds-card.is-shell > .grid { display: none; }   /* no grid over the art (Cory) — the scan + displacement do the work */
+/* locked row is result-only, but if it ever sits on the light form it must stay readable */
+main:not(.step-3) .donut-locked { color: var(--ink); }
+main:not(.step-3) .donut-locked-head h3 { color: var(--ink); }
+main:not(.step-3) .donut-locked-head p { color: var(--muted); }

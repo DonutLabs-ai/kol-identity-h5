@@ -501,6 +501,7 @@
     if (step === 0) { stage(main, true); mountPanel(); mountShine(main.querySelector(".hero-studio .card-frame")); applyTune(); }
     else if (step === 3) { stage(main, false); mountLocked(main); dressBack(); requestCardArt(main); if (summoned) { summoned = false; revealBurst(main); } }
     else clearStage(main);
+    if (step !== 3) { var lk = main.querySelector(".donut-locked"); if (lk) lk.remove(); artJob = null; artUrl = ""; clearInterval(artPoll); }   /* result-only UI must not leak into the form steps */
     if (step === 2) captureAnswers(main);
     var dlg = document.querySelector("dialog.d0-analysis");
     if (dlg && !dlg.querySelector(":scope > .donut-summon")) mountSummon(dlg);
