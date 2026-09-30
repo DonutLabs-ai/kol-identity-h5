@@ -449,62 +449,90 @@
     if (!artUrl) return;
     document.querySelectorAll("main.step-3 .card-frame iframe").forEach(function (f) { try { var ph = f.contentDocument && f.contentDocument.querySelector(".kol-photo img"); if (ph && ph.src !== artUrl) { ph.src = artUrl; ph.dataset.donutArt = "1"; ph.style.objectFit = "cover"; ph.style.objectPosition = "center 12%"; ph.style.opacity = "1"; } } catch (e) {} });
   }
+  /* ── Hold screen (Cory 2026-09-30): the result must not appear until the card art exists. Sean closes his analysis at
+        8.2 s; from then on this overlay (same foil card, same "D0 is reading" line) covers the result with a percentage. ── */
+  var hold = null, holdTick = 0;
+  function showHold(main) {
+    if (hold || !artJob) return;
+    var zh = (document.documentElement.lang || "").toLowerCase().indexOf("zh") === 0;
+    hold = document.createElement("div"); hold.className = "donut-hold";
+    hold.innerHTML = '<div class="hold-stage"><p class="ds-reading">' + (zh ? "D0 正在绘制你的卡面" : "D0 is painting your card") + '</p><div class="hold-card"><iframe class="ds-shell" title="" aria-hidden="true"></iframe></div><div class="hold-pct"><b>0</b>%</div><p class="hold-sub">' + (zh ? "把你的六个答案变成一张卡，通常需要 3–4 分钟" : "Turning your six answers into a card usually takes 3–4 minutes") + '</p></div>';
+    var shell = hold.querySelector(".ds-shell"), who = demo ? demo.name.toUpperCase() : "YOUR DONUT ID";
+    shell.src = "../flashcard/kol.html?embed=1&bare=1&skin=amethyst&code=Donut2026&user=" + encodeURIComponent(who);
+    shell.addEventListener("load", function () { try { var d = shell.contentDocument, st = d.createElement("style");
+      st.textContent = ".skin-bar{display:none!important}.kol-photo img{visibility:hidden}.kol-photo>.kol-q{position:absolute;inset:0;display:grid;place-items:center;background:radial-gradient(90% 70% at 50% 45%,#2a1a52 0%,#140c2c 60%,#0b0718 100%);font:400 150px/1 'Instrument Serif',serif;color:rgb(222 208 255 / .85);text-shadow:0 0 24px rgb(178 150 255 / .8)}";
+      d.head.appendChild(st); var ph = d.querySelector(".kol-photo"); if (ph) { var q = d.createElement("div"); q.className = "kol-q"; q.textContent = "?"; ph.appendChild(q); }
+      var desc = d.querySelector("[data-ticket-description]"); if (desc) desc.textContent = zh ? "绘制中" : "PAINTING";
+      var tag = d.querySelector(".kol-tag"); if (tag) tag.textContent = zh ? "卡面生成后自动揭晓" : "Your card reveals itself when the art is ready";
+      if (demo) d.querySelectorAll(".kol-notch span").forEach(function (sp, i) { if (i) sp.textContent = demo.handle; });
+    } catch (e) {} });
+    document.body.appendChild(hold);
+    document.documentElement.classList.add("donut-holding");
+    var pctEl = hold.querySelector(".hold-pct b");
+    var tick = function () {
+      var t = Date.now() - artJob.t0, f = t / ART_EXPECT, pct = Math.min(96, 100 * (1 - Math.exp(-f * 2.2)));
+      if (artJob.stage === "gemini") pct = Math.max(pct, 78);
+      pctEl.textContent = String(Math.round(pct));
+    };
+    tick(); holdTick = setInterval(tick, 1000);
+  }
+  function releaseHold(main, ok) {
+    if (!hold) return;
+    clearInterval(holdTick); var h = hold; hold = null;
+    var pctEl = h.querySelector(".hold-pct b"); if (pctEl) pctEl.textContent = "100";
+    setTimeout(function () { h.classList.add("is-out"); document.documentElement.classList.remove("donut-holding");
+      setTimeout(function () { h.remove(); }, 700);
+      /* re-run the reveal: the result page has been sitting under the hold */
+      var card = main.querySelector(".studio .card-frame"); if (card) { card.style.animation = "none"; void card.offsetWidth; card.style.animation = ""; }
+      main.querySelectorAll(".result-panel > *").forEach(function (el) { el.style.animation = "none"; void el.offsetWidth; el.style.animation = ""; });
+      if (ok && window.DonutBurst && !reduce.matches) { var r = card && card.getBoundingClientRect(); if (r) DonutBurst.fire(r.left + r.width / 2, r.top + r.height / 2, 2); }
+    }, 450);
+  }
   function requestCardArt(main) {
     if (!API || artJob) return;
     var title = main.querySelector(".result-panel h2"); if (!title) return;
     var type = TYPE_KEYS[title.textContent.trim().toLowerCase()]; if (!type) return;
     var avatar = demo ? demo.avatar : "preview-portrait.jpg";
     artJob = { type: type, status: "requesting", t0: artClock || Date.now() };
-    setArtStatus(main, "making");
+    showHold(main);
     fetch(API + "/v1/identity/card-art", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ avatar_url: new URL(avatar, location.href).pathname, handle: demo ? demo.handle : "@seanmoore", type: type }) })
       .then(function (r) { return r.json(); }).then(function (j) {
         artJob.id = j.job_id; artJob.status = j.status;
-        if (j.status === "done") return showArt(main, j.image_url, /* min dwell so the state is visible */ 2600);
+        if (j.status === "done") return showArt(main, j.image_url, 1200);
         artPoll = setInterval(function () {
           fetch(API + "/v1/identity/card-art/" + artJob.id).then(function (r) { return r.json(); }).then(function (s) {
             if (s.status === "done") { clearInterval(artPoll); showArt(main, s.image_url, 0); }
-            else if (s.status === "failed") { clearInterval(artPoll); setArtStatus(main, "failed"); }
-            else setArtStatus(main, "making", s.stage);
+            else if (s.status === "failed") { clearInterval(artPoll); artJob.status = "failed"; releaseHold(main, false); setArtStatus(main, "failed"); }
+            else artJob.stage = s.stage;
           }).catch(function () {});
         }, 3000);
-      }).catch(function () { setArtStatus(main, "failed"); });
+      }).catch(function () { artJob.status = "failed"; releaseHold(main, false); setArtStatus(main, "failed"); });
   }
   function showArt(main, url, minDwell) {
     var wait = Math.max(0, minDwell - (Date.now() - artJob.t0));
     setTimeout(function () {
       var abs = /^https?:/.test(url) ? url : API + url;
-      var img = new Image(); img.onload = function () {
+      var img = new Image();
+      img.onerror = function () { artJob.status = "failed"; releaseHold(main, false); setArtStatus(main, "failed"); };   /* "done" but the file is missing → default art */
+      img.onload = function () {
         document.querySelectorAll("main.step-3 .card-frame iframe").forEach(function (f) { try { var ph = f.contentDocument.querySelector(".kol-photo img"); if (!ph) return;
           ph.style.transition = "opacity .5s"; ph.style.opacity = "0";
           setTimeout(function () { artUrl = abs; ph.src = abs; ph.dataset.donutArt = "1"; ph.style.objectFit = "cover"; ph.style.objectPosition = "center 12%"; ph.style.opacity = "1"; }, 500);
         } catch (e) {} });
-        setArtStatus(main, "done"); artJob.status = "done";
-        if (window.DonutBurst && !reduce.matches) { var c = main.querySelector(".studio .card-frame"), r = c && c.getBoundingClientRect(); if (r) DonutBurst.fire(r.left + r.width / 2, r.top + r.height / 2, 1.5); }
+        artJob.status = "done";
+        setTimeout(function () { releaseHold(main, true); }, 600);
       }; img.src = abs;
     }, wait);
   }
-  var artTick = 0;
   function setArtStatus(main, state, stage) {
     var zh = (document.documentElement.lang || "").toLowerCase().indexOf("zh") === 0;
     var el = main.querySelector(".donut-art-status");
-    if (!el) { el = document.createElement("div"); el.className = "donut-art-status"; el.innerHTML = '<div class="row"><i></i><span class="txt"></span><b class="eta"></b></div><div class="bar"><span></span></div>'; var st = main.querySelector(".workspace .studio"); if (st) st.appendChild(el); }
-    var stageTxt = stage === "gemini" ? (zh ? "正在加上流光质感" : "adding the glare & chrome") : (zh ? "D0 正在绘制你的卡面" : "D0 is painting your card art");
-    var txt = { making: stageTxt, done: zh ? "卡面已生成" : "Card art ready", failed: zh ? "沿用默认卡面" : "Using the default art" }[state];
-    el.querySelector(".txt").textContent = txt; el.dataset.state = state;
-    clearInterval(artTick);
-    var bar = el.querySelector(".bar > span"), eta = el.querySelector(".eta");
-    if (state === "making") {
-      var tick = function () {
-        var t = Date.now() - (artJob ? artJob.t0 : Date.now()), f = t / ART_EXPECT;
-        var pct = Math.min(92, 100 * (1 - Math.exp(-f * 2.5)));          /* eases toward 92%, never claims done */
-        if (stage === "gemini") pct = Math.max(pct, 74);                  /* stage 2 started → at least 74% */
-        bar.style.width = pct.toFixed(1) + "%";
-        var left = Math.max(5, Math.round((ART_EXPECT - t) / 1000));
-        eta.textContent = zh ? ("约 " + (left >= 60 ? Math.ceil(left / 60) + " 分钟" : left + " 秒")) : ("~" + (left >= 60 ? Math.ceil(left / 60) + " min" : left + " s"));
-      };
-      tick(); artTick = setInterval(tick, 1000);
-    } else { bar.style.width = "100%"; eta.textContent = ""; setTimeout(function () { el.classList.add("is-out"); }, 2400); }
+    if (!el) { el = document.createElement("div"); el.className = "donut-art-status"; var st = main.querySelector(".workspace .studio"); if (st) st.appendChild(el); }
+    var txt = { making: zh ? "D0 正在绘制你的卡面…" : "D0 is painting your card art…", done: zh ? "卡面已生成" : "Card art ready", failed: zh ? "沿用默认卡面" : "Using the default art" }[state];
+    el.innerHTML = "<i></i>" + txt; el.dataset.state = state;
+    if (state !== "making") setTimeout(function () { el.classList.add("is-out"); }, 2200);
   }
+
 
 
   /* ── route scan: Sean's <main class="app step-N"> carries the step ── */

@@ -60,6 +60,8 @@ http.createServer(async (req, res) => {
       else return json(res, 400, { error: "no_avatar" });
       const k = cacheKey(avatarBytes, b.type);
       if (existsSync(join(CACHE, k + ".png"))) return json(res, 200, { status: "done", job_id: k, image_url: `/art/${k}.png`, prompt_version: prompts.version, cached: true });
+      /* a job record whose output vanished (cache cleared) must not be trusted — start over */
+      const stale = jobs.get(k); if (stale && (stale.status === "done" || stale.status === "failed") && !existsSync(join(CACHE, k + ".png"))) jobs.delete(k);
       if (!jobs.has(k)) {
         avatarPath = join(CACHE, k + extOf(avatarBytes)); await writeFile(avatarPath, avatarBytes);
         const job = { id: k, key: k, type: b.type, avatarPath, status: "queued", started: Date.now() }; jobs.set(k, job);
@@ -72,6 +74,7 @@ http.createServer(async (req, res) => {
       const k = m[1];
       if (existsSync(join(CACHE, k + ".png"))) return json(res, 200, { status: "done", image_url: `/art/${k}.png`, prompt_version: prompts.version });
       const job = jobs.get(k); if (!job) return json(res, 404, { error: "not_found" });
+      if (job.status === "done") { jobs.delete(k); return json(res, 200, { status: "failed", error: "output_missing" }); }   /* done but the PNG is gone */
       return json(res, 200, { status: job.status, stage: job.stage, error: job.error, elapsed_s: Math.round((Date.now() - job.started) / 1000) });
     }
     json(res, 404, { error: "not_found" });
