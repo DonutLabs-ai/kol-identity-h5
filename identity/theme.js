@@ -440,7 +440,7 @@
     document.querySelectorAll(".card-frame iframe").forEach(function (f) { try { var d = f.contentDocument; if (!d) return;
       d.querySelectorAll(".kol-notch span").forEach(function (sp) { if (/@seanmoore/.test(sp.textContent)) sp.textContent = demo.handle; });
       var t = d.querySelector("[data-ticket-title]"); if (t && /SEAN MOORE|Sean Moore/i.test(t.textContent)) { t.textContent = demo.name.toUpperCase(); t.dataset.foilText = t.textContent; }
-      var ph = d.querySelector(".kol-photo img"); if (ph && !ph.dataset.donutArt && /preview-portrait/.test(ph.src)) { ph.src = new URL(demo.avatar, location.href).href; ph.style.objectFit = "cover"; ph.style.objectPosition = "center top"; }
+      /* the card's art is NOT the avatar: the landing/preview card keeps the default art; only the result card gets the AI image (Cory 2026-09-30) */
     } catch (e) {} });
   }
   var artJob = null, artPoll = 0, artUrl = "";
