@@ -305,8 +305,11 @@
         chips.textContent = ""; c.tags.forEach(function (t) { var s = doc.createElement("span"); s.textContent = t; chips.appendChild(s); });
       }
       if (demo) applyDemoProfile(document);
+      keepArt();
       var tag = doc.querySelector(".kol-tag"), front = c.say.split(/ — |——| \(|（/)[0] + "  " + c.desc;   /* front: the quote, then the read (Cory: more copy on the face) */
       if (tag && tag.textContent !== front) tag.textContent = front;
+      var phEl = doc.querySelector(".kol-photo img");
+      if (phEl && !phEl.dataset.donutWatchSrc) { phEl.dataset.donutWatchSrc = "1"; new MutationObserver(keepArt).observe(phEl, { attributes: true, attributeFilter: ["src"] }); }
       if (tag && !tag.dataset.donutWatch) { tag.dataset.donutWatch = "1"; new MutationObserver(dressBack).observe(tag, { childList: true, characterData: true, subtree: true }); }
       var panel = doc.querySelector(".kol-back .kb-panel");
       if (panel && !panel.dataset.donutWatch) { panel.dataset.donutWatch = "1"; new MutationObserver(dressBack).observe(panel, { childList: true, subtree: true, characterData: true }); }
@@ -426,7 +429,11 @@
       var ph = d.querySelector(".kol-photo img"); if (ph && !ph.dataset.donutArt && /preview-portrait/.test(ph.src)) { ph.src = new URL(demo.avatar, location.href).href; ph.style.objectFit = "cover"; ph.style.objectPosition = "center top"; }
     } catch (e) {} });
   }
-  var artJob = null, artPoll = 0;
+  var artJob = null, artPoll = 0, artUrl = "";
+  function keepArt() {   /* Sean's flip / re-render puts the default photo back — restore the generated art */
+    if (!artUrl) return;
+    document.querySelectorAll("main.step-3 .card-frame iframe").forEach(function (f) { try { var ph = f.contentDocument && f.contentDocument.querySelector(".kol-photo img"); if (ph && ph.src !== artUrl) { ph.src = artUrl; ph.dataset.donutArt = "1"; ph.style.objectFit = "cover"; ph.style.objectPosition = "center 12%"; ph.style.opacity = "1"; } } catch (e) {} });
+  }
   function requestCardArt(main) {
     if (!API || artJob) return;
     var title = main.querySelector(".result-panel h2"); if (!title) return;
@@ -454,7 +461,7 @@
       var img = new Image(); img.onload = function () {
         document.querySelectorAll("main.step-3 .card-frame iframe").forEach(function (f) { try { var ph = f.contentDocument.querySelector(".kol-photo img"); if (!ph) return;
           ph.style.transition = "opacity .5s"; ph.style.opacity = "0";
-          setTimeout(function () { ph.src = abs; ph.dataset.donutArt = "1"; ph.style.objectFit = "cover"; ph.style.objectPosition = "center 12%"; ph.style.opacity = "1"; }, 500);
+          setTimeout(function () { artUrl = abs; ph.src = abs; ph.dataset.donutArt = "1"; ph.style.objectFit = "cover"; ph.style.objectPosition = "center 12%"; ph.style.opacity = "1"; }, 500);
         } catch (e) {} });
         setArtStatus(main, "done"); artJob.status = "done";
         if (window.DonutBurst && !reduce.matches) { var c = main.querySelector(".studio .card-frame"), r = c && c.getBoundingClientRect(); if (r) DonutBurst.fire(r.left + r.width / 2, r.top + r.height / 2, 1.5); }
@@ -488,7 +495,7 @@
     if (panel && panel.style.display !== show) panel.style.display = show;
     // the flashcard iframe inside the studio: make sure the card-face vars land once it has loaded
     document.querySelectorAll(".card-frame iframe").forEach(function (f) { if (!f.dataset.donutHooked) { f.dataset.donutHooked = "1"; f.addEventListener("load", function () { applyFlash(); dressBack(); grainCards(); }); } });
-    grainCards(); applyDemoProfile(main); document.querySelectorAll("dialog[open]").forEach(applyDemoProfile);
+    grainCards(); applyDemoProfile(main); document.querySelectorAll("dialog[open]").forEach(applyDemoProfile); keepArt();
     stepPulse(step);
   }
 
