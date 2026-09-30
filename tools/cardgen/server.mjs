@@ -28,6 +28,8 @@ function refsFor(type) { const f = join(STYLE_DIR, `figma/refs-${type}.txt`); if
 function readFileSyncLines(f) { return require("node:fs").readFileSync(f, "utf8").split("\n").filter(Boolean).map((n) => ["webp", "jpg", "png"].map((e) => join(STYLE_DIR, n + "." + e)).find(existsSync)).filter(Boolean); }
 import { createRequire } from "node:module"; const require = createRequire(import.meta.url);
 
+/* extension from the bytes (magic numbers) — the URL's suffix lied for PNG avatars fetched via a .jpg-looking path */
+const extOf = (buf) => buf[0] === 0x89 && buf[1] === 0x50 ? ".png" : buf[0] === 0x52 && buf[8] === 0x57 ? ".webp" : buf[0] === 0x47 ? ".gif" : ".jpg";
 const cacheKey = (avatarBytes, type) => createHash("sha256").update(avatarBytes).update(":" + type + ":" + prompts.version + ":v2").digest("hex").slice(0, 24);
 
 async function pipeline(job) {
@@ -59,7 +61,7 @@ http.createServer(async (req, res) => {
       const k = cacheKey(avatarBytes, b.type);
       if (existsSync(join(CACHE, k + ".png"))) return json(res, 200, { status: "done", job_id: k, image_url: `/art/${k}.png`, prompt_version: prompts.version, cached: true });
       if (!jobs.has(k)) {
-        avatarPath = join(CACHE, k + (String(b.avatar_url || "").match(/\.(png|webp|jpe?g)$/i)?.[0] || ".jpg")); await writeFile(avatarPath, avatarBytes);
+        avatarPath = join(CACHE, k + extOf(avatarBytes)); await writeFile(avatarPath, avatarBytes);
         const job = { id: k, key: k, type: b.type, avatarPath, status: "queued", started: Date.now() }; jobs.set(k, job);
         pipeline(job).catch((e) => { job.status = "failed"; job.error = e.message; console.error("job", k, "failed:", e.message); });
       }

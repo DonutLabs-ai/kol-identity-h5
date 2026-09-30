@@ -858,13 +858,17 @@ main.step-3 .workspace .studio .card-under { display: none !important; }
 .field label { gap: 8px; }
 .field:not(:has(#email)):not(:has(#discord)):not(.wallet-field) label::before { display: none; }
 
-/* ── card-art status under the result card (backend hook state) ── */
-.donut-art-status { position: relative; z-index: 3; margin: 12px auto 0; width: fit-content; display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px;
-  font: 400 12px / 16px var(--sans); letter-spacing: .01em; color: rgb(255 255 255 / .8); background: rgb(255 255 255 / .08); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .18); transition: opacity .6s; }
+/* ── card-art progress under the result card (backend hook state): stage text, ETA, eased bar ── */
+.donut-art-status { position: relative; z-index: 3; margin: 12px auto 0; width: min(100%, 300px); display: flex; flex-direction: column; gap: 7px; padding: 9px 12px 10px; border-radius: 14px;
+  font: 400 12px / 16px var(--sans); letter-spacing: .01em; color: rgb(255 255 255 / .85); background: rgb(255 255 255 / .08); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .18); transition: opacity .6s; }
+.donut-art-status .row { display: flex; align-items: center; gap: 8px; }
+.donut-art-status .txt { flex: 1; }
+.donut-art-status .eta { font-weight: 400; color: rgb(255 255 255 / .55); font-variant-numeric: tabular-nums; }
 .donut-art-status i { width: 7px; height: 7px; border-radius: 50%; background: #c9b6ff; box-shadow: 0 0 0 0 rgb(201 182 255 / .6); animation: ds-ping 1.6s ease-out infinite; }
+.donut-art-status .bar { height: 3px; border-radius: 2px; background: rgb(255 255 255 / .12); overflow: hidden; }
+.donut-art-status .bar > span { display: block; height: 100%; width: 0; border-radius: 2px; background: linear-gradient(90deg, #7a3dff, #c9b6ff 60%, #ffd9a6); transition: width 1s linear; }
 .donut-art-status[data-state="done"] i { background: #5ee29a; animation: none; }
 .donut-art-status[data-state="failed"] i { background: rgb(255 255 255 / .4); animation: none; }
-.donut-art-status small { color: rgb(255 255 255 / .5); }
 .donut-art-status.is-out { opacity: 0; }
 main.step-3 .workspace .studio { display: flex; flex-direction: column; align-items: center; }
 .studio, .hero-studio, .workspace .studio, main.step-3 .workspace .studio { overflow: visible !important; }   /* base.css clips the tilted card */

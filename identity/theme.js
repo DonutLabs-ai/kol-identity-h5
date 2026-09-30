@@ -443,7 +443,8 @@
       /* the card's art is NOT the avatar: the landing/preview card keeps the default art; only the result card gets the AI image (Cory 2026-09-30) */
     } catch (e) {} });
   }
-  var artJob = null, artPoll = 0, artUrl = "";
+  var artJob = null, artPoll = 0, artUrl = "", artClock = 0;   /* artClock: set at quiz submit so the analysis time counts toward the wait */
+  var ART_EXPECT = 200000;   /* ~200 s end-to-end (GPT ~150 s + Gemini ~60 s); the bar eases toward 92% until done */
   function keepArt() {   /* Sean's flip / re-render puts the default photo back — restore the generated art */
     if (!artUrl) return;
     document.querySelectorAll("main.step-3 .card-frame iframe").forEach(function (f) { try { var ph = f.contentDocument && f.contentDocument.querySelector(".kol-photo img"); if (ph && ph.src !== artUrl) { ph.src = artUrl; ph.dataset.donutArt = "1"; ph.style.objectFit = "cover"; ph.style.objectPosition = "center 12%"; ph.style.opacity = "1"; } } catch (e) {} });
@@ -453,7 +454,7 @@
     var title = main.querySelector(".result-panel h2"); if (!title) return;
     var type = TYPE_KEYS[title.textContent.trim().toLowerCase()]; if (!type) return;
     var avatar = demo ? demo.avatar : "preview-portrait.jpg";
-    artJob = { type: type, status: "requesting", t0: Date.now() };
+    artJob = { type: type, status: "requesting", t0: artClock || Date.now() };
     setArtStatus(main, "making");
     fetch(API + "/v1/identity/card-art", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ avatar_url: new URL(avatar, location.href).pathname, handle: demo ? demo.handle : "@seanmoore", type: type }) })
       .then(function (r) { return r.json(); }).then(function (j) {
@@ -482,15 +483,29 @@
       }; img.src = abs;
     }, wait);
   }
+  var artTick = 0;
   function setArtStatus(main, state, stage) {
     var zh = (document.documentElement.lang || "").toLowerCase().indexOf("zh") === 0;
     var el = main.querySelector(".donut-art-status");
-    if (!el) { el = document.createElement("div"); el.className = "donut-art-status"; var st = main.querySelector(".workspace .studio"); if (st) st.appendChild(el); }
-    var txt = { making: zh ? "D0 正在绘制你的卡面…" : "D0 is painting your card art…", done: zh ? "卡面已生成" : "Card art ready", failed: zh ? "沿用默认卡面" : "Using the default art" }[state];
-    el.innerHTML = '<i></i>' + txt + (stage ? ' <small>' + stage + '</small>' : "");
-    el.dataset.state = state;
-    if (state !== "making") setTimeout(function () { el.classList.add("is-out"); }, 2200);
+    if (!el) { el = document.createElement("div"); el.className = "donut-art-status"; el.innerHTML = '<div class="row"><i></i><span class="txt"></span><b class="eta"></b></div><div class="bar"><span></span></div>'; var st = main.querySelector(".workspace .studio"); if (st) st.appendChild(el); }
+    var stageTxt = stage === "gemini" ? (zh ? "正在加上流光质感" : "adding the glare & chrome") : (zh ? "D0 正在绘制你的卡面" : "D0 is painting your card art");
+    var txt = { making: stageTxt, done: zh ? "卡面已生成" : "Card art ready", failed: zh ? "沿用默认卡面" : "Using the default art" }[state];
+    el.querySelector(".txt").textContent = txt; el.dataset.state = state;
+    clearInterval(artTick);
+    var bar = el.querySelector(".bar > span"), eta = el.querySelector(".eta");
+    if (state === "making") {
+      var tick = function () {
+        var t = Date.now() - (artJob ? artJob.t0 : Date.now()), f = t / ART_EXPECT;
+        var pct = Math.min(92, 100 * (1 - Math.exp(-f * 2.5)));          /* eases toward 92%, never claims done */
+        if (stage === "gemini") pct = Math.max(pct, 74);                  /* stage 2 started → at least 74% */
+        bar.style.width = pct.toFixed(1) + "%";
+        var left = Math.max(5, Math.round((ART_EXPECT - t) / 1000));
+        eta.textContent = zh ? ("约 " + (left >= 60 ? Math.ceil(left / 60) + " 分钟" : left + " 秒")) : ("~" + (left >= 60 ? Math.ceil(left / 60) + " min" : left + " s"));
+      };
+      tick(); artTick = setInterval(tick, 1000);
+    } else { bar.style.width = "100%"; eta.textContent = ""; setTimeout(function () { el.classList.add("is-out"); }, 2400); }
   }
+
 
   /* ── route scan: Sean's <main class="app step-N"> carries the step ── */
   function currentStep() { var m = document.querySelector("main.app"); if (!m) return -1; var mm = /step-(\d)/.exec(m.className); return mm ? Number(mm[1]) : -1; }
@@ -504,7 +519,7 @@
     if (step !== 3) { var lk = main.querySelector(".donut-locked"); if (lk) lk.remove(); artJob = null; artUrl = ""; clearInterval(artPoll); }   /* result-only UI must not leak into the form steps */
     if (step === 2) captureAnswers(main);
     var dlg = document.querySelector("dialog.d0-analysis");
-    if (dlg && !dlg.querySelector(":scope > .donut-summon")) mountSummon(dlg);
+    if (dlg && !dlg.querySelector(":scope > .donut-summon")) { artClock = Date.now(); mountSummon(dlg); }
     var show = step === 0 ? "" : "none";
     if (tuneBtn && tuneBtn.style.display !== show) tuneBtn.style.display = show;
     if (panel && panel.style.display !== show) panel.style.display = show;
