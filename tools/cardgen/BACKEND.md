@@ -155,3 +155,20 @@ calling the API.
 3. Do we pre-generate for a VIP KOL list (known avatars) so their reveal is instant?
 4. Budget: expected KOL count × about $0.24, plus retries. Is a cheaper model acceptable for regular users?
 5. Should `unresolved` (Style Explorer) get its own default art?
+
+## 11. Proposed pipeline v2 — GPT card → Gemini restyle (2026-09-30 harness findings)
+
+Single-pass GPT edits keep the avatar's likeness, the type action and the prop reliably but ignore the style of attached
+reference images. `google/gemini-3-pro-image` does the opposite: it takes style from images literally but breaks pose,
+props and likeness on its own. The combination is the first result that matches Cory's chosen "glare十字流光" moodboard set:
+
+1. **Stage 1 (GPT, as in §4):** avatar + 3 best-matching glare tiles (`pick_refs.py --for-type <type>`) + brand ribbon +
+   the KEEP/ACT prompt. Output: the card with the right action, prop and face.
+2. **Stage 2 (Gemini, `harness/restyle.mjs`):** stage-1 image + the same 3 tiles + avatar + brand ribbon, instruction
+   "re-render entirely in the reference style; keep composition, pose, props, face; props in the same material language;
+   sparkle only on edges" (`--brand --edge-sparkle`, plus `--face-clean` for photo avatars). ~$0.14, ~60 s.
+3. Store both; the CSS grain/finish is still applied client-side.
+
+Cost/latency per card: ≈ $0.40 and ≈ 4 min end to end. Cache key must include both prompt versions and both models.
+Open point: Gemini drifts to cobalt without the brand ribbon; with it, backgrounds converge — background variety should
+come from a stage-1 reference chosen from the "漸變流線感，速度" set, kept subordinate.
