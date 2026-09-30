@@ -13,7 +13,8 @@ import { apiKey, loadPrompts, dataUrl, Budget, STYLE_DIR, CARDGEN, HERE, judgeIm
 
 const args = Object.fromEntries(process.argv.slice(2).reduce((a, v, i, all) => (v.startsWith("--") ? a.concat([[v.slice(2), all[i + 1] && !all[i + 1].startsWith("--") ? all[i + 1] : true]]) : a), []));
 const MODEL = args.model || "google/gemini-3-pro-image", key = await apiKey(), p = await loadPrompts(), budget = new Budget(Number(args.cap || 2));
-const src = resolve(CARDGEN, String(args.image)), avatar = args.avatar ? resolve(CARDGEN, String(args.avatar)) : null, type = String(args.type || "");
+const rel = (f) => (existsSync(resolve(String(f))) ? resolve(String(f)) : resolve(CARDGEN, String(f)));   /* cwd-relative or cardgen-relative */
+const src = rel(args.image), avatar = args.avatar ? rel(args.avatar) : null, type = String(args.type || "");
 const refs = String(args.refs || "").split(",").filter(Boolean).map((n) => ["webp", "jpg", "png"].map((e) => join(STYLE_DIR, n + "." + e)).find(existsSync)).filter(Boolean);
 const name = args.name || `${basename(src, ".png")}--restyle--${MODEL.split("/")[1]}`;
 const out = join(CARDGEN, "out/restyle", name); await mkdir(out, { recursive: true });
