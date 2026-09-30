@@ -877,3 +877,4 @@ main.step-3 .workspace .studio { display: flex; flex-direction: column; align-it
   transform: translate(-50%, -50%) scale(calc(var(--card-w) / 380px)); transform-origin: 50% 50%; }
 .donut-summon .ds-card.is-shell > .grid, .donut-summon .ds-card.is-shell > .scan { z-index: 2; border-radius: 26px; }
 .donut-summon .ds-card.is-shell > .grid { inset: 2% 4%; }
+.donut-summon .ds-card.is-shell > .grid { display: none; }   /* no grid over the art (Cory) — the scan + displacement do the work */
