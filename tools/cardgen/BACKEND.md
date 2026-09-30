@@ -186,3 +186,18 @@ type's action + the look in five lines). Measured on Chris / CZ / Elon, all in p
 B is the production default when speed matters: it meets the 30 s target and keeps identity and type readable. The
 two-model pipeline (§11, ~3 min) stays as the "premium" path for pre-generated KOL cards. Both share the cache key
 scheme; add the variant name to the key.
+
+### 12b. Gemini-only vs GPT-only, same one-shot prompt, six X avatars (2026-09-30 night)
+
+| | Gemini 3 Pro Image | GPT-5.4-image-2 |
+|---|---|---|
+| time (parallel) | **23–26 s** | 122–170 s |
+| cost | $0.14 | $0.23 |
+| likeness | good on all six | good on all six |
+| type action + gear | correct on all six | correct on all six |
+| look | brighter, bolder star flares, brand ribbons strong; more "clean poster" | darker, moodier, finer glitter/grain, closer to the moodboard's film feel |
+| weak spot | CZ and Ansem are pasted photo cut-outs on a painted background | Elon's rocket lost its tower; Ansem's pose drifted |
+
+Verdict: Gemini one-shot is the live default (5× faster, cheaper, same likeness/type reliability); GPT one-shot is a
+fair "premium" alternative but not worth the wait on its own — the §11 two-model pipeline is the premium path.
+Sheet: `out/fast/gemini-vs-gpt.png`.
