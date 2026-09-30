@@ -24,19 +24,24 @@ const parseJson = (t) => { const m = /\{[\s\S]*\}/.exec(t.replace(/```json|```/g
 const TILE_SCHEMA = `{"subject":"what is depicted, 1 line","medium":"how it was made: film photo / practical effects / airbrush / 3D / collage — be specific","era_cues":["what makes it read as 70s-80s"],"lighting":"key/rim/backlight, colour of light, flares, halation","materials":"chrome/glitter/glass/liquid — how they reflect","colour":{"background":"...","dominant":["hex-ish"],"accents":["hex-ish"],"contrast":"low/high"},"film_artifacts":["grain, halation, softness, fringing, print texture…"],"composition":"framing, negative space, focal point","motion":"blur/streaks/long-exposure if any","prompt_line":"ONE dense sentence that would regenerate this look (not this subject) in an image model"}`;
 
 const tiles = (await readdir(DIR)).filter((f) => /\.(webp|jpg|jpeg|png)$/i.test(f)).sort();
+/* a Figma export carries manifest.json with the designer's caption per tile — passed to the model as a hint */
+const captions = {}; if (existsSync(join(DIR, "manifest.json"))) for (const im of JSON.parse(await readFile(join(DIR, "manifest.json"), "utf8")).images || []) captions[basename(im.file, extname(im.file))] = { caption: im.name, group: im.group_slug };
 console.log(`reverse-prompting ${tiles.length} tiles with ${MODEL}`);
 const results = [];
-for (const f of tiles) {
-  const name = basename(f, extname(f)), out = join(outDir, name + ".json");
-  if (existsSync(out) && !args.force) { results.push(JSON.parse(await readFile(out, "utf8"))); console.log(`  ${name}: cached`); continue; }
+async function one(f) {
+  const name = basename(f, extname(f)), out = join(outDir, name + ".json"), hint = captions[name];
+  if (existsSync(out) && !args.force) { results.push(JSON.parse(await readFile(out, "utf8"))); return; }
   try {
     const t = parseJson(await chat([
-      { type: "text", text: "You are a photo/illustration forensics expert and prompt engineer. Describe this moodboard tile so an image model could reproduce its LOOK (not its subject). Be concrete and technical; name the medium honestly (e.g. '35mm slide film photo of a real chrome prop with a star filter' vs 'digital 3D render'). Reply with ONLY minified JSON: " + TILE_SCHEMA },
+      { type: "text", text: "You are a photo/illustration forensics expert and prompt engineer. Describe this moodboard tile so an image model could reproduce its LOOK (not its subject). Be concrete and technical; name the medium honestly (e.g. '35mm slide film photo of a real chrome prop with a star filter' vs 'digital 3D render')." + (hint ? ` The designer captioned it: "${hint.caption}" (group: ${hint.group}).` : "") + " Reply with ONLY minified JSON: " + TILE_SCHEMA },
       { type: "image_url", image_url: { url: await dataUrl(join(DIR, f)) } }]));
-    t.tile = name; results.push(t); await writeFile(out, JSON.stringify(t, null, 1));
+    t.tile = name; if (hint) { t.figma_caption = hint.caption; t.group = hint.group; }
+    results.push(t); await writeFile(out, JSON.stringify(t, null, 1));
     console.log(`  ${name}: ${t.medium?.slice(0, 70)}`);
   } catch (e) { console.error(`  ${name}: ✗ ${e.message}`); }
 }
+{ const q = tiles.slice(), POOL = Number(args.parallel || 6); await Promise.all(Array.from({ length: Math.min(POOL, q.length) }, async () => { while (q.length) await one(q.shift()); })); }
+results.sort((a, b) => a.tile.localeCompare(b.tile));
 
 /* distil */
 const dna = await chat([{ type: "text", text: `Below are technical descriptions of ${results.length} moodboard tiles for Donut's KOL trading cards. Write a Markdown document with exactly these sections:
@@ -56,7 +61,7 @@ A ready-to-paste prompt block, under 260 words, in this exact format: 6–8 bull
 ## Judge checklist
 10 yes/no questions a judge can ask of a generated card to test whether it matches this look.
 
-TILES:\n` + results.map((t) => JSON.stringify(t)).join("\n") }], 2200);
+TILES:\n` + results.map((t) => JSON.stringify(t)).join("\n") }], 7000);
 await writeFile(join(DIR, "moodboard-dna.md"), dna.trim() + "\n");
 await writeFile(join(outDir, "_all.json"), JSON.stringify(results, null, 1));
 console.log(`\nwrote ${join(DIR, "moodboard-dna.md")}  (spent $${budget.spent.toFixed(3)})`);

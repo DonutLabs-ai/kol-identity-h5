@@ -23,10 +23,12 @@ const refNames = args.refs === "all" ? (await readdir(STYLE_DIR)).filter((f) => 
 const refs = refNames.map((n) => { const f = ["webp", "jpg", "png"].map((e) => join(STYLE_DIR, n + "." + e)).find(existsSync); if (!f) throw new Error("style ref not found: " + n); return f; });
 const brand = args["no-brand"] ? null : join(CARDGEN, "refs/donut-ribbons.webp");
 
-const key = await apiKey(), prompts = await loadPrompts(), mood = await judgeRefs(), budget = new Budget(CAP);
+const key = await apiKey(), prompts = await loadPrompts(), mood = await judgeRefs(refs), budget = new Budget(CAP);
+/* the judge's criteria: Shared DNA + Never + Judge checklist from the reverse-prompted moodboard, when present */
+let dna = ""; { const f = join(STYLE_DIR, "figma/moodboard-dna.md"); if (existsSync(f)) { const md = await readFile(f, "utf8"); dna = ["## Shared DNA", "## Never", "## Judge checklist"].map((h) => { const i = md.indexOf(h); if (i < 0) return ""; const j = md.indexOf("\n## ", i + 3); return md.slice(i, j < 0 ? undefined : j).trim(); }).filter(Boolean).join("\n\n"); } }
 const runId = (args.name ? String(args.name) + "-" : "") + new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
 const outDir = join(CARDGEN, "out/harness", runId); await mkdir(outDir, { recursive: true });
-const run = { id: runId, started: new Date().toISOString(), model: MODEL, judge: JUDGE, prompt_version: prompts.version, refs: refNames, brand: !!brand, rounds: ROUNDS, cap: CAP, notes: args.notes || "", initial_style: prompts.style, subjects: {} };
+const run = { id: runId, started: new Date().toISOString(), model: MODEL, judge: JUDGE, prompt_version: prompts.version, refs: refNames, brand: !!brand, dna_criteria: !!dna, rounds: ROUNDS, cap: CAP, notes: args.notes || "", initial_style: prompts.style, subjects: {} };
 const save = async () => { run.spent = +budget.spent.toFixed(3); run.updated = new Date().toISOString(); await writeFile(join(outDir, "run.json"), JSON.stringify(run, null, 1)); await index(); };
 async function index() {
   const base = join(CARDGEN, "out/harness"), ids = (await readdir(base, { withFileTypes: true })).filter((d) => d.isDirectory()).map((d) => d.name).sort().reverse();
@@ -47,7 +49,7 @@ async function subjectLoop({ who, type }) {
       const g = await generateImage({ key, model: MODEL, prompt, avatarPath: avatar, refs, brandPath: brand, budget });
       await writeFile(join(dir, `r${r}.png`), g.png); Object.assign(round, { image: `${who}/r${r}.png`, gen_cost: +g.cost.toFixed(3), gen_secs: +g.secs.toFixed(1) });
       await save();
-      const j = await judgeImage({ key, model: JUDGE, imagePng: g.png, avatarPath: avatar, moodRefs: mood, styleBlock: style, typeSection: prompts.types[type], budget, humanNotes: run.notes });
+      const j = await judgeImage({ key, model: JUDGE, imagePng: g.png, avatarPath: avatar, moodRefs: mood, styleBlock: style, typeSection: prompts.types[type], budget, humanNotes: run.notes, dna });
       Object.assign(round, { scores: j.scores, overall: j.overall, critique: j.critique, fixes: j.fixes, judge_cost: +j.cost.toFixed(3) });
       console.log(`  ${who} r${r}: overall ${j.overall}  ${Object.entries(j.scores || {}).map(([k, v]) => k.split("_")[0] + " " + v).join(" · ")}  ($${budget.spent.toFixed(2)} total)`);
       style = j.revised_style_block || style;

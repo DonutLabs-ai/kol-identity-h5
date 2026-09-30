@@ -40,13 +40,12 @@ export function buildPrompt(p, styleBlock, type) { return [p.keep, styleBlock, p
 /* Moodboard tiles: full size for the generator, 512px copies for the judge (made once with sips — macOS). */
 export const STYLE_DIR = join(CARDGEN, "style-refs");
 export const DEFAULT_REFS = ["silhouette", "chrome-knight", "chrome-hands", "light-streams", "glitter-driver", "gold-record"];
-export async function judgeRefs() {
-  const dir = join(STYLE_DIR, "_judge"); await mkdir(dir, { recursive: true });
-  const { readdir } = await import("node:fs/promises");
+export async function judgeRefs(paths) {
   const out = [];
-  for (const f of (await readdir(STYLE_DIR)).filter((f) => /\.(webp|jpg|png)$/i.test(f))) {
-    const small = join(dir, basename(f, extname(f)) + ".jpg");
-    if (!existsSync(small)) execFileSync("sips", ["-Z", "512", "-s", "format", "jpeg", join(STYLE_DIR, f), "--out", small], { stdio: "ignore" });
+  for (const full of paths) {
+    const dir = join(dirname(full), "_judge"); await mkdir(dir, { recursive: true });
+    const small = join(dir, basename(full, extname(full)) + ".jpg");
+    if (!existsSync(small)) execFileSync("sips", ["-Z", "512", "-s", "format", "jpeg", full, "--out", small], { stdio: "ignore" });
     out.push(small);
   }
   return out;
@@ -87,10 +86,10 @@ export async function generateImage({ key, model, prompt, avatarPath, refs = [],
 
 /* The vision judge: scores a card against the avatar + moodboard and rewrites the style block. Strict JSON out. */
 export const JUDGE_SCHEMA = `{"scores":{"likeness":0-10,"type_readable":0-10,"film_feel":0-10,"chrome_light":0-10,"palette":0-10,"composition":0-10},"overall":0-10,"critique":"2-4 sentences: what is right, what is off vs the moodboard","fixes":["3-6 concrete prompt-level changes"],"revised_style_block":"the full replacement for the ART DIRECTION + PALETTE block"}`;
-export async function judgeImage({ key, model, imagePng, avatarPath, moodRefs, styleBlock, typeSection, budget, humanNotes = "" }) {
+export async function judgeImage({ key, model, imagePng, avatarPath, moodRefs, styleBlock, typeSection, budget, humanNotes = "", dna = "" }) {
   budget.check(0.10);
   const content = [
-    { type: "text", text: `You are the art director for Donut's KOL trading cards. Judge the GENERATED card image against (1) the KOL's avatar it must stay recognisable as, and (2) the MOODBOARD tiles that define the target look: 1970s–80s album-cover retro-futurism shot on film — liquid chrome that reflects colour, a few big star flares, slow-shutter light trails with prismatic fringes, heavy film grain and halation, lifted blacks, iconic minimal poster composition. Target background: Donut deep violet with flowing amber/cream/periwinkle light ribbons.\n\nNOTE: the product adds film GRAIN in CSS on top of this image later, so do not penalise missing grain — judge film_feel on halation, lifted blacks, softness, fringing and print-like tonality instead.\n\nScore 0–10 on each axis, be harsh and specific (a 10 is indistinguishable from the moodboard in feel). Then rewrite ONLY the style block so the next generation moves closer: keep it under 260 words, prescriptive, in the same format (ART DIRECTION bullets + PALETTE paragraph). Never touch identity or type-action rules — they live elsewhere.${humanNotes ? "\n\nHUMAN ART DIRECTOR NOTES (highest priority): " + humanNotes : ""}\n\nReply with ONLY minified JSON matching: ${JUDGE_SCHEMA}` },
+    { type: "text", text: `You are the art director for Donut's KOL trading cards. Judge the GENERATED card image against (1) the KOL's avatar it must stay recognisable as, and (2) the MOODBOARD tiles that define the target look: 1970s–80s album-cover retro-futurism shot on film — liquid chrome that reflects colour, a few big star flares, slow-shutter light trails with prismatic fringes, heavy film grain and halation, lifted blacks, iconic minimal poster composition. Target background: Donut deep violet with flowing amber/cream/periwinkle light ribbons.\n\nNOTE: the product adds film GRAIN in CSS on top of this image later, so do not penalise missing grain — judge film_feel on halation, lifted blacks, softness, fringing and print-like tonality instead.\n\nScore 0–10 on each axis, be harsh and specific (a 10 is indistinguishable from the moodboard in feel). Then rewrite ONLY the style block so the next generation moves closer: keep it under 260 words, prescriptive, in the same format (ART DIRECTION bullets + PALETTE paragraph). Never touch identity or type-action rules — they live elsewhere.${dna ? "\n\nMOODBOARD DNA — the authoritative criteria, distilled from the full 98-tile board (use its checklist to score film_feel, chrome_light and composition):\n" + dna : ""}${humanNotes ? "\n\nHUMAN ART DIRECTOR NOTES (highest priority): " + humanNotes : ""}\n\nReply with ONLY minified JSON matching: ${JUDGE_SCHEMA}` },
     { type: "text", text: "GENERATED CARD:" }, { type: "image_url", image_url: { url: "data:image/png;base64," + imagePng.toString("base64") } },
     { type: "text", text: "AVATAR (identity):" }, { type: "image_url", image_url: { url: await dataUrl(avatarPath) } },
   ];
