@@ -833,3 +833,47 @@ html[lang^="zh"] .donut-summon .ds-reading { letter-spacing: .06em; }
 .donut-summon .ds-reading i { display: none; }
 @media (max-width: 760px) { .donut-summon .ds-reading { font-size: 20px; } }
 html[lang^="zh"] .donut-summon .ds-reading { font: 400 17px / 1.3 var(--sans); letter-spacing: .06em; }
+
+/* ── Cory 2026-09-30 (step-1 + result notes): no Flip button under the result card (tap the card flips it);
+   profile name larger; no divider lines in the form. ── */
+main.step-3 .workspace .studio .card-under { display: none !important; }
+.profile-row strong { font-size: 18px; font-weight: 500; letter-spacing: -.01em; }
+.profile-row span { font-size: 13px; }
+.profile-row { border-bottom: 0 !important; box-shadow: none !important; }
+.work-panel hr, .work-panel .divider, .work-panel .rule { display: none !important; }
+@media (max-width: 760px) { .form-actions { box-shadow: none !important; } }
+
+/* ── Card iframe gets a bigger box than the card (Cory 2026-09-30: the container was clipping the tilted/flipping card).
+   The card inside kol.html is centred, so a 480×640 box adds 33/32 px of breathing room on every side; the negative
+   offsets keep the card exactly where it was. ── */
+.card-frame iframe { width: 480px; height: 640px; left: calc(-33px * var(--card-zoom, 1)); top: calc(-32px * var(--card-zoom, 1)); }
+
+/* ── Field label icons (Cory 2026-09-30 "缺icon"): Sean's labels are plain text, so the icons are CSS masks keyed by field ── */
+.field label::before { content: ""; width: 16px; height: 16px; flex: 0 0 16px; background: currentColor; opacity: .75;
+  -webkit-mask: var(--ico) center / contain no-repeat; mask: var(--ico) center / contain no-repeat; }
+.field:has(#email) label { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='3'/%3E%3Cpath d='m3 7 9 6 9-6'/%3E%3C/svg%3E"); }
+.field:has(#discord) label { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z'/%3E%3Ccircle cx='9' cy='12' r='.8'/%3E%3Ccircle cx='15' cy='12' r='.8'/%3E%3C/svg%3E"); }
+.field.wallet-field label { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7a2 2 0 0 1 2-2h13v4'/%3E%3Cpath d='M3 7v10a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-7a1 1 0 0 0-1-1H5a2 2 0 0 1-2-2z'/%3E%3Ccircle cx='16.5' cy='14' r='1'/%3E%3C/svg%3E"); }
+.field label:not([style]):not(.has-ico) { }
+.field label { gap: 8px; }
+.field:not(:has(#email)):not(:has(#discord)):not(.wallet-field) label::before { display: none; }
+
+/* ── card-art status under the result card (backend hook state) ── */
+.donut-art-status { position: relative; z-index: 3; margin: 12px auto 0; width: fit-content; display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px;
+  font: 400 12px / 16px var(--sans); letter-spacing: .01em; color: rgb(255 255 255 / .8); background: rgb(255 255 255 / .08); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .18); transition: opacity .6s; }
+.donut-art-status i { width: 7px; height: 7px; border-radius: 50%; background: #c9b6ff; box-shadow: 0 0 0 0 rgb(201 182 255 / .6); animation: ds-ping 1.6s ease-out infinite; }
+.donut-art-status[data-state="done"] i { background: #5ee29a; animation: none; }
+.donut-art-status[data-state="failed"] i { background: rgb(255 255 255 / .4); animation: none; }
+.donut-art-status small { color: rgb(255 255 255 / .5); }
+.donut-art-status.is-out { opacity: 0; }
+main.step-3 .workspace .studio { display: flex; flex-direction: column; align-items: center; }
+.studio, .hero-studio, .workspace .studio, main.step-3 .workspace .studio { overflow: visible !important; }   /* base.css clips the tilted card */
+
+/* ── Analysis card = the real foil shell (Cory 2026-09-30): the flashcard iframe (480×640 box, card 380×550 centred)
+   scaled into --card-w × --card-h; the old mask/gradient placeholder is off in this mode; scan + grid stay on top. ── */
+.donut-summon .ds-card.is-shell { -webkit-mask: none; mask: none; background: transparent; overflow: visible; }
+.donut-summon .ds-card.is-shell::before, .donut-summon .ds-card.is-shell::after { display: none; }
+.donut-summon .ds-card.is-shell > .ds-shell { position: absolute; left: 50%; top: 50%; width: 480px; height: 640px; border: 0; background: transparent; color-scheme: light; pointer-events: none;
+  transform: translate(-50%, -50%) scale(calc(var(--card-w) / 380px)); transform-origin: 50% 50%; }
+.donut-summon .ds-card.is-shell > .grid, .donut-summon .ds-card.is-shell > .scan { z-index: 2; border-radius: 26px; }
+.donut-summon .ds-card.is-shell > .grid { inset: 2% 4%; }

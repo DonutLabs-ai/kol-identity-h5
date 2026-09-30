@@ -304,6 +304,7 @@
       if (chips && Array.prototype.map.call(chips.children, function (s) { return s.textContent; }).join("|") !== c.tags.join("|")) {
         chips.textContent = ""; c.tags.forEach(function (t) { var s = doc.createElement("span"); s.textContent = t; chips.appendChild(s); });
       }
+      if (demo) applyDemoProfile(document);
       var tag = doc.querySelector(".kol-tag"), front = c.say.split(/ — |——| \(|（/)[0] + "  " + c.desc;   /* front: the quote, then the read (Cory: more copy on the face) */
       if (tag && tag.textContent !== front) tag.textContent = front;
       if (tag && !tag.dataset.donutWatch) { tag.dataset.donutWatch = "1"; new MutationObserver(dressBack).observe(tag, { childList: true, characterData: true, subtree: true }); }
@@ -350,7 +351,20 @@
     var zh = (document.documentElement.lang || "").toLowerCase().indexOf("zh") === 0;
     var root = document.createElement("div"); root.className = "donut-summon"; root.setAttribute("aria-hidden", "true");
     root.innerHTML = '<button type="button" class="ds-cancel" aria-label="' + (zh ? "返回问卷" : "Back to questionnaire") + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg></button>' +
-      '<div class="ds-stage"><p class="ds-reading"><i></i>' + (zh ? "D0 正在解读你的交易人格" : "D0 is reading your personality type") + '</p><div class="ds-halo"></div><div class="ds-seal"></div><div class="ds-glow"></div><div class="ds-card"><span class="q">?</span><i class="grid"></i><i class="scan"></i></div><div class="ds-flare"></div></div>';
+      '<div class="ds-stage"><p class="ds-reading"><i></i>' + (zh ? "D0 正在解读你的交易人格" : "D0 is reading your personality type") + '</p><div class="ds-halo"></div><div class="ds-seal"></div><div class="ds-glow"></div><div class="ds-card is-shell"><iframe class="ds-shell" title="" aria-hidden="true"></iframe><i class="grid"></i><i class="scan"></i></div><div class="ds-flare"></div></div>';
+    /* the card is the real foil ticket (flashcard shell) with a "?" in its art window — same shell as the result (Cory 2026-09-30) */
+    var shell = root.querySelector(".ds-shell"), who = demo ? demo.name.toUpperCase() : "YOUR DONUT ID", handle = demo ? demo.handle : "";
+    shell.src = "../flashcard/kol.html?embed=1&bare=1&skin=amethyst&code=Donut2026&user=" + encodeURIComponent(who);
+    shell.addEventListener("load", function () { try {
+      var d = shell.contentDocument, st = d.createElement("style");
+      st.textContent = ".kol-photo img{visibility:hidden}.kol-photo>.kol-q{position:absolute;inset:0;display:grid;place-items:center;background:radial-gradient(90% 70% at 50% 45%,#2a1a52 0%,#140c2c 60%,#0b0718 100%);font:400 150px/1 'Instrument Serif',serif;color:rgb(222 208 255 / .85);text-shadow:0 0 24px rgb(178 150 255 / .8)}" +
+        ".kol-photo>.kol-q::after{content:'';position:absolute;inset:0;background-image:linear-gradient(rgb(255 255 255 / .12) 1px,transparent 1px),linear-gradient(90deg,rgb(255 255 255 / .12) 1px,transparent 1px);background-size:24px 24px}.skin-bar{display:none!important}";
+      d.head.appendChild(st);
+      var ph = d.querySelector(".kol-photo"); if (ph && !ph.querySelector(".kol-q")) { var q = d.createElement("div"); q.className = "kol-q"; q.textContent = "?"; ph.appendChild(q); }
+      var desc = d.querySelector("[data-ticket-description]"); if (desc) { desc.textContent = zh ? "分析中" : "ANALYZING"; desc.dataset.foilText = desc.textContent; }
+      var tag = d.querySelector(".kol-tag"); if (tag) tag.textContent = zh ? "D0 正在读取你的六个答案…" : "D0 is reading your six answers…";
+      if (handle) d.querySelectorAll(".kol-notch span").forEach(function (sp, i) { if (i) sp.textContent = handle; });
+    } catch (e) {} });
     var seal = root.querySelector(".ds-seal"); seal.appendChild(sealSvg(answers.length === 6 ? answers : [-1, -1, -1, -1, -1, -1]));
     root.querySelector(".ds-cancel").addEventListener("click", function () { var b = dlg.querySelector(".analysis-top button"); b ? b.click() : dlg.dispatchEvent(new Event("cancel", { cancelable: true })); });
     dlg.appendChild(root);
@@ -393,6 +407,70 @@
     };
     summonTimers.push(setTimeout(fire, 260));   /* after the result page has laid out the card */
   }
+  /* ── Demo KOL + card-art backend hooks (Cory 2026-09-30: run the tuned pipeline inside the real flow).
+        ?kol=chriszhu swaps the mock X profile (name, handle, avatar) everywhere Sean's app renders it. On the result page
+        the card art is requested from the card-art API (BACKEND.md §3): POST at mount, poll, swap the card image when done.
+        API base: ?api=… or window.DONUT_CARD_API, default http://127.0.0.1:3022 on localhost, none in production. ── */
+  var DEMO_KOLS = { chriszhu: { name: "Chris Zhu", handle: "@chriszhu", avatar: "img/demo/chriszhu.png" } };
+  var demo = DEMO_KOLS[q.get("kol") || ""] || null;
+  var API = q.get("api") || window.DONUT_CARD_API || (/^(127\.0\.0\.1|localhost)$/.test(location.hostname) ? "http://127.0.0.1:3022" : "");
+  function applyDemoProfile(root) {
+    if (!demo) return;
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), n, list = [];
+    while ((n = walker.nextNode())) if (/Sean Moore|@seanmoore/.test(n.nodeValue)) list.push(n);
+    list.forEach(function (t) { t.nodeValue = t.nodeValue.replace(/Sean Moore/g, demo.name).replace(/@seanmoore/g, demo.handle); });
+    root.querySelectorAll('img[src$="preview-portrait.jpg"]').forEach(function (img) { img.src = new URL(demo.avatar, location.href).href; });
+    document.querySelectorAll(".card-frame iframe").forEach(function (f) { try { var d = f.contentDocument; if (!d) return;
+      d.querySelectorAll(".kol-notch span").forEach(function (sp) { if (/@seanmoore/.test(sp.textContent)) sp.textContent = demo.handle; });
+      var t = d.querySelector("[data-ticket-title]"); if (t && /SEAN MOORE|Sean Moore/i.test(t.textContent)) { t.textContent = demo.name.toUpperCase(); t.dataset.foilText = t.textContent; }
+      var ph = d.querySelector(".kol-photo img"); if (ph && !ph.dataset.donutArt && /preview-portrait/.test(ph.src)) { ph.src = new URL(demo.avatar, location.href).href; ph.style.objectFit = "cover"; ph.style.objectPosition = "center top"; }
+    } catch (e) {} });
+  }
+  var artJob = null, artPoll = 0;
+  function requestCardArt(main) {
+    if (!API || artJob) return;
+    var title = main.querySelector(".result-panel h2"); if (!title) return;
+    var type = TYPE_KEYS[title.textContent.trim().toLowerCase()]; if (!type) return;
+    var avatar = demo ? demo.avatar : "preview-portrait.jpg";
+    artJob = { type: type, status: "requesting", t0: Date.now() };
+    setArtStatus(main, "making");
+    fetch(API + "/v1/identity/card-art", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ avatar_url: new URL(avatar, location.href).pathname, handle: demo ? demo.handle : "@seanmoore", type: type }) })
+      .then(function (r) { return r.json(); }).then(function (j) {
+        artJob.id = j.job_id; artJob.status = j.status;
+        if (j.status === "done") return showArt(main, j.image_url, /* min dwell so the state is visible */ 2600);
+        artPoll = setInterval(function () {
+          fetch(API + "/v1/identity/card-art/" + artJob.id).then(function (r) { return r.json(); }).then(function (s) {
+            if (s.status === "done") { clearInterval(artPoll); showArt(main, s.image_url, 0); }
+            else if (s.status === "failed") { clearInterval(artPoll); setArtStatus(main, "failed"); }
+            else setArtStatus(main, "making", s.stage);
+          }).catch(function () {});
+        }, 3000);
+      }).catch(function () { setArtStatus(main, "failed"); });
+  }
+  function showArt(main, url, minDwell) {
+    var wait = Math.max(0, minDwell - (Date.now() - artJob.t0));
+    setTimeout(function () {
+      var abs = /^https?:/.test(url) ? url : API + url;
+      var img = new Image(); img.onload = function () {
+        document.querySelectorAll("main.step-3 .card-frame iframe").forEach(function (f) { try { var ph = f.contentDocument.querySelector(".kol-photo img"); if (!ph) return;
+          ph.style.transition = "opacity .5s"; ph.style.opacity = "0";
+          setTimeout(function () { ph.src = abs; ph.dataset.donutArt = "1"; ph.style.objectFit = "cover"; ph.style.objectPosition = "center 12%"; ph.style.opacity = "1"; }, 500);
+        } catch (e) {} });
+        setArtStatus(main, "done"); artJob.status = "done";
+        if (window.DonutBurst && !reduce.matches) { var c = main.querySelector(".studio .card-frame"), r = c && c.getBoundingClientRect(); if (r) DonutBurst.fire(r.left + r.width / 2, r.top + r.height / 2, 1.5); }
+      }; img.src = abs;
+    }, wait);
+  }
+  function setArtStatus(main, state, stage) {
+    var zh = (document.documentElement.lang || "").toLowerCase().indexOf("zh") === 0;
+    var el = main.querySelector(".donut-art-status");
+    if (!el) { el = document.createElement("div"); el.className = "donut-art-status"; var st = main.querySelector(".workspace .studio"); if (st) st.appendChild(el); }
+    var txt = { making: zh ? "D0 正在绘制你的卡面…" : "D0 is painting your card art…", done: zh ? "卡面已生成" : "Card art ready", failed: zh ? "沿用默认卡面" : "Using the default art" }[state];
+    el.innerHTML = '<i></i>' + txt + (stage ? ' <small>' + stage + '</small>' : "");
+    el.dataset.state = state;
+    if (state !== "making") setTimeout(function () { el.classList.add("is-out"); }, 2200);
+  }
+
   /* ── route scan: Sean's <main class="app step-N"> carries the step ── */
   function currentStep() { var m = document.querySelector("main.app"); if (!m) return -1; var mm = /step-(\d)/.exec(m.className); return mm ? Number(mm[1]) : -1; }
   function scan() {
@@ -400,7 +478,7 @@
     var step = currentStep();
     if (document.documentElement.getAttribute("data-step") !== String(step)) document.documentElement.setAttribute("data-step", String(step));
     if (step === 0) { stage(main, true); mountPanel(); mountShine(main.querySelector(".hero-studio .card-frame")); applyTune(); }
-    else if (step === 3) { stage(main, false); mountLocked(main); dressBack(); if (summoned) { summoned = false; revealBurst(main); } }
+    else if (step === 3) { stage(main, false); mountLocked(main); dressBack(); requestCardArt(main); if (summoned) { summoned = false; revealBurst(main); } }
     else clearStage(main);
     if (step === 2) captureAnswers(main);
     var dlg = document.querySelector("dialog.d0-analysis");
@@ -410,7 +488,7 @@
     if (panel && panel.style.display !== show) panel.style.display = show;
     // the flashcard iframe inside the studio: make sure the card-face vars land once it has loaded
     document.querySelectorAll(".card-frame iframe").forEach(function (f) { if (!f.dataset.donutHooked) { f.dataset.donutHooked = "1"; f.addEventListener("load", function () { applyFlash(); dressBack(); grainCards(); }); } });
-    grainCards();
+    grainCards(); applyDemoProfile(main); document.querySelectorAll("dialog[open]").forEach(applyDemoProfile);
     stepPulse(step);
   }
 
