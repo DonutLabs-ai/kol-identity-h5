@@ -354,7 +354,7 @@
     var zh = (document.documentElement.lang || "").toLowerCase().indexOf("zh") === 0;
     var root = document.createElement("div"); root.className = "donut-summon"; root.setAttribute("aria-hidden", "true");
     root.innerHTML = '<button type="button" class="ds-cancel" aria-label="' + (zh ? "返回问卷" : "Back to questionnaire") + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg></button>' +
-      '<div class="ds-stage"><p class="ds-reading"><i></i>' + (zh ? "D0 正在解读你的交易人格" : "D0 is reading your personality type") + '</p><div class="ds-halo"></div><div class="ds-seal"></div><div class="ds-glow"></div><div class="ds-card is-shell"><iframe class="ds-shell" title="" aria-hidden="true"></iframe><i class="grid"></i><i class="scan"></i></div><div class="ds-flare"></div></div>';
+      '<div class="ds-stage"><p class="ds-reading"><i></i>' + (zh ? "D0 正在解读你的交易人格" : "D0 is reading your personality type") + '</p><div class="ds-pct" hidden><b>0</b>%</div><div class="ds-halo"></div><div class="ds-seal"></div><div class="ds-glow"></div><div class="ds-card is-shell"><iframe class="ds-shell" title="" aria-hidden="true"></iframe><i class="grid"></i><i class="scan"></i></div><div class="ds-flare"></div></div>';
     /* the card is the real foil ticket (flashcard shell) with a "?" in its art window — same shell as the result (Cory 2026-09-30) */
     var shell = root.querySelector(".ds-shell"), who = demo ? demo.name.toUpperCase() : "YOUR DONUT ID", handle = demo ? demo.handle : "";
     shell.src = "../flashcard/kol.html?embed=1&bare=1&skin=amethyst&code=Donut2026&user=" + encodeURIComponent(who);   /* "?" in the window while D0 reads (Cory) */
@@ -456,7 +456,7 @@
     if (hold || !artJob) return;
     var zh = (document.documentElement.lang || "").toLowerCase().indexOf("zh") === 0;
     hold = document.createElement("div"); hold.className = "donut-hold";
-    hold.innerHTML = '<div class="hold-stage"><p class="ds-reading">' + (zh ? "D0 正在绘制你的卡面" : "D0 is painting your card") + '</p><div class="hold-card"><iframe class="ds-shell" title="" aria-hidden="true"></iframe></div><div class="hold-pct"><b>0</b>%</div><p class="hold-sub">' + (zh ? "把你的六个答案变成一张卡，通常需要 3–4 分钟" : "Turning your six answers into a card usually takes 3–4 minutes") + '</p></div>';
+    hold.innerHTML = '<div class="hold-stage"><p class="ds-reading">' + (zh ? "D0 正在解读你的交易人格" : "D0 is reading your personality type") + '</p><div class="hold-card"><iframe class="ds-shell" title="" aria-hidden="true"></iframe></div><div class="hold-pct"><b>0</b>%</div><p class="hold-sub">' + (zh ? "把你的六个答案变成一张卡，通常需要 3–4 分钟" : "Turning your six answers into a card usually takes 3–4 minutes") + '</p></div>';
     var shell = hold.querySelector(".ds-shell"), who = demo ? demo.name.toUpperCase() : "YOUR DONUT ID";
     shell.src = "../flashcard/kol.html?embed=1&bare=1&skin=amethyst&code=Donut2026&user=" + encodeURIComponent(who);
     shell.addEventListener("load", function () { try { var d = shell.contentDocument, st = d.createElement("style");

@@ -113,7 +113,7 @@ The front end polls every 3 s for up to 4 min, then keeps the fallback.
 | Latency | text-only prompt: 124–157 s (median about 137 s). With the three reference images (v8, current): 156–217 s (median about 198 s) |
 | Cost | $0.238–0.246 per image |
 | Output | PNG 1024×1024 (the prompt asks for 3:4; the model returns a square, which matches the square art window) |
-| Cheaper model for testing | `openai/gpt-5-image-mini`. Also available: `openai/gpt-5-image`, `google/gemini-3-pro-image`, `google/gemini-2.5-flash-image` |
+| Cheaper stage-1 model | `openai/gpt-5-image-mini`: measured 52 s / $0.05 (vs ~150 s / $0.25) but the output is a sketchy, white-background draft that ignores the references — **not acceptable for stage 1**; keep it only as a degraded fallback. Speed must come from pre-generation for known KOLs. |
 
 Because it takes about 2–2.5 minutes, the art usually arrives **after** the result page opens. Plan the swap-in (§8),
 and consider a "Your art is being made…" state on the share button.
