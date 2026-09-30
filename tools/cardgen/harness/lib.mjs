@@ -70,10 +70,16 @@ async function openrouter(key, body, timeoutMs) {
 }
 
 /* One card image. refs = look-only tiles (full-size paths), brand = the Donut ribbon image. Returns { png (Buffer), cost, secs }. */
-export async function generateImage({ key, model, prompt, avatarPath, refs = [], brandPath, budget }) {
+export const REF_WORDING = {
+  /* "look" = the cautious wording used so far: take grain/light/chrome, leave subject and colours alone */
+  look: (k) => `LOOK REFERENCE ${k + 1} — copy only its film grain, light, chrome and glint treatment (not its colours). Do NOT copy its subject, objects, composition, pose or any text:`,
+  /* "style" = a real style transfer: the reference defines the whole rendering; only identity comes from the avatar */
+  style: (k) => `STYLE REFERENCE ${k + 1} — render the final image EXACTLY in this visual style: the same medium and rendering technique, the same light, surface texture, grain, colour treatment and finish, as if the same artist made both. Take the STYLE from this image and only the person's identity from the avatar:`,
+};
+export async function generateImage({ key, model, prompt, avatarPath, refs = [], brandPath, budget, refMode = "look" }) {
   budget.check(0.30);
   const content = [{ type: "text", text: "The profile picture to edit:" }, { type: "image_url", image_url: { url: await dataUrl(avatarPath) } }];
-  for (let k = 0; k < refs.length; k++) content.push({ type: "text", text: `LOOK REFERENCE ${k + 1} — copy only its film grain, light, chrome and glint treatment (not its colours). Do NOT copy its subject, objects, composition, pose or any text:` }, { type: "image_url", image_url: { url: await dataUrl(refs[k]) } });
+  for (let k = 0; k < refs.length; k++) content.push({ type: "text", text: (REF_WORDING[refMode] || REF_WORDING.look)(k) }, { type: "image_url", image_url: { url: await dataUrl(refs[k]) } });
   if (brandPath) content.push({ type: "text", text: "DONUT BRAND BACKGROUND REFERENCE — use exactly this palette and these soft flowing light ribbons for the background and the colour of the light. Its colours win over every other reference:" }, { type: "image_url", image_url: { url: await dataUrl(brandPath) } });
   content.push({ type: "text", text: prompt });
   const t0 = Date.now();
