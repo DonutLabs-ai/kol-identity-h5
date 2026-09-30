@@ -23,12 +23,15 @@ const content = [];
 refs.forEach(() => {}); for (let k = 0; k < refs.length; k++) content.push({ type: "text", text: `STYLE REFERENCE ${k + 1}:` }, { type: "image_url", image_url: { url: await dataUrl(refs[k]) } });
 content.push({ type: "text", text: "SOURCE IMAGE — the card to restyle:" }, { type: "image_url", image_url: { url: await dataUrl(src) } });
 if (avatar) content.push({ type: "text", text: "IDENTITY — the person in the source; their face must stay recognisable as this:" }, { type: "image_url", image_url: { url: await dataUrl(avatar) } });
+/* --brand: pin the palette with the Donut ribbon image (Gemini otherwise drifts to the references' cobalt) */
+if (args.brand) content.push({ type: "text", text: "COLOUR REFERENCE — use this palette for the background and the light: deep violet field with amber, cream and periwinkle ribbons. Not cobalt, not sky blue." }, { type: "image_url", image_url: { url: await dataUrl(join(CARDGEN, "refs/donut-ribbons.webp")) } });
 const strict = String(args.strength || "strict") === "strict";
 content.push({ type: "text", text:
   `Re-render the SOURCE IMAGE entirely in the visual style of the STYLE REFERENCES: the same medium and rendering technique, film-still texture and grain, halation, big star-filter cross flares on the brightest points, prismatic light trails, high-contrast saturated electric violet / amber / cream colour, and the same way of drawing a figure (a silhouette outlined in light, body shimmering with stars and sparkles).
 KEEP from the SOURCE, exactly: the composition and framing, the pose and gesture, the props and what the hands are doing, the clothing shapes, and the person's face and identity (features, glasses, hairline, expression) — recognisable at first glance.
 CRITICAL: re-render the PROPS in the same material language as the rest of the image (light, sparkle, chrome reflections, glare) — never a glossy modern 3D object dropped onto a film-still figure. Everything in the frame must look like it was made by one artist in one medium.
 ${strict ? "Do not add, remove or move anything. Do not change the background layout, only its rendering." : "You may simplify the background."}
+${args["face-clean"] ? "FACE: keep the face, glasses and hair clean, legible and softly lit — NO glitter, stars or sparkles on the face; sparkles live on the clothing, hair edges, hands, props and background only." : ""}
 No text, letters or logos. Output one square image.` });
 const t0 = Date.now();
 const res = await fetch("https://openrouter.ai/api/v1/chat/completions", { method: "POST", headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" }, body: JSON.stringify({ model: MODEL, modalities: ["image", "text"], messages: [{ role: "user", content }] }) });
