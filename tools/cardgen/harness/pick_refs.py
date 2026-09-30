@@ -50,6 +50,29 @@ for t in tiles: t["category"] = cat_of.get(t["tile"], "uncategorised")
 
 ranked = sorted(((score(t), t) for t in tiles), key=lambda x: -x[0][0])
 
+# --for-type <type> [--pool glare-streak] [--n 3]: best-matching tiles from ONE category for this card, with a stated basis.
+# Basis: (1) the tile shows a human figure/hands (cards are portraits), (2) it contains the type's gear or a close material
+# analogue, (3) it has the glare/streak/film traits. Deterministic, from the VL annotations — no API call.
+GEAR = {"diamond_hands": ["diamond", "gem", "crystal", "faceted", "sparkle", "glitter"], "hodler": ["coin", "stack", "gold", "disc"],
+        "degen": ["orb", "sphere", "glow", "stone"], "scalper": ["glass", "block", "candle", "neon"], "sniper": ["rifle", "chrome", "silver", "blade", "sword"],
+        "grid_farmer": ["grid", "lattice", "node", "chip", "circuit"], "swing_hunter": ["wave", "ribbon", "curve"], "momentum_chaser": ["streak", "speed", "trail", "motion", "blur"],
+        "arbitrageur": ["lens", "prism", "glass", "refraction"], "narrative_trader": ["book", "thread", "gold", "page"], "risk_monk": ["shield", "glass", "curved", "chrome", "armor", "armour"],
+        "bottom_fisher": ["prism", "lens", "observe", "looking back"], "unresolved": ["token", "faceted", "glitter"]}
+if "--for-type" in args:
+    typ = opt("--for-type", "risk_monk"); pool = opt("--pool", "glare-streak"); n = int(opt("--n", 3))
+    def match(t):
+        sc, why = score(t)
+        if has(t.get("subject"), "person", "figure", "man", "woman", "hand", "silhouette", "portrait", "character", "robot", "knight", "driver"): sc += 3; why.append("HUMAN")
+        hits = [w for w in GEAR.get(typ, []) if has({"s": t.get("subject"), "m": t.get("materials")}, w)]
+        if hits: sc += 2 + min(len(hits), 2); why.append("gear:" + "/".join(hits[:3]))
+        return sc, why
+    cand = sorted(((match(t), t) for t in tiles if t["category"] == pool), key=lambda x: -x[0][0])
+    print(f"best {n} of {len(cand)} '{pool}' tiles for {typ}:")
+    for (sc, why), t in cand[:max(n, 6)]: print(f"  {sc:>2}  {t['tile']:<30} {','.join(why):<52} {t.get('figma_caption','')[:30]}")
+    prefix = os.path.basename(os.path.normpath(DIR)); out = os.path.join(DIR, opt("--out", f"refs-{typ}.txt"))
+    with open(out, "w") as fh: fh.write("\n".join(f"{prefix}/{t['tile']}" for _, t in cand[:n]) + "\n")
+    print(f"wrote {out}"); sys.exit(0)
+
 if "--plan" in args:
     # roles: what each of Cory's categories is FOR in a card generation
     PLAN = [("glare-streak", 3, "texture: glare, cross-flares, psychedelic trails, film"),
