@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Moodboard library</title>
+<style>
+  :root { --bg: #0f0a22; --panel: #171130; --line: rgb(255 255 255 / .1); --ink: #f1ecff; --muted: rgb(241 236 255 / .6); --violet: #7a3dff; --gold: #e9c77b; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 Geist, "Inter", system-ui, sans-serif; }
+  header { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: rgb(15 10 34 / .92); backdrop-filter: blur(12px); z-index: 5; }
+  h1 { margin: 0 12px 0 0; font: 400 20px/1 "Instrument Serif", Georgia, serif; }
+  select, input, button { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+  button.primary { background: var(--violet); border-color: transparent; }
+  .meta { color: var(--muted); font-size: 12px; }
+  main { padding: 16px 20px 80px; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; position: relative; cursor: pointer; }
+  .tile.on { outline: 2px solid var(--gold); }
+  .tile img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; display: block; background: #000; }
+  .tile .body { padding: 8px 10px 10px; font-size: 11.5px; color: var(--muted); }
+  .tile .body b { display: block; color: var(--ink); font-weight: 500; font-size: 12px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .tags span { font-size: 10px; padding: 2px 6px; border-radius: 999px; background: rgb(255 255 255 / .08); }
+  .tags span.hot { background: rgb(122 61 255 / .5); }
+  .tick { position: absolute; top: 8px; left: 8px; width: 22px; height: 22px; border-radius: 50%; background: rgb(0 0 0 / .55); border: 1px solid rgb(255 255 255 / .5); display: grid; place-items: center; font-size: 13px; }
+  .tile.on .tick { background: var(--gold); color: #321; border-color: transparent; }
+  .score { position: absolute; top: 8px; right: 8px; font-size: 11px; padding: 2px 7px; border-radius: 999px; background: rgb(0 0 0 / .55); }
+  dialog { border: 0; background: var(--panel); color: var(--ink); padding: 0; max-width: min(1100px, 94vw); border-radius: 14px; } dialog::backdrop { background: rgb(0 0 0 / .85); }
+  .detail { display: grid; grid-template-columns: minmax(280px, 45%) 1fr; }
+  .detail img { width: 100%; height: 100%; object-fit: contain; background: #000; }
+  .detail .txt { padding: 16px 18px; font-size: 12.5px; max-height: 88vh; overflow: auto; }
+  .detail .txt h3 { margin: 0 0 8px; font: 400 18px/1.2 "Instrument Serif", Georgia, serif; }
+  .detail dt { color: var(--gold); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; margin-top: 10px; }
+  .detail dd { margin: 2px 0 0; }
+  .bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px 20px; background: rgb(23 17 48 / .95); border-top: 1px solid var(--line); display: flex; gap: 12px; align-items: center; font-size: 12px; }
+  .bar code { flex: 1; overflow: auto; white-space: nowrap; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Moodboard library</h1>
+  <select id="cat"><option value="">all categories (Cory's labels)</option></select>
+  <select id="group"><option value="">all Figma groups</option></select>
+  <select id="medium"><option value="">any medium</option><option value="airbrush">airbrush / gouache</option><option value="film">film photo / slide</option><option value="3d">3D / CGI</option><option value="print">print / halftone</option></select>
+  <select id="subject"><option value="">any subject</option><option value="human">human / hands</option><option value="object">object / prop</option><option value="abstract">abstract</option><option value="text">typography</option></select>
+  <input id="q" placeholder="search captions + descriptions" style="min-width: 240px">
+  <label class="meta"><input type="checkbox" id="onlyon"> selected only</label>
+  <span class="meta" id="count"></span>
+  <a class="meta" href="dashboard.html">→ harness dashboard</a>
+</header>
+<main id="main"></main>
+<div class="bar"><b id="nsel">0 selected</b><code id="cmd">--refs …</code><button id="copy" class="primary">Copy --refs</button><button id="clear">Clear</button></div>
+<dialog id="dlg"></dialog>
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const base = new URL("../style-refs/figma/", location.href);
+const KEY = "donut-library-selected";
+let sel = new Set(JSON.parse(localStorage.getItem(KEY) || "[]"));
+let tiles = [];
+const has = (v, ...ws) => { const s = JSON.stringify(v ?? "").toLowerCase(); return ws.some((w) => s.includes(w)); };
+function score(t) {
+  let sc = 0; const why = [];
+  if (has(t.medium, "airbrush", "gouache")) { sc += 3; why.push("airbrush"); }
+  if (has(t.subject, "person", "figure", "man", "woman", "hand", "silhouette", "portrait", "character", "robot")) { sc += 2; why.push("human/hands"); }
+  const col = JSON.stringify(t.colour ?? {}).toLowerCase();
+  if (["orange", "amber", "gold"].some((w) => col.includes(w)) && ["violet", "purple", "indigo", "magenta"].some((w) => col.includes(w))) { sc += 2; why.push("amber+violet"); }
+  if (has(t.lighting, "rim", "glow", "halation", "bloom")) { sc += 1; why.push("rim/glow"); }
+  if (t.film_artifacts?.length) { sc += 1; why.push("film"); }
+  if (has(t.materials, "chrome", "mirror")) { sc += 1; why.push("chrome"); }
+  if (has(t.motion, "streak", "trail", "ribbon", "long-exposure")) { sc += 1; why.push("trails"); }
+  if (has(t.subject, "logo", "lettering", "typograph", "text", "wordmark", "letter")) { sc -= 3; why.push("TEXT"); }
+  if (has(t.medium, "3d render", "cgi", "digital render")) { sc -= 1; why.push("3d"); }
+  return { sc, why };
+}
+function mediumClass(t) { return has(t.medium, "airbrush", "gouache") ? "airbrush" : has(t.medium, "film", "slide", "photo") ? "film" : has(t.medium, "3d", "cgi", "render") ? "3d" : has(t.medium, "print", "halftone", "offset", "riso") ? "print" : ""; }
+function subjectClass(t) { return has(t.subject, "logo", "lettering", "typograph", "wordmark", "letter") ? "text" : has(t.subject, "person", "figure", "man", "woman", "hand", "silhouette", "portrait", "character", "robot") ? "human" : has(t.subject, "abstract", "gradient", "light", "streak") ? "abstract" : "object"; }
+async function load() {
+  const [manifest, all] = await Promise.all([fetch(new URL("manifest.json", base)).then((r) => r.json()), fetch(new URL("reverse/_all.json", base)).then((r) => r.json()).catch(() => [])]);
+  const byTile = Object.fromEntries(all.map((t) => [t.tile, t]));
+  tiles = manifest.images.map((im) => { const stem = im.file.replace(/\.[^.]+$/, ""); const t = byTile[stem] || {}; return { ...t, stem, file: im.file, caption: im.name, group: im.group_slug, cat: im.category || "uncategorised", catZh: im.category_zh || "", ...score(t) }; }).sort((a, b) => b.sc - a.sc);
+  const cats = [...new Set(tiles.map((t) => t.cat))].sort();
+  $("#cat").innerHTML += cats.map((c) => `<option value="${c}">${c} (${tiles.filter((t) => t.cat === c).length})</option>`).join("");
+  const groups = [...new Set(tiles.map((t) => t.group))].sort();
+  $("#group").innerHTML += groups.map((g) => `<option>${g}</option>`).join("");
+  render();
+}
+function render() {
+  const g = $("#group").value, cc = $("#cat").value, m = $("#medium").value, sj = $("#subject").value, q = $("#q").value.toLowerCase(), only = $("#onlyon").checked;
+  const list = tiles.filter((t) => (!cc || t.cat === cc) && (!g || t.group === g) && (!m || mediumClass(t) === m) && (!sj || subjectClass(t) === sj) && (!q || (t.caption + " " + JSON.stringify(t)).toLowerCase().includes(q)) && (!only || sel.has(t.stem)));
+  $("#count").textContent = `${list.length} / ${tiles.length} tiles`;
+  $("#main").innerHTML = list.map((t) => `<div class="tile${sel.has(t.stem) ? " on" : ""}" data-stem="${t.stem}"><span class="tick">${sel.has(t.stem) ? "✓" : ""}</span><span class="score">${t.sc}</span><img loading="lazy" src="${new URL(t.file, base)}" alt=""><div class="body"><b title="${esc(t.caption)}">${esc(t.caption)}</b><span class="tags"><span class="hot">${esc(t.cat)}</span></span>${esc((t.medium || "").slice(0, 70))}<div class="tags">${t.why.map((w) => `<span class="${w === "airbrush" || w === "human/hands" ? "hot" : ""}">${w}</span>`).join("")}</div></div></div>`).join("");
+  $("#main").querySelectorAll(".tile").forEach((el) => { el.querySelector(".tick").addEventListener("click", (e) => { e.stopPropagation(); toggle(el.dataset.stem); }); el.addEventListener("click", () => detail(el.dataset.stem)); });
+  bar();
+}
+function toggle(stem) { sel.has(stem) ? sel.delete(stem) : sel.add(stem); localStorage.setItem(KEY, JSON.stringify([...sel])); render(); }
+function bar() { const refs = [...sel].map((s) => "figma/" + s).join(","); $("#nsel").textContent = `${sel.size} selected`; $("#cmd").textContent = sel.size ? `--refs ${refs}` : "--refs … (tick tiles)"; }
+function detail(stem) {
+  const t = tiles.find((x) => x.stem === stem); if (!t) return;
+  const rows = ["subject", "medium", "era_cues", "lighting", "materials", "colour", "film_artifacts", "composition", "motion", "prompt_line"].map((k) => t[k] ? `<dt>${k.replace("_", " ")}</dt><dd>${esc(typeof t[k] === "string" ? t[k] : JSON.stringify(t[k]))}</dd>` : "").join("");
+  $("#dlg").innerHTML = `<div class="detail"><img src="${new URL(t.file, base)}" alt=""><div class="txt"><h3>${esc(t.caption)}</h3><div class="meta">${esc(t.catZh || t.cat)} · ${t.group} · score ${t.sc} · ${t.why.join(", ")}</div><dl>${rows}</dl><p><button class="primary" id="dsel">${sel.has(stem) ? "Deselect" : "Select as reference"}</button> <button id="dclose">Close</button></p></div></div>`;
+  $("#dsel").addEventListener("click", () => { toggle(stem); $("#dlg").close(); });
+  $("#dclose").addEventListener("click", () => $("#dlg").close());
+  $("#dlg").showModal();
+}
+function esc(s) { return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+["cat", "group", "medium", "subject", "q", "onlyon"].forEach((id) => $("#" + id).addEventListener("input", render));
+$("#copy").addEventListener("click", () => navigator.clipboard.writeText($("#cmd").textContent));
+$("#clear").addEventListener("click", () => { sel.clear(); localStorage.setItem(KEY, "[]"); render(); });
+$("#dlg").addEventListener("click", (e) => { if (e.target === $("#dlg")) $("#dlg").close(); });
+load();
+</script>
+</body>
+</html>
