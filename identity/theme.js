@@ -304,7 +304,7 @@
       if (chips && Array.prototype.map.call(chips.children, function (s) { return s.textContent; }).join("|") !== c.tags.join("|")) {
         chips.textContent = ""; c.tags.forEach(function (t) { var s = doc.createElement("span"); s.textContent = t; chips.appendChild(s); });
       }
-      var tag = doc.querySelector(".kol-tag"), front = c.say.split(/ — |——| \(|（/)[0];   /* front: the quote alone, no attribution */
+      var tag = doc.querySelector(".kol-tag"), front = c.say.split(/ — |——| \(|（/)[0] + "  " + c.desc;   /* front: the quote, then the read (Cory: more copy on the face) */
       if (tag && tag.textContent !== front) tag.textContent = front;
       if (tag && !tag.dataset.donutWatch) { tag.dataset.donutWatch = "1"; new MutationObserver(dressBack).observe(tag, { childList: true, characterData: true, subtree: true }); }
       var panel = doc.querySelector(".kol-back .kb-panel");
