@@ -45,7 +45,7 @@ try { execFileSync("python3", [join(HERE, "finish.py"), join(out, "restyled.png"
 
 if (args.judge && avatar && type) {
   const mood = await judgeRefs(refs);
-  let dna = ""; { const f = join(STYLE_DIR, "figma/moodboard-dna.md"); if (existsSync(f)) { const md = await readFile(f, "utf8"); dna = ["## Shared DNA", "## Never", "## Judge checklist"].map((h) => { const i = md.indexOf(h); if (i < 0) return ""; const j = md.indexOf("\n## ", i + 3); return md.slice(i, j < 0 ? undefined : j).trim(); }).filter(Boolean).join("\n\n"); } }
+  let dna = ""; { const f = join(STYLE_DIR, (args.dna ? String(args.dna) : "figma") + "/moodboard-dna.md");   /* --dna glare → judge against the glare-set DNA */ if (existsSync(f)) { const md = await readFile(f, "utf8"); dna = ["## Shared DNA", "## Never", "## Judge checklist"].map((h) => { const i = md.indexOf(h); if (i < 0) return ""; const j = md.indexOf("\n## ", i + 3); return md.slice(i, j < 0 ? undefined : j).trim(); }).filter(Boolean).join("\n\n"); } }
   const img = existsSync(join(out, "restyled.fin.png")) ? await readFile(join(out, "restyled.fin.png")) : png;
   const j = await judgeImage({ key, model: "anthropic/claude-sonnet-5.5", imagePng: img, avatarPath: avatar, moodRefs: mood, styleBlock: p.style, typeSection: p.types[type] || "", budget, dna });
   await writeFile(join(out, "judge.json"), JSON.stringify(j, null, 1));
