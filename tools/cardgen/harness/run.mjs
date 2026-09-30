@@ -4,7 +4,7 @@
 
    NODE_USE_ENV_PROXY=1 node tools/cardgen/harness/run.mjs [--rounds 3] [--cap 20] [--subjects cz_binance:risk_monk,chriszhu:diamond_hands]
        [--model openai/gpt-5.4-image-2] [--judge anthropic/claude-sonnet-5.5] [--refs default|all|a,b,c] [--no-brand]
-       [--notes "human art-director notes for the judge"] [--name my-run]
+       [--notes "human art-director notes for the judge"] [--name my-run] [--parallel 3]
 
    Subjects default to the 7 test avatars. Each round for a subject costs ~$0.25 (image) + ~$0.03 (judge). */
 import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
@@ -55,7 +55,8 @@ async function subjectLoop({ who, type }) {
     await save();
   }
 }
-await Promise.all(subjects.map(subjectLoop));
+const POOL = Number(args.parallel || 3);   /* the image model slows down sharply past ~3 concurrent jobs */
+{ const queue = subjects.slice(); await Promise.all(Array.from({ length: Math.min(POOL, queue.length) }, async () => { while (queue.length) await subjectLoop(queue.shift()); })); }
 
 /* consensus: merge the best-scoring style blocks into one recommendation for prompts.md */
 try {

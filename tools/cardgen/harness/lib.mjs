@@ -78,7 +78,7 @@ export async function generateImage({ key, model, prompt, avatarPath, refs = [],
   if (brandPath) content.push({ type: "text", text: "DONUT BRAND BACKGROUND REFERENCE — use exactly this palette and these soft flowing light ribbons for the background and the colour of the light. Its colours win over every other reference:" }, { type: "image_url", image_url: { url: await dataUrl(brandPath) } });
   content.push({ type: "text", text: prompt });
   const t0 = Date.now();
-  const json = await openrouter(key, { model, modalities: ["image", "text"], messages: [{ role: "user", content }] }, 300000);
+  const json = await openrouter(key, { model, modalities: ["image", "text"], messages: [{ role: "user", content }] }, 540000);   /* ~200 s solo; parallel runs can double that */
   const url = json.choices?.[0]?.message?.images?.[0]?.image_url?.url;
   if (!url) throw new Error("no image: " + JSON.stringify(json.choices?.[0]?.message).slice(0, 300));
   const m = /^data:image\/\w+;base64,(.+)$/.exec(url);
@@ -90,15 +90,21 @@ export const JUDGE_SCHEMA = `{"scores":{"likeness":0-10,"type_readable":0-10,"fi
 export async function judgeImage({ key, model, imagePng, avatarPath, moodRefs, styleBlock, typeSection, budget, humanNotes = "" }) {
   budget.check(0.10);
   const content = [
-    { type: "text", text: `You are the art director for Donut's KOL trading cards. Judge the GENERATED card image against (1) the KOL's avatar it must stay recognisable as, and (2) the MOODBOARD tiles that define the target look: 1970s–80s album-cover retro-futurism shot on film — liquid chrome that reflects colour, a few big star flares, slow-shutter light trails with prismatic fringes, heavy film grain and halation, lifted blacks, iconic minimal poster composition. Target background: Donut deep violet with flowing amber/cream/periwinkle light ribbons.\n\nScore 0–10 on each axis, be harsh and specific (a 10 is indistinguishable from the moodboard in feel). Then rewrite ONLY the style block so the next generation moves closer: keep it under 260 words, prescriptive, in the same format (ART DIRECTION bullets + PALETTE paragraph). Never touch identity or type-action rules — they live elsewhere.${humanNotes ? "\n\nHUMAN ART DIRECTOR NOTES (highest priority): " + humanNotes : ""}\n\nReply with ONLY minified JSON matching: ${JUDGE_SCHEMA}` },
+    { type: "text", text: `You are the art director for Donut's KOL trading cards. Judge the GENERATED card image against (1) the KOL's avatar it must stay recognisable as, and (2) the MOODBOARD tiles that define the target look: 1970s–80s album-cover retro-futurism shot on film — liquid chrome that reflects colour, a few big star flares, slow-shutter light trails with prismatic fringes, heavy film grain and halation, lifted blacks, iconic minimal poster composition. Target background: Donut deep violet with flowing amber/cream/periwinkle light ribbons.\n\nNOTE: the product adds film GRAIN in CSS on top of this image later, so do not penalise missing grain — judge film_feel on halation, lifted blacks, softness, fringing and print-like tonality instead.\n\nScore 0–10 on each axis, be harsh and specific (a 10 is indistinguishable from the moodboard in feel). Then rewrite ONLY the style block so the next generation moves closer: keep it under 260 words, prescriptive, in the same format (ART DIRECTION bullets + PALETTE paragraph). Never touch identity or type-action rules — they live elsewhere.${humanNotes ? "\n\nHUMAN ART DIRECTOR NOTES (highest priority): " + humanNotes : ""}\n\nReply with ONLY minified JSON matching: ${JUDGE_SCHEMA}` },
     { type: "text", text: "GENERATED CARD:" }, { type: "image_url", image_url: { url: "data:image/png;base64," + imagePng.toString("base64") } },
     { type: "text", text: "AVATAR (identity):" }, { type: "image_url", image_url: { url: await dataUrl(avatarPath) } },
   ];
   for (const r of moodRefs) content.push({ type: "text", text: "MOODBOARD:" }, { type: "image_url", image_url: { url: await dataUrl(r) } });
   content.push({ type: "text", text: "CURRENT STYLE BLOCK:\n" + styleBlock + "\n\nTYPE SECTION (fixed, for context):\n" + typeSection });
-  const json = await openrouter(key, { model, messages: [{ role: "user", content }], temperature: 0.3 }, 120000);
-  const cost = budget.add(json.usage);
-  const text = json.choices?.[0]?.message?.content || "";
-  const m = /\{[\s\S]*\}/.exec(text); if (!m) throw new Error("judge returned no JSON: " + text.slice(0, 200));
-  return { ...JSON.parse(m[0]), cost };
+  let cost = 0, last = "";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const msgs = [{ role: "user", content }];
+    if (attempt) msgs.push({ role: "assistant", content: last || "(empty)" }, { role: "user", content: "That was not valid JSON. Reply again with ONLY the minified JSON object, no prose, no code fences." });
+    const json = await openrouter(key, { model, messages: msgs, temperature: 0.3, max_tokens: 1800 }, 180000);
+    cost += budget.add(json.usage);
+    last = json.choices?.[0]?.message?.content || "";
+    const m = /\{[\s\S]*\}/.exec(last.replace(/```json|```/g, ""));
+    if (m) { try { return { ...JSON.parse(m[0]), cost }; } catch (e) { if (attempt) throw new Error("judge JSON unparsable: " + e.message); } }
+  }
+  throw new Error("judge returned no JSON: " + last.slice(0, 200));
 }
