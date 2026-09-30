@@ -4,7 +4,7 @@
 
    NODE_USE_ENV_PROXY=1 node tools/cardgen/harness/run.mjs [--rounds 3] [--cap 20] [--subjects cz_binance:risk_monk,chriszhu:diamond_hands]
        [--model openai/gpt-5.4-image-2] [--judge anthropic/claude-sonnet-5.5] [--refs default|all|a,b,c] [--no-brand]
-       [--notes "human art-director notes for the judge"] [--name my-run] [--parallel 3] [--no-finish] [--ref-mode look|style] [--style-text full|minimal]
+       [--notes "human art-director notes for the judge"] [--name my-run] [--parallel 3] [--no-finish] [--ref-mode look|style] [--style-text full|minimal] [--refs-first]
 
    Subjects default to the 7 test avatars. Each round for a subject costs ~$0.25 (image) + ~$0.03 (judge). */
 import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
@@ -29,7 +29,7 @@ const key = await apiKey(), prompts = await loadPrompts(), mood = await judgeRef
 let dna = ""; { const f = join(STYLE_DIR, "figma/moodboard-dna.md"); if (existsSync(f)) { const md = await readFile(f, "utf8"); dna = ["## Shared DNA", "## Never", "## Judge checklist"].map((h) => { const i = md.indexOf(h); if (i < 0) return ""; const j = md.indexOf("\n## ", i + 3); return md.slice(i, j < 0 ? undefined : j).trim(); }).filter(Boolean).join("\n\n"); } }
 const runId = (args.name ? String(args.name) + "-" : "") + new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
 const outDir = join(CARDGEN, "out/harness", runId); await mkdir(outDir, { recursive: true });
-const run = { id: runId, started: new Date().toISOString(), model: MODEL, judge: JUDGE, prompt_version: prompts.version, refs: refNames, brand: !!brand, ref_mode: String(args["ref-mode"] || "look"), style_text: String(args["style-text"] || "full"), dna_criteria: !!dna, rounds: ROUNDS, cap: CAP, notes: args.notes || "", initial_style: prompts.style, subjects: {} };
+const run = { id: runId, started: new Date().toISOString(), model: MODEL, judge: JUDGE, prompt_version: prompts.version, refs: refNames, brand: !!brand, ref_mode: String(args["ref-mode"] || "look"), style_text: String(args["style-text"] || "full"), refs_first: !!args["refs-first"], dna_criteria: !!dna, rounds: ROUNDS, cap: CAP, notes: args.notes || "", initial_style: prompts.style, subjects: {} };
 const save = async () => { run.spent = +budget.spent.toFixed(3); run.updated = new Date().toISOString(); await writeFile(join(outDir, "run.json"), JSON.stringify(run, null, 1)); await index(); };
 async function index() {
   const base = join(CARDGEN, "out/harness"), ids = (await readdir(base, { withFileTypes: true })).filter((d) => d.isDirectory()).map((d) => d.name).sort().reverse();
@@ -49,7 +49,7 @@ async function subjectLoop({ who, type }) {
     const prompt = buildPrompt(prompts, style, type), round = { n: r, style };
     rec.rounds.push(round);
     try {
-      const g = await generateImage({ key, model: MODEL, prompt, avatarPath: avatar, refs, brandPath: brand, budget, refMode: String(args["ref-mode"] || "look") });
+      const g = await generateImage({ key, model: MODEL, prompt, avatarPath: avatar, refs, brandPath: brand, budget, refMode: String(args["ref-mode"] || "look"), refsFirst: !!args["refs-first"] });
       await writeFile(join(dir, `r${r}.png`), g.png); Object.assign(round, { raw: `${who}/r${r}.png`, image: `${who}/r${r}.png`, gen_cost: +g.cost.toFixed(3), gen_secs: +g.secs.toFixed(1) });
       /* the print finish (finish.py) is applied before judging, so the judge scores what the product will show */
       let judged = g.png;

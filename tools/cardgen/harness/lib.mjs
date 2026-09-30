@@ -76,10 +76,13 @@ export const REF_WORDING = {
   /* "style" = a real style transfer: the reference defines the whole rendering; only identity comes from the avatar */
   style: (k) => `STYLE REFERENCE ${k + 1} — render the final image EXACTLY in this visual style: the same medium and rendering technique, the same light, surface texture, grain, colour treatment and finish, as if the same artist made both. Take the STYLE from this image and only the person's identity from the avatar:`,
 };
-export async function generateImage({ key, model, prompt, avatarPath, refs = [], brandPath, budget, refMode = "look" }) {
+export async function generateImage({ key, model, prompt, avatarPath, refs = [], brandPath, budget, refMode = "look", refsFirst = false }) {
   budget.check(0.30);
-  const content = [{ type: "text", text: "The profile picture to edit:" }, { type: "image_url", image_url: { url: await dataUrl(avatarPath) } }];
-  for (let k = 0; k < refs.length; k++) content.push({ type: "text", text: (REF_WORDING[refMode] || REF_WORDING.look)(k) }, { type: "image_url", image_url: { url: await dataUrl(refs[k]) } });
+  const avatarPart = [{ type: "text", text: refsFirst ? "Now the profile picture to edit INTO that style (identity only comes from here):" : "The profile picture to edit:" }, { type: "image_url", image_url: { url: await dataUrl(avatarPath) } }];
+  const refParts = [];
+  for (let k = 0; k < refs.length; k++) refParts.push({ type: "text", text: (REF_WORDING[refMode] || REF_WORDING.look)(k) }, { type: "image_url", image_url: { url: await dataUrl(refs[k]) } });
+  /* refsFirst: frame the task as "here is the style → now edit this face into it" instead of "edit this photo (+ some refs)" */
+  const content = refsFirst ? [...refParts, ...avatarPart] : [...avatarPart, ...refParts];
   if (brandPath) content.push({ type: "text", text: "DONUT BRAND BACKGROUND REFERENCE — use exactly this palette and these soft flowing light ribbons for the background and the colour of the light. Its colours win over every other reference:" }, { type: "image_url", image_url: { url: await dataUrl(brandPath) } });
   content.push({ type: "text", text: prompt });
   const t0 = Date.now();
