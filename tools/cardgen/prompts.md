@@ -10,8 +10,9 @@ section, verbatim. Bump `prompt_version` whenever either changes — the backend
 History: v3 spy poster → v4 airbrush → v5 avatar edit (types lost) → v6 gear + actions back → v7 moodboard art direction
 → v8 Donut brand backdrop (violet with flowing amber / cream / periwinkle light ribbons, `refs/donut-ribbons.webp`)
 → v9 art direction rewritten from the reverse-prompted 98-tile Figma moodboard (`style-refs/figma/moodboard-dna.md`): 80s airbrushed gouache poster, not photography; face lit like the board lights its subjects.
+→ v10 Cory's keyword vocabulary: sparkle-figure vintage film still (silhouette outlined in light, star-filter flares, psychedelic saturated colour); style comes from the glare-set reference images, text only names it.
 
-prompt_version: 2026-09-30.9
+prompt_version: 2026-09-30.10
 
 ## Base
 
@@ -30,22 +31,17 @@ recognisable. A creature holds or uses the gear with its own limbs; an object (a
 gear and action as part of the scene in a playful, natural way. Frame from the knees or waist up — full body only when
 the action needs it — with the face large enough to recognise and the gear fully visible.
 
-ART DIRECTION (distilled from the 98-tile Donut moodboard):
-- Medium: 1980s airbrushed gouache poster illustration, hand-sprayed gradients with crisp frisket-masked edges, scanned from offset print.
-- Light: one hero subject, self-illuminated and rim-lit against the dark void, amber-orange edge glow, no cast shadow.
-- Chrome: liquid mirror chrome with one sharp horizon-line reflection, cream-periwinkle above and amber-orange below, hard white specular streaks.
-- Flares: painted four-point star glints with thin long spikes, only on the brightest edges, three to five per card.
-- Trails: fine parallel comet streaks or one thin orbit ellipse sweeping diagonally behind the subject, in amber, cream and periwinkle.
-- Grain/halation: soft bloom halo around every highlight, fine stippled grain, faint halftone and scan softness, slightly crushed blacks.
-- Composition: one centred subject in a vertical 3:4 frame, floating in generous empty violet-black negative space, with one low horizon or diagonal for direction.
+ART DIRECTION (Cory's vocabulary, 2026-09-30 — the images attached as STYLE REFERENCES define the look; this text only
+names it): a vintage film still, 1950s–60s Hollywood glamour meets vintage luxury, surreal and dreamlike. The figure is
+rendered as a SILHOUETTE OUTLINED IN LIGHT — a figure made of stars and sparkles, shimmering glitter texture over the
+body and clothing, features drawn by rim light so the person stays recognisable. Light and material: sparkling,
+glimmering, shimmering, prismatic, radiant, crystalline; intense lens flare; star-filter cross flares on every bright
+point; long-exposure light trails. Colour: highly saturated, psychedelic, day-glo, electric blues and purples, neon,
+high-contrast, vaporwave palette — on Donut's deep violet field with flowing amber, cream and periwinkle light.
+Optional digital accents: floating code, ASCII overlays, a touch of pixelated glitch — small, never over the face.
 
-PALETTE: Deep violet background running #3c0996 → #20033c → near-black, with flowing ribbons of light in amber-orange (#c86b38 → #f08a2c), cream (#f2e4d6) and periwinkle (#6760cd). Chrome reflects only these colours. No green anywhere. No cobalt or sky-blue backgrounds, and no blue daylight skies.
-
-NEVER: modern clean commercial photography or a glossy 3D render; flat vector or cartoon; natural daylight; a pale or
-white field; large text or UI; a smiling, evenly-lit, frontal passport-style face. FACE TREATMENT: the face stays fully
-recognisable but is lit like the moodboard lights its subjects — three-quarter or profile angle, low-key with a warm
-amber rim light and a cool periwinkle fill, half the face falling into the violet shadow, skin rendered as smooth
-sprayed gradient, never a clean studio key light.
+NEVER: a clean modern digital illustration or 3D render, flat cel shading, an evenly-lit passport-style face, a pale
+field, large text.
 
 Clean edges, no border, no frame, no text, letters, numbers or logos anywhere. No cigarettes, cigars, alcohol or drugs.
 
