@@ -8,9 +8,10 @@ cobalt-violet against molten gold, a minimal iconic poster composition, film gra
 Only the avatar is attached. The backend (and `generate.mjs`) sends the **Base** section followed by the type's
 section, verbatim. Bump `prompt_version` whenever either changes — the backend's cache key includes it.
 History: v3 spy poster → v4 airbrush → v5 avatar edit (types lost) → v6 gear + actions back → v7 moodboard art direction
-→ v8 Donut brand backdrop (violet with flowing amber / cream / periwinkle light ribbons, `refs/donut-ribbons.webp`).
+→ v8 Donut brand backdrop (violet with flowing amber / cream / periwinkle light ribbons, `refs/donut-ribbons.webp`)
+→ v9 art direction rewritten from the reverse-prompted 98-tile Figma moodboard (`style-refs/figma/moodboard-dna.md`): 80s airbrushed gouache poster, not photography; face lit like the board lights its subjects.
 
-prompt_version: 2026-09-29.8
+prompt_version: 2026-09-30.9
 
 ## Base
 
@@ -29,29 +30,22 @@ recognisable. A creature holds or uses the gear with its own limbs; an object (a
 gear and action as part of the scene in a playful, natural way. Frame from the knees or waist up — full body only when
 the action needs it — with the face large enough to recognise and the gear fully visible.
 
-ART DIRECTION — 1970s–80s album-cover art made with practical in-camera effects and shot on slide film:
-- LIQUID CHROME that reflects colour, never grey steel: mirror-smooth, slightly molten surfaces on the gear, the
-  clothing and hair highlights, cool electric-violet and cobalt on the shadow side and hot molten gold-orange on the
-  lit side, like chrome reflecting a sunset. A person's face stays human and recognisable, lit with a warm key and a
-  cool rim.
-- A FEW BIG STAR FLARES: two or three large four/six-point cross flares on the very brightest points (the gear, an
-  eye glint, a chrome edge) — not glitter sprinkled everywhere. Disco-mirror glitter only as an accent on one surface.
-- SLOW-SHUTTER LIGHT PAINTING: long, smooth, fluid light trails sweeping through the frame with prismatic rainbow
-  fringes at their edges; the moving gear leaves a motion smear.
-- PRISM CAUSTICS: iridescent spectral refraction where light passes through glass, gems or chrome edges.
-- COMPOSITION: an iconic poster — one heroic subject, bold graphic silhouette, low-angle hero light with a strong rim,
-  generous negative space, on a flat saturated backdrop (deep cobalt-to-violet gradient, or near-black with a single
-  soft glow).
-- FILM: heavy fine grain, halation glow around every light, deep rich blacks, gentle soft-focus fall-off at the edges,
-  slight vignette.
-It must read as a photograph of a real chrome-and-light effects shoot — NOT a digital painting, NOT anime shading on
-a person, NOT a clean 3D render. Less is more: fewer, bigger, more deliberate effects.
+ART DIRECTION (distilled from the 98-tile Donut moodboard):
+- Medium: 1980s airbrushed gouache poster illustration, hand-sprayed gradients with crisp frisket-masked edges, scanned from offset print.
+- Light: one hero subject, self-illuminated and rim-lit against the dark void, amber-orange edge glow, no cast shadow.
+- Chrome: liquid mirror chrome with one sharp horizon-line reflection, cream-periwinkle above and amber-orange below, hard white specular streaks.
+- Flares: painted four-point star glints with thin long spikes, only on the brightest edges, three to five per card.
+- Trails: fine parallel comet streaks or one thin orbit ellipse sweeping diagonally behind the subject, in amber, cream and periwinkle.
+- Grain/halation: soft bloom halo around every highlight, fine stippled grain, faint halftone and scan softness, slightly crushed blacks.
+- Composition: one centred subject in a vertical 3:4 frame, floating in generous empty violet-black negative space, with one low horizon or diagonal for direction.
 
-PALETTE AND BACKDROP (Donut brand — overrides any other reference's colours): a deep Donut-violet background
-(#3c0996 fading to #20033c and near-black #09000a at the edges) with a few broad, soft, out-of-focus flowing light
-ribbons sweeping through it in warm amber-orange (#c86b38 → #f08a2c), cream (#f2e4d6) and periwinkle (#6760cd), grainy
-and dreamy like a long-exposure light painting. The same amber, cream and periwinkle light the subject and reflect in
-the chrome. No cobalt-blue sky, no green. The gear may carry the type's accent colour named below.
+PALETTE: Deep violet background running #3c0996 → #20033c → near-black, with flowing ribbons of light in amber-orange (#c86b38 → #f08a2c), cream (#f2e4d6) and periwinkle (#6760cd). Chrome reflects only these colours. No green anywhere. No cobalt or sky-blue backgrounds, and no blue daylight skies.
+
+NEVER: modern clean commercial photography or a glossy 3D render; flat vector or cartoon; natural daylight; a pale or
+white field; large text or UI; a smiling, evenly-lit, frontal passport-style face. FACE TREATMENT: the face stays fully
+recognisable but is lit like the moodboard lights its subjects — three-quarter or profile angle, low-key with a warm
+amber rim light and a cool periwinkle fill, half the face falling into the violet shadow, skin rendered as smooth
+sprayed gradient, never a clean studio key light.
 
 Clean edges, no border, no frame, no text, letters, numbers or logos anywhere. No cigarettes, cigars, alcohol or drugs.
 
