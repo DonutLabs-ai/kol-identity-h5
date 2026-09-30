@@ -357,11 +357,12 @@
       '<div class="ds-stage"><p class="ds-reading"><i></i>' + (zh ? "D0 正在解读你的交易人格" : "D0 is reading your personality type") + '</p><div class="ds-halo"></div><div class="ds-seal"></div><div class="ds-glow"></div><div class="ds-card is-shell"><iframe class="ds-shell" title="" aria-hidden="true"></iframe><i class="grid"></i><i class="scan"></i></div><div class="ds-flare"></div></div>';
     /* the card is the real foil ticket (flashcard shell) with a "?" in its art window — same shell as the result (Cory 2026-09-30) */
     var shell = root.querySelector(".ds-shell"), who = demo ? demo.name.toUpperCase() : "YOUR DONUT ID", handle = demo ? demo.handle : "";
-    shell.src = "../flashcard/kol.html?embed=1&bare=1&skin=amethyst&code=Donut2026&img=" + encodeURIComponent("../identity/preview-portrait.jpg") + "&user=" + encodeURIComponent(who);   /* the H5's default card art, i.e. the card before it is revealed */
+    shell.src = "../flashcard/kol.html?embed=1&bare=1&skin=amethyst&code=Donut2026&user=" + encodeURIComponent(who);   /* "?" in the window while D0 reads (Cory) */
     shell.addEventListener("load", function () { try {
       var d = shell.contentDocument, st = d.createElement("style");
       /* the default card art stays in the window; the scan ripples it (SVG displacement) and drags a prismatic band over it */
-      st.textContent = ".skin-bar{display:none!important}.kol-photo img{filter:url(#donut-disp) saturate(1.12)}" +
+      st.textContent = ".skin-bar{display:none!important}.kol-photo img{visibility:hidden}" +
+        ".kol-photo>.kol-q{position:absolute;inset:0;z-index:1;display:grid;place-items:center;background:radial-gradient(90% 70% at 50% 45%,#2a1a52 0%,#140c2c 60%,#0b0718 100%);font:400 150px/1 'Instrument Serif',serif;color:rgb(222 208 255 / .85);text-shadow:0 0 24px rgb(178 150 255 / .8)}.kol-photo>.kol-q>span{filter:url(#donut-disp)}" +
         ".kol-photo>.kol-bling{position:absolute;inset:-10% 0;z-index:2;pointer-events:none;mix-blend-mode:screen;opacity:0;" +
         "background:linear-gradient(180deg,transparent 0%,rgb(255 255 255 / .0) 38%,rgb(255 214 170 / .55) 46%,rgb(255 255 255 / .95) 50%,rgb(190 170 255 / .75) 54%,rgb(120 85 239 / .0) 62%,transparent 100%);" +
         "background-size:100% 42%;background-repeat:no-repeat;background-position:0 -60%}" +
@@ -370,7 +371,8 @@
       var svg = d.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.setAttribute("width", "0"); svg.setAttribute("height", "0"); svg.style.position = "absolute";
       svg.innerHTML = '<filter id="donut-disp" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.014 0.05" numOctaves="2" seed="3" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="0" xChannelSelector="R" yChannelSelector="G"><animate id="donut-disp-anim" attributeName="scale" values="0;0;24;30;14;0" keyTimes="0;.05;.4;.6;.85;1" dur="2.6s" begin="indefinite" fill="freeze"/></feDisplacementMap></filter>';
       d.body.appendChild(svg);
-      var ph = d.querySelector(".kol-photo"); if (ph && !ph.querySelector(".kol-bling")) { var bl = d.createElement("div"); bl.className = "kol-bling"; ph.appendChild(bl);
+      var ph = d.querySelector(".kol-photo"); if (ph && !ph.querySelector(".kol-q")) { var q = d.createElement("div"); q.className = "kol-q"; q.innerHTML = "<span>?</span>"; ph.appendChild(q); }
+      if (ph && !ph.querySelector(".kol-bling")) { var bl = d.createElement("div"); bl.className = "kol-bling"; ph.appendChild(bl);
         /* the band sweeps with the scan line (scan: delay 1700, duration 2400) */
         bl.animate([{ opacity: 0, backgroundPosition: "0 -60%" }, { opacity: 1, offset: .08 }, { opacity: 1, offset: .9 }, { opacity: 0, backgroundPosition: "0 160%" }], { duration: 2400, delay: 1700, easing: "linear", fill: "both" });
         setTimeout(function () { try { d.getElementById("donut-disp-anim").beginElement(); } catch (e) {} }, 1600);
