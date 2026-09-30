@@ -30,3 +30,16 @@ open http://127.0.0.1:3021/tools/cardgen/harness/dashboard.html      # served by
   ART DIRECTION + PALETTE block in `prompts.md` and bump `prompt_version`.
 - The judge only ever rewrites the style block; identity (KEEP) and type action (ACT) stay fixed.
 - Judge: `anthropic/claude-sonnet-5.5` via OpenRouter (~$0.03/round). Image: ~$0.25/round, 2.5–3.5 min.
+
+## Moodboard library + reverse-prompting
+
+- `style-refs/figma/` (local, gitignored — third-party art): the 98 tiles from Cory's Figma moodboard
+  (Branding-white-Version, node 591-448), downsized to 1600px, named `<figma-group>--<node-id>.jpg`, with
+  `manifest.json` (designer captions, groups, node ids). Rebuild with the Figma REST API + `FIGMA_TOKEN` from
+  `donut-website-white/.env` (see the session notes; the token expires).
+- `harness/reverse.mjs --dir style-refs/figma` asks a vision model to describe every tile in prompt language
+  (`reverse/<tile>.json`) and distils `moodboard-dna.md`: Shared DNA, Range, Never, a ready ART DIRECTION block and a
+  10-point judge checklist. The harness judge reads that checklist automatically when the file exists.
+- Use Figma tiles as generator references with `--refs figma/<file-stem>,...`, e.g.
+  `--refs figma/silhouette-screens--591-404,figma/speed-motion--591-349`.
+- Regenerate the library sheet: see `_library-sheet.png` (PIL script in the session notes).
