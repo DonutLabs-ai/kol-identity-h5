@@ -1,0 +1,15 @@
+/* v2 analysis: the summon owns the loader; Yi's status line + bar sit under it; percentage in the stage */
+/* #analyze becomes the summon's full-screen stage (Yi's flex column gave the 0×0 .ds-stage anchor a wrapped width) */
+.analyze { position: fixed !important; inset: 0 !important; display: block !important; width: auto !important; height: auto !important; padding: 0 !important; gap: 0 !important; }
+.donut-summon .ds-reading { white-space: nowrap; }   /* keeps summon.css's full-width centred flex line; only forbids wrapping */
+.analyze .az-foot { position: absolute; left: 50%; bottom: max(28px, 5svh); transform: translateX(-50%); display: grid; justify-items: center; gap: 12px; z-index: 3; }
+.donut-summon { position: absolute; inset: 0; z-index: 2; overflow: hidden; pointer-events: none; perspective: 1400px; }
+.donut-summon .ds-stage { top: 44%; }
+.donut-summon .ds-pct { position: absolute; left: 50%; top: calc(var(--card-h) / 2 + 26px); transform: translateX(-50%); font: 400 40px / 1 "Instrument Serif", Georgia, serif; color: #fff; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.donut-summon .ds-pct b { font-weight: 400; }
+.donut-summon .ds-reading { font-family: "Instrument Serif", Georgia, serif; }
+@media (max-width: 760px) { .donut-summon .ds-stage { top: 40%; } .donut-summon .ds-pct { font-size: 32px; } }
+@font-face { font-family: "Instrument Serif"; font-weight: 400; src: url(../identity/fonts/instrument-serif-latin-400-normal.woff2) format("woff2"); font-display: swap; }
+
+/* generated card art replaces Yi's demo portrait: the 2.5D cut-out layers belong to his sample image only */
+body.has-art .reveal-win, body.has-art .reveal-pop { display: none !important; }

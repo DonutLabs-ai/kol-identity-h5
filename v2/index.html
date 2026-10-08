@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Donut Identity · Claim your Donut ID</title>
+<meta name="description" content="Six questions. Your trading style, revealed. Get your Donut Trader card.">
+<meta name="theme-color" content="#0F1114">
+<link rel="icon" href="../identity/favicon.ico">
+<link rel="stylesheet" href="./landing.css?v=2">
+</head>
+<body>
+
+<video class="stage" autoplay muted loop playsinline
+       poster="../identity/media/hero-poster-720.jpg">
+  <source src="../identity/media/hero-720.mp4" type="video/mp4">
+</video>
+<div class="overlay"></div>
+
+<a class="brand" href="./" aria-label="Donut">
+  <img src="../identity/donut-icon.svg" alt="" width="34" height="34">
+  <!-- Donut textmark (donutText.svg, 50×14) -->
+  <svg class="textmark" width="82" height="23" viewBox="0 0 50 14" fill="none" aria-hidden="true">
+    <path fill="#fff" d="M1.11867 13.6911V11.8134H4.80832C5.72419 11.8134 6.50268 11.6048 7.14379 11.1876C7.7849 10.7703 8.27554 10.1901 8.61572 9.44685C8.96899 8.70362 9.14562 7.83652 9.14562 6.84554C9.14562 5.84153 8.96899 4.96791 8.61572 4.22468C8.27554 3.48145 7.7849 2.90773 7.14379 2.50351C6.50268 2.08626 5.72419 1.87763 4.80832 1.87763H1.11867V0H4.80832C6.1167 0 7.24192 0.29338 8.18395 0.880141C9.12599 1.45386 9.85215 2.25577 10.3624 3.28586C10.8727 4.30291 11.1278 5.48947 11.1278 6.84554C11.1278 8.20161 10.8727 9.39469 10.3624 10.4248C9.85215 11.4418 9.12599 12.2437 8.18395 12.8305C7.24192 13.4042 6.1167 13.6911 4.80832 13.6911H1.11867ZM0 13.6911V0H1.96258V13.6911H0Z"/>
+    <path fill="#fff" d="M16.7889 13.9649C15.8077 13.9649 14.9441 13.7432 14.1983 13.2999C13.4526 12.8566 12.8638 12.2503 12.432 11.481C12.0133 10.6986 11.804 9.79238 11.804 8.76229C11.804 7.74524 12.0133 6.84554 12.432 6.06319C12.8638 5.28085 13.4526 4.67453 14.1983 4.24424C14.9441 3.80091 15.8077 3.57924 16.7889 3.57924C17.7702 3.57924 18.6338 3.80091 19.3795 4.24424C20.1253 4.67453 20.7076 5.28085 21.1262 6.06319C21.558 6.84554 21.7739 7.74524 21.7739 8.76229C21.7739 9.79238 21.558 10.6986 21.1262 11.481C20.7076 12.2633 20.1253 12.8761 19.3795 13.3195C18.6338 13.7498 17.7702 13.9649 16.7889 13.9649ZM16.7889 12.1459C17.3908 12.1459 17.9142 12.009 18.359 11.7352C18.8169 11.4614 19.1702 11.0702 19.4188 10.5617C19.6805 10.0532 19.8113 9.45989 19.8113 8.78185C19.8113 8.07774 19.6805 7.47794 19.4188 6.98245C19.1702 6.47393 18.8169 6.08275 18.359 5.80893C17.9142 5.52207 17.3908 5.37864 16.7889 5.37864C16.1871 5.37864 15.6572 5.52207 15.1993 5.80893C14.7544 6.08275 14.4011 6.47393 14.1395 6.98245C13.8909 7.47794 13.7666 8.07122 13.7666 8.76229C13.7666 9.45337 13.8909 10.0532 14.1395 10.5617C14.4011 11.0702 14.7544 11.4614 15.1993 11.7352C15.6572 12.009 16.1871 12.1459 16.7889 12.1459Z"/>
+    <path fill="#fff" d="M22.8334 13.6911V3.85306H24.6978V6.49349L24.1679 6.31746C24.3642 5.75677 24.6586 5.27433 25.0511 4.87011C25.4436 4.45286 25.9015 4.1334 26.4249 3.91174C26.9613 3.69007 27.5305 3.57924 28.1323 3.57924C28.8389 3.57924 29.4734 3.72919 30.036 4.02909C30.5986 4.32899 31.0435 4.77884 31.3706 5.37864C31.6977 5.9654 31.8612 6.70211 31.8612 7.58877V13.6911H29.8987V8.13642C29.8987 7.47142 29.8005 6.94334 29.6043 6.55216C29.408 6.14795 29.1398 5.85457 28.7996 5.67202C28.4725 5.48947 28.0865 5.3982 27.6417 5.3982C27.1968 5.3982 26.752 5.50903 26.3071 5.7307C25.8754 5.95236 25.5156 6.2979 25.2277 6.76731C24.9399 7.23672 24.796 7.84955 24.796 8.60582V13.6911H22.8334Z"/>
+    <path fill="#fff" d="M42.2813 3.85306V13.6911H40.4169V11.0507L40.9468 11.2071C40.7505 11.7678 40.4561 12.2568 40.0636 12.674C39.6711 13.0782 39.2066 13.3977 38.6702 13.6324C38.1468 13.8541 37.5777 13.9649 36.9627 13.9649C36.2693 13.9649 35.6413 13.815 35.0786 13.5151C34.516 13.2021 34.0712 12.7523 33.7441 12.1655C33.417 11.5657 33.2534 10.829 33.2534 9.95537V3.85306H35.216V9.40773C35.216 10.0597 35.3076 10.5878 35.4908 10.992C35.687 11.3962 35.9553 11.6896 36.2954 11.8721C36.6356 12.0416 37.0281 12.1264 37.473 12.1264C37.9178 12.1264 38.3562 12.0156 38.7879 11.7939C39.2328 11.5722 39.5991 11.2267 39.887 10.7573C40.1748 10.2879 40.3187 9.68155 40.3187 8.93832V3.85306H42.2813Z"/>
+    <path fill="#fff" d="M47.736 13.6911C46.8333 13.6911 46.1006 13.4042 45.538 12.8305C44.9884 12.2568 44.7137 11.481 44.7137 10.503V1.25176H46.6763V10.327C46.6763 10.8616 46.8006 11.2593 47.0491 11.5201C47.3108 11.7678 47.7099 11.8917 48.2463 11.8917H49.3454L49.4435 12.1068V13.6911H47.736ZM43.0259 5.65246V3.85306H49.4435V5.65246H43.0259Z"/>
+  </svg>
+</a>
+
+<nav class="topnav">
+  <a class="visit" href="https://getdonut.ai/" target="_blank" rel="noopener">About D0</a>
+  <a class="visit" href="https://d0.getdonut.ai/d0-onboarding" target="_blank" rel="noopener" id="try-d0">Try D0
+    <svg class="arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </a>
+</nav>
+
+<!-- swipe surface: the whole bottom band turns the fan, not just the cards -->
+<div class="fan-zone" aria-hidden="true"></div>
+<!-- card fan: four live flashcard tickets (amethyst), archetype in its pill, archetype art as the pfp -->
+<div class="cardfan" aria-hidden="true">
+  <div class="fan-card"><div class="fan-tilt"><iframe class="fan-frame" title="" tabindex="-1"></iframe><img class="fan-pop" alt=""></div></div>
+  <div class="fan-card"><div class="fan-tilt"><iframe class="fan-frame" title="" tabindex="-1"></iframe><img class="fan-pop" alt=""></div></div>
+  <div class="fan-card"><div class="fan-tilt"><iframe class="fan-frame" title="" tabindex="-1"></iframe><img class="fan-pop" alt=""></div></div>
+  <div class="fan-card"><div class="fan-tilt"><iframe class="fan-frame" title="" tabindex="-1"></iframe><img class="fan-pop" alt=""></div></div>
+</div>
+
+<main class="hero">
+  <h1>
+    <span class="line-serif">What kind of Donut Trader are you?</span>
+    <span class="line-caps">CLAIM YOUR DONUT ID</span>
+  </h1>
+  <p class="tagline">Take the test. Get your card. Find your people.</p>
+  <div class="actions">
+    <a class="btn primary" href="#" id="claim-cta">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg>
+      Claim now
+    </a>
+  </div>
+</main>
+
+<!-- login sheet (mock): Privy-style dialog, X only, Turnkey footer -->
+<div class="login-backdrop" id="login" hidden>
+  <div class="login-modal" role="dialog" aria-modal="true" aria-label="Log in or sign up">
+    <button class="login-close" type="button" aria-label="Close">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+    <div class="login-logo"><img src="../identity/donut-icon.svg" alt="" width="40" height="40"></div>
+    <h2>Log in or sign up</h2>
+    <a class="login-provider" href="./claim.html">
+      <span class="login-x">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.45-6.231zm-1.161 17.52h1.833L7.084 4.126H5.117l11.966 15.644z"/></svg>
+      </span>
+      <span class="login-name">Twitter</span>
+      <span class="login-recent">Recent</span>
+    </a>
+    <p class="login-secured">Secured by
+      <!-- Turnkey wordmark (d0 LoginPage.tsx, currentColor) -->
+      <svg height="13" width="49" viewBox="0 0 60 16" fill="none" aria-label="Turnkey"><path d="M53.9153 5.09893L56.0557 10.9916L58.209 5.09893L58.2383 5.0181H59.724L59.9003 5.02293L59.8357 5.1846L55.954 15.1028L55.86 15.0672L55.8713 15.0721L55.954 15.1028C55.844 15.3598 55.6613 15.5797 55.427 15.7365C55.1923 15.8933 54.9193 15.9806 54.6363 15.9871H52.9163V14.6356H54.5847L55.283 12.896L52.2403 5.17977L52.1757 5.0197H53.888L53.917 5.10053L53.9153 5.09893ZM16.7825 10.3902C16.7825 10.8364 16.9247 11.1953 17.1753 11.4394C17.4243 11.6852 17.7912 11.8307 18.2585 11.8307C19.0134 11.8307 19.5582 11.5833 19.9188 11.1792C20.2809 10.7734 20.4652 10.1978 20.4652 9.52047V5.0197H22.0026V13.0221H20.5412V12.0344C19.964 12.8265 19.1153 13.2016 18.0758 13.2016C17.0363 13.2016 16.2942 12.896 15.8496 12.3642C15.4067 11.8323 15.2434 11.0886 15.2434 10.2447V5.0181H16.7825V10.3902ZM48.283 4.83863C49.434 4.83863 50.37 5.2606 51.0117 5.9978C51.6537 6.73497 51.998 7.78257 51.998 9.02577C52.0013 9.1648 51.9963 9.30547 51.9817 9.4445L51.969 9.5512H46.0907C46.1717 10.2108 46.3947 10.7685 46.747 11.1711C47.1207 11.5946 47.646 11.8468 48.3283 11.8468C49.277 11.8468 49.995 11.3279 50.344 10.3805L50.3733 10.2997H51.9577L51.917 10.4517C51.6907 11.2972 51.256 11.9842 50.6417 12.4612C50.0273 12.9381 49.2417 13.1967 48.3283 13.1967C47.1787 13.1967 46.2183 12.7861 45.549 12.0538C44.88 11.3214 44.5063 10.269 44.5063 9.02417C44.5063 7.77933 44.867 6.73337 45.525 5.99457C46.1843 5.25573 47.132 4.83703 48.283 4.83703V4.83863ZM33.2044 4.83863C34.2633 4.83863 34.986 5.14257 35.4307 5.67607C35.8733 6.20797 36.0367 6.9516 36.0367 7.7955V13.0205H34.4977V7.6484C34.4977 7.2022 34.3553 6.8433 34.105 6.59917C33.856 6.35347 33.489 6.20797 33.0217 6.20797C32.2667 6.20797 31.7219 6.45367 31.3614 6.85947C30.9993 7.26523 30.815 7.8424 30.815 8.51977V13.0205H29.2776V5.0181H30.739V6.00587C31.3162 5.2137 32.1649 4.83863 33.2044 4.83863ZM12.8427 3.4839C12.8491 3.95757 12.7893 4.31163 12.6794 4.58647C12.6212 4.7384 12.5371 4.88067 12.4353 5.0084H14.1877V6.3793H12.5662V11.6528H14.2104V13.0189H12.0473C11.7773 13.0189 11.5186 12.9122 11.3263 12.7231C11.1355 12.5339 11.0272 12.2785 11.0272 12.0133V6.38093H9.60937V5.42227L9.70313 5.39963C10.5907 5.1943 10.9997 4.7659 11.1921 4.3779C11.3198 4.1047 11.3828 3.8056 11.3731 3.5049V2.97465H12.8411V3.48713L12.8427 3.4839ZM25.0775 6.3389C25.6692 5.50633 26.4549 5.0197 27.4071 5.0197H28.1669V6.4763H27.239C26.5907 6.4763 26.0685 6.68487 25.6983 7.12297C25.3297 7.5611 25.1082 8.24653 25.1082 9.2214V13.0189H23.5546V5.0181H25.0775V6.3373V6.3389ZM38.9467 13.0173H37.424V2.97142H38.9467V13.0173ZM44.9657 5.0391L40.9257 9.02253L44.9623 13.0044L42.9237 12.9995L39.975 10.0911C39.6873 9.80823 39.5257 9.42347 39.5257 9.02253C39.5257 8.6216 39.6873 8.23683 39.975 7.95393L42.9317 5.0391H44.9657ZM48.2797 6.17563C48.0063 6.16917 47.735 6.21767 47.481 6.32113C47.229 6.42457 47.001 6.57817 46.8117 6.77217C46.4787 7.11973 46.2523 7.60797 46.144 8.17057H50.37C50.252 7.55787 50.016 7.07123 49.6813 6.73497C49.4987 6.5523 49.2803 6.4084 49.038 6.31303C48.797 6.21767 48.5383 6.17077 48.278 6.17723L48.2797 6.17563Z" fill="currentColor"/><path d="M2.90351 7.2135C2.96656 7.2135 3.02799 7.23127 3.08134 7.26523C3.13469 7.29917 3.17672 7.34767 3.20259 7.40427L5.8054 13.0302H0L2.60281 7.40427C2.62868 7.34767 2.67233 7.29917 2.72567 7.26523C2.77902 7.23127 2.84046 7.2135 2.90351 7.2135ZM2.90189 2.92128C3.9123 2.92128 4.73033 3.7296 4.73033 4.72547C4.73033 5.72293 3.9123 6.53127 2.90189 6.53127C1.89148 6.53127 1.07346 5.72293 1.07346 4.72547C1.07346 3.728 1.89148 2.92128 2.90189 2.92128Z" fill="currentColor"/></svg>
+    </p>
+  </div>
+</div>
+
+<script>
+(function () {
+  var back = document.getElementById("login");
+  var cta = document.getElementById("claim-cta");
+  cta.addEventListener("click", function (e) { e.preventDefault(); back.hidden = false; });
+  back.addEventListener("click", function (e) { if (e.target === back) back.hidden = true; });
+  back.querySelector(".login-close").addEventListener("click", function () { back.hidden = true; });
+  addEventListener("keydown", function (e) { if (e.key === "Escape" && !back.hidden) back.hidden = true; });
+  if (location.hash === "#login") back.hidden = false;
+
+  /* fan carousel: swipe moves the whole fan one slot; the 12 archetypes cycle through.
+     Each card is the live flashcard ticket (amethyst): archetype name as the big title,
+     the archetype art as the pfp, the duplicate subtitle hidden via same-origin injection. */
+  var DECK = [
+    ["01-diamond-hands", "Diamond Hands"], ["08-momentum-rider", "Momentum Rider"],
+    ["10-narrative-trader", "Narrative Trader"], ["09-arb-researcher", "Arb Researcher"],
+    ["02-dca-believer", "DCA Believer"], ["03-risk-explorer", "Risk Explorer"],
+    ["04-day-trader", "Day Trader"], ["05-sniper", "Sniper"],
+    ["06-grid-executor", "Grid Executor"], ["07-swing-hunter", "Swing Hunter"],
+    ["11-risk-first", "Risk-First"], ["12-contrarian", "Contrarian"]
+  ];
+  /* the character rides its own layer (v2/art cutouts) over the card's black photo window */
+  function cutUrl(slug) { return "./art/" + slug + ".webp"; }
+  DECK.forEach(function (t) { new Image().src = cutUrl(t[0]); });
+  function cardUrl(t) {
+    /* kol-v0.html = the build served at :8477 (square photo, plain big title), snapshotted into the repo */
+    return "../flashcard/kol-v0.html?code=DONUT2026" +
+      "&user=" + encodeURIComponent(t[1].toUpperCase()) +
+      "&type=" + encodeURIComponent(t[1]);
+  }
+  /* 6 slots: 0 and 5 sit offscreen, 1-4 are the visible fan */
+  var POS_D = [
+    { l: "-23%", b: -280, r: -28 },
+    { l: "3%",   b: -150, r: -18 },
+    { l: "28%",  b: -115, r: -7 },
+    { l: "52%",  b: -120, r: 7 },
+    { l: "77%",  b: -155, r: 18 },
+    { l: "101%", b: -280, r: 28 }
+  ];
+  var POS_M = [
+    { l: "-75%", b: -240, r: -28 },
+    { l: "-9%",  b: -105, r: -18 },
+    { l: "26%",  b: -85,  r: -5 },
+    { l: "61%",  b: -95,  r: 14 },
+    { l: "101%", b: -240, r: 28 },
+    { l: "140%", b: -300, r: 34 }
+  ];
+  function POS() { return matchMedia("(max-width: 700px)").matches ? POS_M : POS_D; }
+  var fan = document.querySelector(".cardfan");
+  var cards = [].slice.call(document.querySelectorAll(".fan-card"));
+  while (cards.length < 6) { var cl = cards[0].cloneNode(true); fan.appendChild(cl); cards.push(cl); }
+  var head = 11;        /* DECK index shown in slot 0 */
+  var slotOf = [1, 2, 3, 4, 0, 5]; /* the four markup cards start in the visible slots */
+  var shifting = false;
+  var popTimers = new WeakMap();
+  cards.forEach(function (card) {
+    var f = card.querySelector("iframe");
+    f.addEventListener("load", function () {
+      try {
+        /* embed styling lives in kol-v0.html itself; here only force purple (v0 picks a skin per type) */
+        var dlg = f.contentDocument && f.contentDocument.getElementById("flashcard");
+        if (dlg) dlg.dataset.skin = "amethyst";
+      } catch (e) {}
+      /* the ticket's stage unhides 750ms after load; start the character with it so they rise together */
+      clearTimeout(popTimers.get(card));
+      popTimers.set(card, setTimeout(function () { card.classList.add("pop-ready"); }, 750));
+    });
+  });
+  function setArt(j) {
+    var t = DECK[(head + slotOf[j]) % 12];
+    cards[j].classList.remove("pop-ready");
+    cards[j].querySelector("iframe").src = cardUrl(t);
+    cards[j].querySelector(".fan-pop").src = cutUrl(t[0]);
+  }
+  function place(j, instant) {
+    var p = POS()[slotOf[j]], el = cards[j];
+    if (instant) el.classList.add("no-trans");
+    el.style.left = p.l; el.style.right = "auto";
+    el.style.bottom = p.b + "px";
+    el.style.transform = "rotate(" + p.r + "deg)";
+    el.style.zIndex = (slotOf[j] === 0 || slotOf[j] === 5) ? 1 : 2;
+    if (instant) { void el.offsetWidth; el.classList.remove("no-trans"); }
+  }
+  cards.forEach(function (_, j) { place(j, true); setArt(j); });
+  addEventListener("resize", function () { cards.forEach(function (_, j) { place(j, true); }); });
+  function shift(dir) { /* dir 1 = swipe left, deck advances */
+    if (shifting) return; shifting = true;
+    head = (head + dir + 12) % 12;
+    cards.forEach(function (_, j) {
+      var ns = slotOf[j] - dir;
+      if (ns < 0 || ns > 5) {
+        slotOf[j] = ns < 0 ? 5 : 0;
+        setArt(j); place(j, true);
+      } else {
+        slotOf[j] = ns; place(j, false);
+      }
+    });
+    setTimeout(function () { shifting = false; }, 540);
+  }
+  /* swipe turns the fan.
+     Trackpad: a two-finger horizontal swipe over a card (wheel deltaX).
+     Touch / mouse: the fan follows the finger 1:1 and turns as soon as the gesture passes 45px —
+     no long drag-and-release, and chained swipes keep turning. */
+  var wheelAcc = 0, wheelCool = false, wheelTO = null;
+  function wheelTurn(e) {
+    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+    e.preventDefault();
+    if (wheelCool) return;
+    wheelAcc += e.deltaX;
+    fan.style.transform = "translateX(" + Math.max(-60, Math.min(60, -wheelAcc * 0.4)) + "px)";
+    clearTimeout(wheelTO);
+    wheelTO = setTimeout(function () { wheelAcc = 0; fan.style.transform = ""; }, 150);
+    if (Math.abs(wheelAcc) > 50) {
+      shift(wheelAcc > 0 ? 1 : -1);
+      wheelAcc = 0; wheelCool = true; fan.style.transform = "";
+      setTimeout(function () { wheelCool = false; }, 450);
+    }
+  }
+  var swipeX = null;
+  function swipeMove(e) {
+    if (swipeX === null) return;
+    var dx = e.clientX - swipeX;
+    fan.style.transform = "translateX(" + Math.max(-90, Math.min(90, dx * 0.5)) + "px)";
+    if (Math.abs(dx) > 45 && !shifting) {
+      shift(dx < 0 ? 1 : -1);
+      swipeX = e.clientX;
+      fan.style.transform = "";
+    }
+  }
+  function swipeEnd() {
+    if (swipeX === null) return;
+    swipeX = null;
+    fan.classList.remove("dragging");
+    fan.style.transform = "";
+  }
+  var zone = document.querySelector(".fan-zone");
+  cards.concat([zone]).forEach(function (surface) {
+    surface.addEventListener("wheel", wheelTurn, { passive: false });
+    surface.addEventListener("pointerdown", function (e) {
+      swipeX = e.clientX;
+      fan.classList.add("dragging");
+      surface.setPointerCapture(e.pointerId);
+    });
+  });
+  addEventListener("pointermove", swipeMove);
+  addEventListener("pointerup", swipeEnd);
+  addEventListener("pointercancel", swipeEnd);
+
+  /* hover tilt: the card follows the mouse; the character layer sits deeper, so it parallaxes */
+  cards.forEach(function (card) {
+    var tilt = card.querySelector(".fan-tilt");
+    card.addEventListener("pointermove", function (e) {
+      if (e.pointerType === "touch") return;
+      var r = card.getBoundingClientRect();
+      var px = (e.clientX - r.left) / r.width - 0.5;
+      var py = (e.clientY - r.top) / r.height - 0.5;
+      tilt.style.transform = "perspective(800px) rotateY(" + (px * 14).toFixed(2) + "deg) rotateX(" + (-py * 12).toFixed(2) + "deg)";
+    });
+    card.addEventListener("pointerleave", function () { tilt.style.transform = ""; });
+  });
+
+  /* opening: 3/4 of the deck (9 turns), back-to-back; any interaction cancels it */
+  var autoTimers = [];
+  for (var s = 0; s < 9; s++) {
+    autoTimers.push(setTimeout(function () { shift(1); }, 1400 + s * 545));
+  }
+  function stopAuto() { autoTimers.forEach(clearTimeout); }
+  addEventListener("pointerdown", stopAuto, { once: true });
+  addEventListener("wheel", stopAuto, { once: true });
+
+  var d0 = document.getElementById("try-d0");
+  d0.addEventListener("click", function (e) {
+    if (d0.getAttribute("href") === "#") e.preventDefault();
+    d0.classList.remove("launch");
+    void d0.offsetWidth; /* restart the animation */
+    d0.classList.add("launch");
+  });
+})();
+</script>
+
+</body>
+</html>

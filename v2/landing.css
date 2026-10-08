@@ -1,0 +1,296 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Donut Identity · landing v2 — Pump Party layout, Donut skin
+   One static viewport, no scroll. app.pumpparty.com grammar: dim video stage,
+   mono-bracket UI text, display-serif title, accent ribbon. Accent = d0-v4.2
+   primary purple #7361ff (globals.css --accent).
+   ───────────────────────────────────────────────────────────────────────────── */
+
+@font-face { font-family: "Timeless Text"; font-weight: 465; font-display: swap; src: url(./fonts/TimelessText-W465.woff2) format("woff2"); }
+@font-face { font-family: "Geist"; font-weight: 400; font-display: swap; src: url(../identity/fonts/geist-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Geist"; font-weight: 500; font-display: swap; src: url(../identity/fonts/geist-latin-500-normal.woff2) format("woff2"); }
+@font-face { font-family: "Geist"; font-weight: 600; font-display: swap; src: url(../identity/fonts/geist-latin-600-normal.woff2) format("woff2"); }
+
+:root {
+  --mono: "Geist", system-ui, sans-serif;
+  --serif: "Timeless Text", Georgia, serif;
+  --page: #0f1114;
+  --accent: #7361ff;        /* d0-v4.2 primary purple */
+  --accent-light: #acaaff;  /* d0-v4.2 dark-theme accent, for text on dark */
+  --accent-fg: #ffffff;
+}
+
+* { box-sizing: border-box; }
+html { scrollbar-width: none; -ms-overflow-style: none; }
+html::-webkit-scrollbar { display: none; width: 0; height: 0; }
+html, body { height: 100%; }
+body {
+  margin: 0; overflow: hidden;
+  background: var(--page); color: #fff;
+  font: 600 14px/1.5 var(--mono);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── stage: video dimmed the pumpparty way (video .3, black .4 on top) ── */
+.stage {
+  position: fixed; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; object-position: center 62%; opacity: .3;
+}
+.overlay { position: fixed; inset: 0; background: rgb(0 0 0 / .4); }
+
+/* ── corners ── */
+.brand {
+  position: fixed; top: 48px; left: 40px; z-index: 10;
+  display: inline-flex; align-items: center; gap: 10px; text-decoration: none;
+}
+.brand img, .brand .textmark { display: block; flex-shrink: 0; }
+.brand:hover { opacity: .9; }
+.topnav { position: fixed; top: 44px; right: 40px; z-index: 10; display: flex; gap: 10px; }
+/* liquid-glass pill, same recipe as identity/theme.css controls */
+.visit {
+  display: inline-flex; align-items: center; gap: 7px;
+  color: #fff; text-decoration: none;
+  font: 600 13px/1 var(--mono);
+  padding: 12px 18px; border-radius: 6px;
+  background: rgb(255 255 255 / .1);
+  -webkit-backdrop-filter: blur(24px) saturate(.8); backdrop-filter: blur(24px) saturate(.8);
+  transition: background-color .2s ease;
+}
+.visit:hover { background: rgb(255 255 255 / .18); }
+.visit .arrow { display: block; translate: 0 0; transition: translate .2s ease; }
+.visit:hover .arrow { translate: 2px -2px; }
+.visit.launch .arrow { animation: arrow-fly .55s cubic-bezier(.4, 0, .2, 1); }
+@keyframes arrow-fly {
+  0%   { translate: 0 0; opacity: 1; }
+  45%  { translate: 16px -16px; opacity: 0; }
+  50%  { translate: -14px 14px; opacity: 0; }
+  100% { translate: 0 0; opacity: 1; }
+}
+
+/* ── card fan: four tickets rising from the bottom edge, behind the hero ── */
+/* the whole bottom band accepts swipes (sits under the cards; gaps fall through to it) */
+.fan-zone { position: fixed; left: 0; right: 0; bottom: 0; height: 42vh; z-index: 1; cursor: grab; touch-action: pan-y; }
+.cardfan {
+  position: fixed; inset: 0; z-index: 2; pointer-events: none; overflow: hidden;
+  transition: transform .3s cubic-bezier(.2,.7,.2,1);
+}
+.cardfan.dragging { transition: none; }
+.fan-card {
+  position: absolute; width: 348px;
+  pointer-events: auto;
+  filter: drop-shadow(0 16px 34px rgb(0 0 0 / .5));
+  /* left/bottom/transform animate the slot shifts; translate carries the hover lift */
+  transition: left .5s cubic-bezier(.2,.7,.2,1), bottom .5s cubic-bezier(.2,.7,.2,1),
+              transform .5s cubic-bezier(.2,.7,.2,1), translate .35s cubic-bezier(.2,.7,.2,1), filter .35s ease;
+}
+.fan-card.no-trans { transition: none; }
+.fan-card:hover {
+  translate: 0 -26px;
+  filter: drop-shadow(0 28px 54px rgb(0 0 0 / .6));
+}
+/* the live ticket iframe is 414×575; scale it into the slot */
+.fan-card { height: 483px; }
+.fan-tilt {
+  width: 100%; height: 100%;
+  transform-style: preserve-3d;
+  transition: transform .18s ease-out;
+}
+.fan-frame {
+  width: 414px; height: 575px; border: 0; background: transparent;
+  pointer-events: none;
+  transform: scale(.8406); transform-origin: 0 0;
+}
+/* the character cutout floats on its own layer over the (black) photo window,
+   bottom-anchored to the window's base, breaking past its top edge */
+.fan-pop {
+  position: absolute; left: 50%; bottom: 33.5%; translate: -50% 0;
+  height: 57.5%; width: auto; z-index: 3; pointer-events: none;
+  filter: drop-shadow(0 12px 20px rgb(0 0 0 / .55));
+  transform-origin: 50% 100%;
+  opacity: 0;
+  transform: translateZ(34px);
+  transition: transform .35s cubic-bezier(.2,.7,.2,1), opacity .2s ease;
+}
+/* rises together with the ticket's own entrance (same curve and distance) */
+.fan-card.pop-ready .fan-pop { opacity: 1; animation: pop-in .9s cubic-bezier(.34,1.3,.4,1); }
+@keyframes pop-in { from { transform: translateZ(34px) translateY(26px) scale(.9); opacity: 0; } to { transform: translateZ(34px); opacity: 1; } }
+.fan-card:hover .fan-pop { transform: translateZ(34px) translateY(-10px) scale(1.08); }
+.fan-card { cursor: pointer; }
+/* slot positions are set inline by the carousel script (POS_D / POS_M in index.html) */
+
+/* ── hero: dead centre ── */
+.hero {
+  position: fixed; inset: 0; z-index: 5;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+  /* full-viewport layer above the card fan: let the cards receive hover, re-enable on the CTA */
+  pointer-events: none;
+  /* centre below the header band (logo bottoms out ~96px), biased up off the card fan */
+  padding: 96px 24px 190px;
+}
+.hero h1 { margin: 0; font-weight: 465; max-width: 100%; }
+.line-caps {
+  display: block;
+  font: 465 clamp(36px, 5.9vw, 90px)/1 var(--serif);
+  letter-spacing: .01em; color: #fff; text-wrap: balance;
+}
+.line-serif {
+  display: block; margin-bottom: 10px;
+  font: 500 clamp(16px, 1.9vw, 28px)/1.3 "Geist", system-ui, sans-serif;
+  letter-spacing: -.01em; color: var(--accent-light);
+}
+.tagline {
+  margin: 14px 0 0; color: rgb(255 255 255 / .62);
+  font: 600 clamp(15px, 1.4vw, 20px)/1.5 var(--mono);
+}
+.actions { display: flex; gap: 16px; margin-top: 20px; }
+/* liquid-glass pill, same recipe as identity/theme.css controls */
+.btn {
+  pointer-events: auto;
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 44px; padding: 11px 22px; border: 0; border-radius: 6px;
+  font: 600 16px/1.2 var(--mono); color: #fff; text-decoration: none;
+  background: rgb(255 255 255 / .1);
+  -webkit-backdrop-filter: blur(24px) saturate(.8); backdrop-filter: blur(24px) saturate(.8);
+  transition: background-color .2s ease, transform .2s ease;
+}
+.btn:hover { background: rgb(255 255 255 / .18); transform: translateY(-1px); }
+/* primary: accent frosted glass with real presence — bigger, lit from inside, glowing out —
+   plus attention motion (sheen sweep + soft ring pulse) */
+.btn.primary {
+  font-size: 15px; min-height: 46px; padding: 12px 24px;
+  position: relative; overflow: hidden;
+  background: rgb(115 97 255 / .55);
+  -webkit-backdrop-filter: blur(24px) saturate(1.2); backdrop-filter: blur(24px) saturate(1.2);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / .28),
+    inset 0 0 0 1px rgb(172 170 255 / .35),
+    0 4px 28px rgb(115 97 255 / .38);
+}
+.btn.primary:hover {
+  background: rgb(115 97 255 / .72);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / .32),
+    inset 0 0 0 1px rgb(172 170 255 / .45),
+    0 6px 36px rgb(115 97 255 / .55);
+}
+.btn.primary:active { background: rgb(103 83 240 / .65); transform: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .btn.primary { animation: cta-ring 3.4s ease-in-out 2s infinite; }
+  .btn.primary::after {
+    content: ""; position: absolute; top: 0; bottom: 0; left: -70%; width: 45%;
+    background: linear-gradient(105deg, transparent 0%, rgb(255 255 255 / .38) 50%, transparent 100%);
+    transform: skewX(-18deg);
+    animation: cta-sheen 3.4s ease-in-out 2s infinite;
+  }
+  @keyframes cta-sheen {
+    0% { left: -70%; } 22% { left: 140%; } 100% { left: 140%; }
+  }
+  @keyframes cta-ring {
+    0%, 30%, 100% {
+      box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / .28),
+        inset 0 0 0 1px rgb(172 170 255 / .35),
+        0 4px 28px rgb(115 97 255 / .38),
+        0 0 0 0 rgb(172 170 255 / 0);
+    }
+    10% {
+      box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / .28),
+        inset 0 0 0 1px rgb(172 170 255 / .35),
+        0 4px 28px rgb(115 97 255 / .45),
+        0 0 0 8px rgb(172 170 255 / .25);
+    }
+  }
+}
+
+/* ── login sheet (mock): Privy-style dialog ── */
+.login-backdrop {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+  background: rgb(0 0 0 / .45);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  animation: login-fade .32s ease;
+}
+.login-backdrop[hidden] { display: none; }
+.login-modal {
+  position: relative; width: 100%; max-width: 360px;
+  padding: 58px 28px 24px; border-radius: 20px;
+  background: #13151d; border: 1px solid rgb(255 255 255 / .06);
+  text-align: center;
+  animation: login-pop .42s cubic-bezier(.2,.9,.25,1.12);
+}
+.login-close {
+  position: absolute; top: 14px; right: 14px;
+  width: 34px; height: 34px; border: 0; border-radius: 10px;
+  display: grid; place-items: center; cursor: pointer;
+  color: rgb(255 255 255 / .75); background: rgb(255 255 255 / .07);
+  transition: background-color .2s;
+}
+.login-close:hover { background: rgb(255 255 255 / .14); }
+.login-close svg { width: 13px; height: 13px; }
+.login-logo {
+  width: 88px; height: 88px; margin: 0 auto; border-radius: 10px;
+  display: grid; place-items: center;
+  background: #000; border: 1px solid rgb(255 255 255 / .08);
+}
+.login-logo img { width: 36px; height: 36px; }
+.login-modal h2 {
+  margin: 14px 0 24px;
+  font: 500 19px/1.2 var(--mono); letter-spacing: -.01em; color: #fff;
+}
+.login-provider {
+  display: flex; align-items: center; gap: 12px;
+  padding: 9px 10px; border-radius: 10px;
+  border: 1px solid rgb(255 255 255 / .14);
+  text-decoration: none;
+  transition: border-color .2s, background-color .2s;
+}
+.login-provider:hover { border-color: var(--accent); background: rgb(115 97 255 / .08); }
+.login-x {
+  width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0;
+  display: grid; place-items: center;
+  color: #fff; background: #000; border: 1px solid rgb(255 255 255 / .1);
+}
+.login-x svg { width: 16px; height: 16px; }
+.login-name { flex: 1; text-align: left; font: 500 15px/1 var(--mono); color: #fff; }
+.login-recent {
+  padding: 7px 10px; border-radius: 7px;
+  font: 500 12px/1 var(--mono); color: rgb(255 255 255 / .8);
+  background: rgb(255 255 255 / .1);
+}
+.login-secured {
+  margin: 72px 0 0;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  font: 500 13px/1 var(--mono); color: rgb(255 255 255 / .45);
+}
+.login-secured svg { display: block; height: 16px; width: 60px; }
+@keyframes login-fade { from { opacity: 0; } }
+@keyframes login-pop { from { opacity: 0; transform: translateY(18px) scale(.94); } }
+
+/* ── load-in: one quiet rise ── */
+@media (prefers-reduced-motion: no-preference) {
+  .brand, .topnav, .hero > * { opacity: 0; translate: 0 14px; animation: rise .7s cubic-bezier(.2,.7,.2,1) forwards; }
+  .brand, .topnav { translate: 0 -10px; animation-delay: .1s; }
+  .hero h1 { animation-delay: .15s; }
+  .tagline { animation-delay: .28s; }
+  .actions { animation-delay: .4s; }
+  .cardfan { opacity: 0; translate: 0 50px; animation: rise .9s cubic-bezier(.2,.7,.2,1) .45s forwards; }
+  @keyframes rise { to { opacity: 1; translate: 0 0; } }
+}
+
+/* ── phones ── */
+@media (max-width: 700px) {
+  .brand { top: 24px; left: 20px; }
+  .brand img { width: 28px; height: 28px; }
+  .brand .textmark { width: 68px; height: 19px; }
+  .topnav { top: 24px; right: 20px; gap: 8px; }
+  .visit { font-size: 12px; padding: 10px 14px; }
+  .hero { padding: 56px 20px 120px; }
+  .line-caps { font-size: clamp(22px, 7.2vw, 40px); }
+  .line-serif { font-size: clamp(15px, 4.4vw, 22px); }
+  .tagline { margin-top: 12px; font-size: 13px; }
+  .actions { margin-top: 18px; }
+  .btn { font-size: 14px; padding: 12px 22px; }
+  .fan-card { width: 190px; height: 264px; }
+  .fan-frame { transform: scale(.459); }
+}

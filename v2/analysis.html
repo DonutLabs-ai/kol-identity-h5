@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Donut Identity · Your card</title>
+<meta name="theme-color" content="#0F1114">
+<link rel="icon" href="../identity/favicon.ico">
+<link rel="stylesheet" href="./landing.css?v=3">
+<link rel="stylesheet" href="./flow.css?v=1">
+<link rel="stylesheet" href="./summon.css?v=1">
+<link rel="stylesheet" href="./v2-overrides.css?v=1">
+<style>
+@font-face { font-family: "Timeless Serif"; font-weight: 350; font-style: italic; font-display: swap; src: url(./fonts/TimelessSerif-BookItalic.woff2) format("woff2"); }
+.reveal-main {
+  position: relative; z-index: 5;
+  display: grid; grid-template-columns: 480px 1fr; gap: 72px;
+  max-width: 1200px; margin: 0 auto; padding: 118px 40px 40px;
+  align-items: center; min-height: calc(100dvh - 16px); box-sizing: border-box;
+}
+
+/* other trader types — based on the original flow (identity/theme.css .donut-locked) */
+.others { position: relative; z-index: 5; padding: 0 0 90px; color: #fff; }
+.others-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+  max-width: 1200px; margin: 0 auto 20px; padding: 0 50px; box-sizing: border-box;
+}
+.others-head h2 { margin: 0; font: 465 24px/1.1 var(--serif); color: #fff; }
+.others-head p { margin: 0; font: 400 13px/1.4 var(--mono); color: rgb(255 255 255 / .55); }
+/* full-bleed row: first card inset to the heading, cards bleed off BOTH edges when scrolled */
+.others-row {
+  --inset: max(50px, calc((100vw - 1200px) / 2 + 50px));
+  display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x proximity;
+  padding: 4px 50px 12px var(--inset); scroll-padding-left: var(--inset);
+  scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.others-row::-webkit-scrollbar { display: none; }
+.other-card {
+  position: relative; flex: 0 0 150px; scroll-snap-align: start;
+  border-radius: 16px; overflow: hidden; background: #0e0c17; aspect-ratio: 723 / 965;
+}
+.other-card img { display: block; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) brightness(.45); transition: filter .3s ease, transform .3s ease; }
+.other-card:hover img { filter: grayscale(.6) brightness(.6); }
+.other-card.unlocked img { filter: none; }
+.other-card.unlocked:hover img { filter: none; transform: scale(1.04); }
+.other-card .oc-badge {
+  position: absolute; left: 10px; top: 10px;
+  display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 999px;
+  font: 500 11px/14px var(--mono); letter-spacing: .04em; color: #fff;
+  background: rgb(10 6 28 / .7); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .35);
+}
+.other-card.unlocked .oc-badge { color: #0c0b12; background: var(--accent-light); box-shadow: none; }
+.other-card .oc-badge svg { width: 11px; height: 11px; }
+.other-card .oc-name {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 28px 10px 10px;
+  font: 465 15px/1.15 var(--serif); color: #fff;
+  background: linear-gradient(180deg, transparent, rgb(5 5 7 / .85));
+}
+.other-card.unlocked { box-shadow: 0 12px 32px rgb(115 97 255 / .3); }
+@media (max-width: 760px) {
+  .others-head { flex-direction: column; align-items: flex-start; gap: 4px; padding: 0 20px; }
+  .others-row { padding: 4px 20px 12px; }
+  .other-card { flex-basis: 132px; }
+}
+
+/* left: the card arrives slowly (rise, unblur, bloom), character pops on its own layer */
+.reveal-stage { position: relative; width: 414px; height: 575px; justify-self: center; }
+.reveal-bloom {
+  position: absolute; inset: -120px; pointer-events: none;
+  background: radial-gradient(50% 42% at 50% 50%, rgb(115 97 255 / .35), transparent 70%);
+  opacity: 0; animation: bloom-in 2.4s ease .5s forwards;
+}
+.reveal-tilt {
+  position: relative; width: 414px; height: 575px;
+  transform-style: preserve-3d; transition: transform .18s ease-out;
+}
+.reveal-tilt iframe { position: absolute; left: -63px; top: -88px; width: 540px; height: 750px; border: 0; background: transparent; pointer-events: none; }
+/* 2.5D portrait, three planes: the card's own photo is the blurred ground (L0),
+   a clipped sharp plane carries the crowd (L1), and the cut-out girl rides on top (L2) */
+.reveal-win {
+  position: absolute; left: 51px; top: 47px; width: 312px; height: 312px;
+  border-radius: 14px; overflow: hidden; clip-path: inset(0 round 14px); pointer-events: none; z-index: 2;
+  transform: translateZ(16px);
+  /* appearing waits for the card's front face (visibility swaps at ~.42s into the flip) */
+  transition: opacity .3s ease .45s;
+}
+.reveal-mid {
+  position: absolute; left: -14px; top: -14px; width: 340px; height: 340px;
+  object-fit: cover; object-position: 50% 0%;
+  transform: translate(var(--mx, 0px), var(--my, 0px));
+}
+.reveal-stage.flipped .reveal-win { opacity: 0; transition: opacity .18s ease 0s; }
+/* parent-side click catcher: a flat stage child, outside every 3D subtree */
+.reveal-hit { position: absolute; left: 0; top: 0; width: 414px; height: 575px; z-index: 6; cursor: pointer; }
+
+.reveal-pop {
+  position: absolute; left: 51px; top: 39px; width: 312px; height: 312px;
+  object-fit: cover; object-position: 50% 0%;
+  z-index: 3; pointer-events: none;
+  clip-path: inset(14px 0 0 0); /* clipped to the window top: pops forward, never over the notch */
+  /* scale compensates the perspective magnification of translateZ, so she stays true-size */
+  transform: translate(var(--px, 0px), var(--py, 0px)) translateZ(24px) scale(1.04); transform-origin: 50% 30%;
+  filter: drop-shadow(0 10px 22px rgb(0 0 0 / .5));
+  transition: opacity .3s ease .45s;
+}
+.reveal-stage.flipped .reveal-pop { opacity: 0; transition: opacity .18s ease 0s; }
+.reveal-card-wrap { width: 414px; height: 575px; transform-style: preserve-3d; }
+@media (prefers-reduced-motion: no-preference) {
+  body:not(.revealed) .reveal-card-wrap, body:not(.revealed) .reveal-info,
+  body:not(.revealed) .reveal-hint, body:not(.revealed) .reveal-bloom { opacity: 0; animation: none; }
+  .revealed .reveal-card-wrap {
+    opacity: 0; filter: blur(16px); transform: translateY(46px) scale(.84);
+    animation: card-reveal 2s cubic-bezier(.22,.9,.24,1) .1s forwards;
+  }
+  @keyframes card-reveal {
+    60% { opacity: 1; }
+    100% { opacity: 1; filter: blur(0); transform: none; }
+  }
+  .revealed .reveal-info { opacity: 0; translate: 0 18px; animation: rise .9s cubic-bezier(.2,.7,.2,1) 1.6s forwards; }
+  .revealed .reveal-hint { animation: rise .8s ease 2.2s forwards; }
+  .revealed .reveal-bloom { animation: bloom-in 2.4s ease .1s forwards; }
+}
+@keyframes bloom-in { to { opacity: 1; } }
+.reveal-hint {
+  margin-top: 18px; text-align: center;
+  font: 500 13px/1 var(--mono); color: rgb(255 255 255 / .45);
+  opacity: 0;
+}
+
+/* analyzing: D0 reads the answers before the card shows itself */
+.analyze {
+  position: fixed; inset: 0; z-index: 40;
+  display: grid; place-content: center; justify-items: center; gap: 20px;
+  background: rgb(5 5 9 / .55);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  transition: opacity .45s ease;
+}
+.analyze.done { opacity: 0; pointer-events: none; }
+.az-mark { position: relative; width: 74px; height: 74px; display: grid; place-items: center; }
+.az-mark img { width: 44px; height: 44px; }
+.az-mark::before {
+  content: ""; position: absolute; inset: 0; border-radius: 50%;
+  border: 1.5px solid rgb(172 170 255 / .4); border-top-color: rgb(172 170 255 / .95);
+}
+.az-status { font: 500 14px/1.4 var(--mono); color: rgb(255 255 255 / .75); min-height: 20px; }
+/* the loading bar is a run of parallelograms lighting up pink to gold */
+.az-bar { display: flex; gap: 5px; }
+.az-bar i {
+  width: 13px; height: 11px; transform: skewX(-22deg);
+  background: rgb(255 255 255 / .12); border-radius: 2px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .az-mark img { animation: az-breathe 2.2s ease-in-out infinite; }
+  .az-mark::before { animation: az-spin 1.1s linear infinite; }
+  .az-bar i { animation: az-cell .12s ease var(--dl, 0s) forwards; }
+  @keyframes az-spin { to { rotate: 360deg; } }
+  @keyframes az-breathe { 0%, 100% { scale: 1; } 50% { scale: 1.12; } }
+  @keyframes az-cell { to { background: var(--c); box-shadow: 0 0 12px var(--c); } }
+}
+
+/* right: the conclusion */
+.reveal-info { display: grid; gap: 22px; align-content: center; }
+.reveal-eyebrow {
+  font: 600 12px/1 var(--mono); letter-spacing: 3px; text-transform: uppercase;
+  width: fit-content;
+  background: linear-gradient(90deg, #ff7ac2, #ffd176);
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent; -webkit-text-fill-color: transparent;
+}
+.reveal-info h1 {
+  margin: -6px 0 0;
+  font: 465 clamp(34px, 3.4vw, 52px)/1.05 var(--serif); letter-spacing: .01em; color: #fff;
+}
+.reveal-quote {
+  font: italic 350 24px/1.45 "Timeless Serif", Georgia, serif;
+  color: rgb(255 255 255 / .94);
+  width: 42ch; max-width: 100%;
+}
+.reveal-quote span:last-child { display: block; margin-top: 6px; font: 400 13px/1.4 var(--mono); font-style: normal; color: rgb(255 255 255 / .5); text-align: right; }
+.reveal-desc { margin: 0; font: 400 15px/1.7 var(--mono); color: rgb(255 255 255 / .72); max-width: 54ch; }
+.flag-row {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 13px 16px; border-radius: 10px;
+  border: 1px solid rgb(255 255 255 / .12); background: rgb(255 255 255 / .04);
+}
+.flag-row b {
+  flex-shrink: 0; font: 700 11px/1 var(--mono); letter-spacing: 1.5px; text-transform: uppercase;
+}
+.flag-row.green b { color: #7ee2a8; }
+.flag-row.red b { color: #ff8a8a; }
+.flag-row span { font: 400 14px/1.5 var(--mono); color: rgb(255 255 255 / .8); }
+.reveal-actions { display: flex; gap: 12px; margin-top: 4px; }
+.reveal-actions .btn svg { width: 15px; height: 15px; }
+
+@media (max-width: 1000px) {
+  .reveal-main { grid-template-columns: 1fr; gap: 44px; padding: 110px 20px 60px; }
+  .reveal-stage { width: 330px; height: 458px; }
+  .reveal-tilt { transform: scale(.797); transform-origin: 0 0; }
+}
+</style>
+</head>
+<body>
+
+<video class="stage" autoplay muted loop playsinline
+       poster="../identity/media/hero-poster-720.jpg">
+  <source src="../identity/media/hero-720.mp4" type="video/mp4">
+</video>
+<div class="overlay"></div>
+
+<a class="brand" href="./" aria-label="Donut">
+  <img src="../identity/donut-icon.svg" alt="" width="34" height="34">
+  <svg class="textmark" width="82" height="23" viewBox="0 0 50 14" fill="none" aria-hidden="true">
+    <path fill="#fff" d="M1.11867 13.6911V11.8134H4.80832C5.72419 11.8134 6.50268 11.6048 7.14379 11.1876C7.7849 10.7703 8.27554 10.1901 8.61572 9.44685C8.96899 8.70362 9.14562 7.83652 9.14562 6.84554C9.14562 5.84153 8.96899 4.96791 8.61572 4.22468C8.27554 3.48145 7.7849 2.90773 7.14379 2.50351C6.50268 2.08626 5.72419 1.87763 4.80832 1.87763H1.11867V0H4.80832C6.1167 0 7.24192 0.29338 8.18395 0.880141C9.12599 1.45386 9.85215 2.25577 10.3624 3.28586C10.8727 4.30291 11.1278 5.48947 11.1278 6.84554C11.1278 8.20161 10.8727 9.39469 10.3624 10.4248C9.85215 11.4418 9.12599 12.2437 8.18395 12.8305C7.24192 13.4042 6.1167 13.6911 4.80832 13.6911H1.11867ZM0 13.6911V0H1.96258V13.6911H0Z"/>
+    <path fill="#fff" d="M16.7889 13.9649C15.8077 13.9649 14.9441 13.7432 14.1983 13.2999C13.4526 12.8566 12.8638 12.2503 12.432 11.481C12.0133 10.6986 11.804 9.79238 11.804 8.76229C11.804 7.74524 12.0133 6.84554 12.432 6.06319C12.8638 5.28085 13.4526 4.67453 14.1983 4.24424C14.9441 3.80091 15.8077 3.57924 16.7889 3.57924C17.7702 3.57924 18.6338 3.80091 19.3795 4.24424C20.1253 4.67453 20.7076 5.28085 21.1262 6.06319C21.558 6.84554 21.7739 7.74524 21.7739 8.76229C21.7739 9.79238 21.558 10.6986 21.1262 11.481C20.7076 12.2633 20.1253 12.8761 19.3795 13.3195C18.6338 13.7498 17.7702 13.9649 16.7889 13.9649ZM16.7889 12.1459C17.3908 12.1459 17.9142 12.009 18.359 11.7352C18.8169 11.4614 19.1702 11.0702 19.4188 10.5617C19.6805 10.0532 19.8113 9.45989 19.8113 8.78185C19.8113 8.07774 19.6805 7.47794 19.4188 6.98245C19.1702 6.47393 18.8169 6.08275 18.359 5.80893C17.9142 5.52207 17.3908 5.37864 16.7889 5.37864C16.1871 5.37864 15.6572 5.52207 15.1993 5.80893C14.7544 6.08275 14.4011 6.47393 14.1395 6.98245C13.8909 7.47794 13.7666 8.07122 13.7666 8.76229C13.7666 9.45337 13.8909 10.0532 14.1395 10.5617C14.4011 11.0702 14.7544 11.4614 15.1993 11.7352C15.6572 12.009 16.1871 12.1459 16.7889 12.1459Z"/>
+    <path fill="#fff" d="M22.8334 13.6911V3.85306H24.6978V6.49349L24.1679 6.31746C24.3642 5.75677 24.6586 5.27433 25.0511 4.87011C25.4436 4.45286 25.9015 4.1334 26.4249 3.91174C26.9613 3.69007 27.5305 3.57924 28.1323 3.57924C28.8389 3.57924 29.4734 3.72919 30.036 4.02909C30.5986 4.32899 31.0435 4.77884 31.3706 5.37864C31.6977 5.9654 31.8612 6.70211 31.8612 7.58877V13.6911H29.8987V8.13642C29.8987 7.47142 29.8005 6.94334 29.6043 6.55216C29.408 6.14795 29.1398 5.85457 28.7996 5.67202C28.4725 5.48947 28.0865 5.3982 27.6417 5.3982C27.1968 5.3982 26.752 5.50903 26.3071 5.7307C25.8754 5.95236 25.5156 6.2979 25.2277 6.76731C24.9399 7.23672 24.796 7.84955 24.796 8.60582V13.6911H22.8334Z"/>
+    <path fill="#fff" d="M42.2813 3.85306V13.6911H40.4169V11.0507L40.9468 11.2071C40.7505 11.7678 40.4561 12.2568 40.0636 12.674C39.6711 13.0782 39.2066 13.3977 38.6702 13.6324C38.1468 13.8541 37.5777 13.9649 36.9627 13.9649C36.2693 13.9649 35.6413 13.815 35.0786 13.5151C34.516 13.2021 34.0712 12.7523 33.7441 12.1655C33.417 11.5657 33.2534 10.829 33.2534 9.95537V3.85306H35.216V9.40773C35.216 10.0597 35.3076 10.5878 35.4908 10.992C35.687 11.3962 35.9553 11.6896 36.2954 11.8721C36.6356 12.0416 37.0281 12.1264 37.473 12.1264C37.9178 12.1264 38.3562 12.0156 38.7879 11.7939C39.2328 11.5722 39.5991 11.2267 39.887 10.7573C40.1748 10.2879 40.3187 9.68155 40.3187 8.93832V3.85306H42.2813Z"/>
+    <path fill="#fff" d="M47.736 13.6911C46.8333 13.6911 46.1006 13.4042 45.538 12.8305C44.9884 12.2568 44.7137 11.481 44.7137 10.503V1.25176H46.6763V10.327C46.6763 10.8616 46.8006 11.2593 47.0491 11.5201C47.3108 11.7678 47.7099 11.8917 48.2463 11.8917H49.3454L49.4435 12.1068V13.6911H47.736ZM43.0259 5.65246V3.85306H49.4435V5.65246H43.0259Z"/>
+  </svg>
+</a>
+
+<nav class="topnav">
+  <a class="visit" href="https://getdonut.ai/" target="_blank" rel="noopener">About D0</a>
+  <a class="visit" href="https://d0.getdonut.ai/d0-onboarding" target="_blank" rel="noopener" id="try-d0">Try D0
+    <svg class="arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </a>
+  <a class="visit quiet" href="./">Logout</a>
+</nav>
+
+<div class="analyze" id="analyze" aria-live="polite">
+  <div class="az-foot">
+    <div class="az-status" id="az-status">Reading your answers</div>
+    <div class="az-bar" id="az-bar"></div>
+  </div>
+</div>
+<script src="./score.js?v=1"></script>
+<script src="./summon.js?v=1"></script>
+
+<main class="reveal-main">
+
+  <div class="reveal-stage" id="reveal-stage">
+    <div class="reveal-bloom" aria-hidden="true"></div>
+    <div class="reveal-card-wrap">
+      <div class="reveal-tilt" id="reveal-tilt">
+        <iframe id="result-card" title="Your Donut Trader card"></iframe>
+        <div class="reveal-win" aria-hidden="true"><img class="reveal-mid" id="reveal-mid" alt=""></div>
+        <img class="reveal-pop" id="reveal-pop" alt="">
+      </div>
+    </div>
+    <div class="reveal-hit" id="reveal-hit" role="button" aria-label="Flip the card" tabindex="0"></div>
+    <div class="reveal-hint">Tap the card to flip it</div>
+  </div>
+
+  <section class="reveal-info">
+    <div class="reveal-eyebrow">Meet your trading self</div>
+    <h1 id="r-name"></h1>
+    <div class="reveal-quote"><span id="r-quote-line"></span><span id="r-quote-by"></span></div>
+    <p class="reveal-desc" id="r-desc"></p>
+    <div class="flag-row green"><b>Green flag</b><span id="r-green"></span></div>
+    <div class="flag-row red"><b>Red flag</b><span id="r-red"></span></div>
+    <div class="reveal-actions">
+      <a class="btn primary" href="#" id="share-btn" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.45-6.231zm-1.161 17.52h1.833L7.084 4.126H5.117l11.966 15.644z"/></svg>
+        Share on X
+      </a>
+      <a class="btn" href="#" id="save-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+        Save card
+      </a>
+    </div>
+  </section>
+
+</main>
+
+<section class="others" id="others">
+  <div class="others-head">
+    <h2>Other trader types</h2>
+    <p>Invite friends to test. Each one unlocks their card.</p>
+  </div>
+  <div class="others-row" id="others-row"></div>
+</section>
+
+<script>
+(function () {
+  /* per-archetype conclusions, in the campaign's roast voice */
+  var C = {
+    "Diamond Hands": { slug: "01-diamond-hands",
+      quote: "“ Zoom out.”", by: "— you, every single red day",
+      desc: "Your bag is down 40% and you're calmly posting the 5-year chart. You haven't opened the sell tab since 2021, and you're weirdly proud of it.",
+      green: "Never panic-sells the bottom", red: "Also never takes profit" },
+    "DCA Believer": { slug: "02-dca-believer",
+      quote: "“ Time in the market beats timing the market.”", by: "— you, every other Monday",
+      desc: "Same amount, same day, rain or crash. Your average entry is a mystery even to you, and you sleep better than anyone else on this list.",
+      green: "Immune to FOMO at the top", red: "Would DCA into a rug for the discipline" },
+    "Risk Explorer": { slug: "03-risk-explorer",
+      quote: "“ What's the worst that can happen?”", by: "— you, right before finding out",
+      desc: "You've been early to three narratives and rugged by four, and you still read contract addresses like bedtime stories.",
+      green: "First into what everyone buys next month", red: "First into what no one buys, ever" },
+    "Day Trader": { slug: "04-day-trader",
+      quote: "“ I'm flat by dinner.”", by: "— you, at 3am, not flat",
+      desc: "Six charts, four coffees, one thumb hovering over close-all. You've made and refunded the same $500 to the market eleven times this week.",
+      green: "Never holds a loser overnight", red: "Never holds a winner overnight either" },
+    "Sniper": { slug: "05-sniper",
+      quote: "“ Not yet.”", by: "— you, for six weeks straight",
+      desc: "You watch one setup like it owes you money, pass on everything else, then fire once. The entry is usually beautiful. The waiting drives everyone else insane.",
+      green: "Doesn't chase, ever", red: "Missed half the bull market waiting for the retest" },
+    "Grid Executor": { slug: "06-grid-executor",
+      quote: "“ The bot's handling it.”", by: "— you, on a beach, allegedly",
+      desc: "You turned your opinions into parameters and your parameters into orders. The market chops, your grid hums, and you check in like a landlord.",
+      green: "Emotions removed from execution", red: "Will grid straight through a trend reversal" },
+    "Swing Hunter": { slug: "07-swing-hunter",
+      quote: "“ This is the local bottom.”", by: "— you, at three different bottoms",
+      desc: "You live between the four-hour and the daily, hunting the meat of the move and skipping the chop. Sometimes the market swings. Sometimes you do.",
+      green: "Takes profit on the way up", red: "Re-enters the trade they just exited, higher" },
+    "Momentum Rider": { slug: "08-momentum-rider",
+      quote: "“ Strength begets strength.”", by: "— you, buying the third green candle",
+      desc: "You don't predict, you confirm. When it moves, you're on it. When it stalls, you're gone, usually one candle after you should be.",
+      green: "Rides winners longer than most", red: "The top is simply where your last buy sits" },
+    "Arb Researcher": { slug: "09-arb-researcher",
+      quote: "“ There's a spread for that.”", by: "— you, about literally anything",
+      desc: "Funding rates, listing gaps, bridge delays. You see basis points where others see noise, and your PnL is boring on purpose.",
+      green: "Profits without caring which way the market goes", red: "Once changed exchanges for 0.4%" },
+    "Narrative Trader": { slug: "10-narrative-trader",
+      quote: "“ It's not a coin, it's a story.”", by: "— you, mid-thesis, pre-chart",
+      desc: "You trade attention before it becomes price. Your watchlist reads like next quarter's headlines, and sometimes the market even agrees.",
+      green: "Early to the narrative, receipts on the timeline", red: "Still holding when the story gets a sequel nobody asked for" },
+    "Risk-First": { slug: "11-risk-first",
+      quote: "“ Define the downside first.”", by: "— you, before saying hello",
+      desc: "Position size before thesis, invalidation before entry. Your drawdowns are shallow, your sleep is deep, and your friends call you boring until the crash.",
+      green: "Survives every cycle", red: "So hedged that winning feels theoretical" },
+    "Contrarian": { slug: "12-contrarian",
+      quote: "“ Everyone's bullish? Interesting.”", by: "— you, opening a short",
+      desc: "When the crowd leans one way, you check the other side of the boat. Being early feels identical to being wrong, and you've budgeted for both.",
+      green: "Buys when the timeline is a funeral", red: "Fights trends that had no intention of stopping" }
+  };
+
+  /* the type the quiz earned (claim.html → sessionStorage); random only when opened directly (demo) */
+  var names = Object.keys(C), saved = null;
+  try { saved = JSON.parse(sessionStorage.getItem("donut.result") || "null"); } catch (e) {}
+  var type = saved && C[saved.name] ? saved.name : names[Math.floor(Math.random() * names.length)];
+  var typeId = saved && saved.type ? saved.type : null;
+  var T = C[type];
+  var summonRoot = null;
+  try {
+    var S = window.DonutScore, ansIdx = saved && saved.answers ? ["market","horizon","strategy","risk","execution","information"].map(function (k) { var pool = S ? (S.OPTIONS[k] || S.SLIDER[k]) : null; return pool ? pool.indexOf(saved.answers[k]) : -1; }) : null;
+    var kolQ = new URLSearchParams(location.search).get("kol") || (saved && saved.kol) || "";
+    summonRoot = window.DonutSummon && DonutSummon.mount(document.getElementById("analyze"), { name: kolQ === "chriszhu" ? "Chris Zhu" : "YOUR DONUT ID", handle: kolQ === "chriszhu" ? "@chriszhu" : "", answers: ansIdx });
+  } catch (e) {}
+
+  document.getElementById("r-name").textContent = type;
+  document.getElementById("r-quote-line").textContent = T.quote;
+  document.getElementById("r-quote-by").textContent = T.by;   /* handle is set once HANDLE is known, below */
+  document.getElementById("r-desc").textContent = T.desc;
+  document.getElementById("r-green").textContent = T.green;
+  document.getElementById("r-red").textContent = T.red;
+
+  /* other trader types gallery: all 12, the claimed one unlocked in colour */
+  var LOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+  var row = document.getElementById("others-row");
+  names.forEach(function (n) {
+    var unlocked = n === type;
+    var card = document.createElement("div");
+    card.className = "other-card" + (unlocked ? " unlocked" : "");
+    card.innerHTML =
+      '<img src="../identity/img/archetypes/' + C[n].slug + '.jpg" alt="" loading="lazy">' +
+      '<span class="oc-badge">' + (unlocked ? "Yours" : LOCK_SVG + "Locked") + '</span>' +
+      '<span class="oc-name">' + n + '</span>';
+    row.appendChild(card);
+  });
+  /* the claimed card leads the row */
+  var mine = row.querySelector(".other-card.unlocked");
+  if (mine) row.insertBefore(mine, row.firstChild);
+
+  var pop = document.getElementById("reveal-pop");
+  pop.src = "./art/pfp-cut.png";
+  var mid = document.getElementById("reveal-mid");
+  mid.src = "../flashcard/kol-pfp.jpg";
+
+  var f = document.getElementById("result-card");
+  var DEMO = { name: "Chris Zhu", handle: "@chriszhu", avatar: "../identity/img/demo/chriszhu.png" };
+  var KOL = new URLSearchParams(location.search).get("kol") || (saved && saved.kol) || "";
+  var HANDLE = KOL === "chriszhu" ? DEMO.handle : "@RU7CRYPTOLONG";
+  var AVATAR = HANDLE === DEMO.handle ? DEMO.avatar : "../flashcard/kol-pfp.jpg";
+  function cardSrc(img) {
+    return "../flashcard/kol-v0.html?code=DONUT2026&skin=amethyst" + "&user=" + encodeURIComponent(HANDLE.toUpperCase()) + "&type=" + encodeURIComponent(type) + (img ? "&img=" + encodeURIComponent(img) : "");
+  }
+  f.src = cardSrc("");
+  document.getElementById("r-quote-by").textContent = T.by.replace("\u2014 you,", "\u2014 " + HANDLE.toLowerCase() + ",");
+  /* ── card art from the backend (BACKEND.md §3): POST now, poll, then reveal with the art in place ── */
+  var API = new URLSearchParams(location.search).get("api") || window.DONUT_CARD_API || (/^(127\.0\.0\.1|localhost)$/.test(location.hostname) ? "http://127.0.0.1:3022" : "");
+  var art = { status: API ? "pending" : "none", t0: Date.now(), url: "" };
+  /* the avatar goes as bytes (avatar_data) — the mock server must not depend on reaching this page's origin */
+  function avatarData() { return fetch(AVATAR).then(function (r) { return r.blob(); }).then(function (b) { return new Promise(function (res) { var fr = new FileReader(); fr.onload = function () { res(fr.result); }; fr.readAsDataURL(b); }); }); }
+  if (API && typeId) {
+    avatarData().then(function (data) { return fetch(API + "/v1/identity/card-art", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ avatar_data: data, handle: HANDLE, type: typeId }) }); })
+      .then(function (r) { return r.json(); }).then(function (j) {
+        if (j.status === "done") return artDone(j.image_url);
+        if (!j.job_id) { art.status = "failed"; return; }
+        var poll = setInterval(function () {
+          fetch(API + "/v1/identity/card-art/" + j.job_id).then(function (r) { return r.json(); }).then(function (st) {
+            if (st.status === "done") { clearInterval(poll); artDone(st.image_url); }
+            else if (st.status === "failed") { clearInterval(poll); art.status = "failed"; }
+            else art.stage = st.stage;
+          }).catch(function () {});
+        }, 3000);
+      }).catch(function () { art.status = "failed"; });
+  } else art.status = "none";
+  function artDone(url) {
+    var abs = /^https?:/.test(url) ? url : API + url; var im = new Image();
+    im.onload = function () { art.url = abs; f.src = cardSrc(abs); art.status = "done"; document.body.classList.add("has-art"); };
+    im.onerror = function () { art.status = "failed"; }; im.src = abs;
+  }
+
+  var stage = document.getElementById("reveal-stage");
+  var tiltEl = document.getElementById("reveal-tilt");
+  var flipEl = null;
+  var autoFlipT = null;
+
+  /* the card tilts and the portrait pans with the mouse, wherever it is */
+  function panAt(cx, cy) {
+    var r = stage.getBoundingClientRect();
+    var px = Math.max(-0.9, Math.min(0.9, (cx - r.left) / r.width - 0.5));
+    var py = Math.max(-0.9, Math.min(0.9, (cy - r.top) / r.height - 0.5));
+    tiltEl.style.transform = "perspective(900px) rotateY(" + (px * 10).toFixed(2) + "deg) rotateX(" + (-py * 8).toFixed(2) + "deg)";
+    pop.style.setProperty("--px", (px * 9).toFixed(1) + "px");
+    pop.style.setProperty("--py", (py * 7).toFixed(1) + "px");
+    mid.style.setProperty("--mx", (px * 4.5).toFixed(1) + "px");
+    mid.style.setProperty("--my", (py * 3.5).toFixed(1) + "px");
+  }
+  addEventListener("pointermove", function (e) { panAt(e.clientX, e.clientY); });
+  /* tap-to-flip lives on the parent stage: pointerup AND click both land here,
+     the debounce collapses them into one toggle */
+  var lastFlip = 0;
+  function tapFlip() {
+    var now = Date.now();
+    if (now - lastFlip < 350) return;
+    lastFlip = now;
+    clearTimeout(autoFlipT);
+    if (flipEl) flipEl.classList.toggle("is-flipped");
+  }
+  stage.addEventListener("pointerup", tapFlip);
+  stage.addEventListener("click", tapFlip);
+
+  /* analyzing phase: status lines cycle while the bar fills, then the reveal begins */
+  var AZ = ["Reading your answers", "Weighing risk against rhythm", "Consulting the charts", "Minting your identity"];
+  var azEl = document.getElementById("az-status"), azI = 0;
+  /* parallelogram cells: each snaps on at its moment, pink fading to gold */
+  var azBar = document.getElementById("az-bar");
+  for (var ci = 0; ci < 14; ci++) {
+    var cell = document.createElement("i");
+    var t = ci / 13;
+    cell.style.setProperty("--c", "rgb(" + Math.round(255) + " " + Math.round(122 + t * 87) + " " + Math.round(194 - t * 76) + ")");
+    cell.style.setProperty("--dl", (0.15 + t * 3.1).toFixed(2) + "s");
+    azBar.appendChild(cell);
+  }
+  var azTick = setInterval(function () {
+    azI = (azI + 1) % AZ.length;
+    azEl.textContent = AZ[azI];
+  }, 950);
+  /* the reveal waits for the card art (min 3.8 s so the loader reads; max 6 min, then default art). A percentage
+     appears after 8 s so a long wait is legible. */
+  var ART_EXPECT = 30000, MIN_SHOW = 3800, MAX_WAIT = 360000, azPct = document.getElementById("az-pct");
+  var revealing = false;
+  function reveal() {
+    if (revealing) return; revealing = true;
+    clearInterval(azTick); clearInterval(waitTick);
+    if (window.DonutSummon) DonutSummon.flare(summonRoot);
+    setTimeout(revealNow, 1100);
+  }
+  function revealNow() {
+    var ov = document.getElementById("analyze");
+    ov.classList.add("done");
+    setTimeout(function () { ov.remove(); }, 500);
+    document.body.classList.add("revealed");
+    autoFlipT = setTimeout(function () { if (flipEl) flipEl.classList.add("is-flipped"); }, 4600);
+  }
+  var waitTick = setInterval(function () {
+    var t = Date.now() - art.t0;
+    if (art.status === "done" || art.status === "none" || art.status === "failed" || t > MAX_WAIT) { if (t >= MIN_SHOW) reveal(); return; }
+    if (t > 8000 && azPct) { var f = t / ART_EXPECT, pct = Math.min(96, 100 * (1 - Math.exp(-f * 2.2))); if (art.stage === "gemini") pct = Math.max(pct, 78); azPct.hidden = false; azPct.querySelector("b").textContent = String(Math.round(pct)); }
+  }, 250);
+  
+  function injectCard() {
+    try {
+      var doc = f.contentDocument; if (!doc || !doc.head) return;
+      if (doc.getElementById("v2x")) return;
+      /* the v0 snapshot ships fan-mode styles (hidden title): bring the title back; the
+         photo window stays the dark ground so the cutout character owns the layer */
+      var st = doc.createElement("style"); st.id = "v2x";
+      st.textContent = "[data-ticket-title]{display:block!important}" +
+        ".kol-photo img{display:block!important;filter:blur(3px) brightness(.9)!important}";
+      doc.head.appendChild(st);
+      var dlg = doc.getElementById("flashcard");
+      if (dlg) dlg.dataset.skin = "amethyst";
+      var flip = doc.querySelector("[data-kol-flip]");
+      if (flip) {
+        flipEl = flip;
+        new MutationObserver(function () {
+          stage.classList.toggle("flipped", flip.classList.contains("is-flipped"));
+        }).observe(flip, { attributes: true, attributeFilter: ["class"] });
+      }
+
+    } catch (e) {}
+  }
+  f.addEventListener("load", injectCard);
+  if (f.contentDocument && f.contentDocument.readyState === "complete") injectCard();
+
+  /* share + save (demo) */
+  document.getElementById("share-btn").href = "https://twitter.com/intent/tweet?text=" +
+    encodeURIComponent("D0 says I'm a " + type + ". Claim your Donut ID → https://getdonut.ai/");
+  var save = document.getElementById("save-btn");
+  save.addEventListener("click", function (e) {
+    e.preventDefault();
+    var label = save.lastChild;
+    save.style.pointerEvents = "none";
+    label.textContent = " Saved";
+    setTimeout(function () { label.textContent = " Save card"; save.style.pointerEvents = ""; }, 1600);
+  });
+
+  /* the reveal animation leaves filter:blur(0) filling forwards, which flattens 3D
+     descendants; clear it once the entrance finishes so the portrait keeps its depth */
+  var wrap = document.querySelector(".reveal-card-wrap");
+  wrap.addEventListener("animationend", function (e) {
+    if (e.target !== wrap) return;
+    wrap.style.animation = "none";
+    wrap.style.opacity = "1";
+    wrap.style.filter = "none";
+    wrap.style.transform = "none";
+  });
+
+  var d0 = document.getElementById("try-d0");
+  if (d0) d0.addEventListener("click", function () {
+    d0.classList.remove("launch"); void d0.offsetWidth; d0.classList.add("launch");
+  });
+})();
+</script>
+
+</body>
+</html>
