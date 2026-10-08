@@ -24,8 +24,8 @@ body.has-art .reveal-pop { display: none !important; }
 /* ── phones (Yi flagged "no mobile adaptation"): the summon stage sat at 44% of a tall screen with the card off to the
    right; the reveal card was scaled from its top-left corner inside a centred 330px box and overflowed the right edge. ── */
 @media (max-width: 760px) {
-  .donut-summon .ds-stage { top: 38% !important; left: 50% !important; }
-  .donut-summon .ds-reading { left: 50% !important; width: 100vw !important; transform: translateX(-50%); font-size: 18px; }
+  .donut-summon .ds-stage { top: 41% !important; left: 50% !important; }
+  .donut-summon .ds-reading { left: 50% !important; width: 100vw !important; transform: translateX(-50%); font-size: 24px; }
   .donut-summon .ds-pct { font-size: 30px; }
   .analyze .az-foot { bottom: max(22px, 4svh); width: calc(100vw - 40px); }
   .analyze .az-foot .az-bar { max-width: 100%; }
@@ -36,7 +36,6 @@ body.has-art .reveal-pop { display: none !important; }
   .reveal-main { grid-template-columns: minmax(0, 1fr) !important; overflow-x: clip !important; justify-items: center !important; }
   .reveal-info { min-width: 0; max-width: 100%; }
   .reveal-stage { margin: 0 auto !important; max-width: 100% !important; left: auto !important; }
-  .reveal-card-wrap, .reveal-hit { width: 330px !important; height: 458px !important; }
 }
 @media (max-width: 480px) {
   /* header: brand and nav collided at 375px */
@@ -50,7 +49,6 @@ body.has-art .reveal-pop { display: none !important; }
    that transform, so the card snapped to full size on hover. The scale now lives in --tilt-base (JS composes it) and
    is centred, so the tilt rotates about the card's middle. */
 @media (max-width: 1000px) {
-  .reveal-tilt { --tilt-base: translate(-10.15%, -10.15%) scale(.797); transform: var(--tilt-base) !important; transform-origin: 50% 50% !important; }
   .reveal-main { gap: 56px !important; }   /* room for the hint under the card */
 }
 /* the hint never overlaps the card: it sits under it, and hides while hovering and after the first tap */
@@ -88,7 +86,6 @@ body.has-art .reveal-pop { display: none !important; }
    card iframe to .749 at ≤1000px with origin 0 0, and the pointer-lean JS overwrote that transform. The scale now lives in
    --tilt-base (JS composes it) and is centred in the 310×431 stage. ── */
 @media (max-width: 1000px) {
-  .card-stage iframe { --tilt-base: translate(-12.55%, -12.55%) scale(.749); transform: var(--tilt-base) !important; transform-origin: 50% 50% !important; }
 }
 
 /* ── claim form: icons on the field labels (Cory 2026-10-08 "加icon") — lucide mail / message-circle / wallet, masked in the
@@ -105,3 +102,46 @@ label[for="f-discord"] { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www
 .flag-row { align-items: center; gap: 12px; }
 .flag-row b { display: inline-grid; place-items: center; width: 18px; height: 18px; font-size: 0 !important; line-height: 0; letter-spacing: 0; }
 .flag-row b::before { content: ""; width: 16px; height: 16px; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z' fill='%23000' stroke='%23000' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M4 22v-7' stroke='%23000' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z' fill='%23000' stroke='%23000' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M4 22v-7' stroke='%23000' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat; }
+
+/* ── card size per viewport (Cory 2026-10-08 evening: "the desktop card is too small") ──
+   ≤760 phones: 330px (scale .797) · 761–1000 (tablets and small desktop windows, e.g. a ~900px browser): the full
+   414px card in the single column · >1000: 1.12× (464px). The scale lives in --tilt-base and the pointer-tilt JS
+   composes it; these rules beat Yi's by specificity rather than !important, so the inline tilt still wins. */
+@media (max-width: 760px) {
+  .reveal-stage, .reveal-card-wrap, .reveal-hit { width: 330px !important; height: 458px !important; }
+  .reveal-card-wrap .reveal-tilt { --tilt-base: translate(-10.15%, -10.15%) scale(.797); transform: var(--tilt-base); transform-origin: 50% 50%; }
+  .card-side .card-stage { width: 310px !important; height: 431px !important; }
+  .card-side .card-stage iframe { --tilt-base: translate(-12.55%, -12.55%) scale(.749); transform: var(--tilt-base); transform-origin: 50% 50%; }
+}
+@media (min-width: 761px) and (max-width: 1000px) {
+  .reveal-stage, .reveal-card-wrap, .reveal-hit { width: 414px !important; height: 575px !important; }
+  .reveal-card-wrap .reveal-tilt { --tilt-base: scale(1); transform: var(--tilt-base); transform-origin: 50% 50%; }
+  .card-side .card-stage { width: 414px !important; height: 575px !important; }
+  .card-side .card-stage iframe { --tilt-base: scale(1); transform: var(--tilt-base); transform-origin: 50% 50%; }
+}
+@media (min-width: 1001px) {
+  .reveal-stage, .reveal-card-wrap, .reveal-hit { width: 464px !important; height: 644px !important; }
+  .reveal-card-wrap .reveal-tilt { --tilt-base: translate(6.04%, 6%) scale(1.12); transform: var(--tilt-base); transform-origin: 50% 50%; }
+}
+
+/* ── flags without the box (Cory: "不要这个玻璃容器"): the glyph and the sentence, nothing around them ── */
+.flag-row { padding: 0 !important; border: 0 !important; background: none !important; border-radius: 0 !important; gap: 10px !important; }
+.flag-row + .flag-row { margin-top: -2px; }
+.flag-row span { color: rgb(255 255 255 / .86); }
+
+/* ── casing (Cory: "大写小写走查"): section headings in Title Case as written; ALL CAPS only for short labels
+   (eyebrows, field labels, the card's own foil text); questions are sentences ── */
+.q-head h3 { text-transform: none !important; letter-spacing: -.01em !important; font-size: 22px !important; }
+.q-block h3 { text-transform: none !important; letter-spacing: 0 !important; font-size: 15px !important; }
+.q-block h3 .q-num { letter-spacing: .08em; }
+
+/* ── the claim page never scrolls sideways (Cory): Yi's option labels were nowrap, which forced the two-column grid
+   (and the whole quiz column) to 561px at any width; labels wrap, one column on phones, slider stop labels wrap ── */
+.q-col, .q-block, .q-grid, .q-opt { min-width: 0; }
+.q-opt b { white-space: normal !important; }
+@media (max-width: 520px) { .q-grid, .q-grid.cols-2, .q-grid.cols-3 { grid-template-columns: 1fr !important; } }
+@media (max-width: 760px) {
+  .q-stops span { white-space: normal; font-size: 11px; max-width: 64px; text-align: center; line-height: 1.2; }
+  .q-stops { height: 28px; }
+  .claim-main { overflow-x: clip; }
+}

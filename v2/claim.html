@@ -8,7 +8,7 @@
 <link rel="icon" href="../identity/favicon.ico">
 <link rel="stylesheet" href="./landing.css?v=3">
 <link rel="stylesheet" href="./flow.css?v=2">
-<link rel="stylesheet" href="./v2-overrides.css?v=11">
+<link rel="stylesheet" href="./v2-overrides.css?v=12">
 </head>
 <body>
 
@@ -222,6 +222,7 @@
 </div>
 
 <script src="./score.js?v=2"></script>
+<script src="./demo-kols.js?v=1"></script>
 <script>
 (function () {
   /* ── the one card: mystery front, masked back; flips with the view ── */
@@ -427,7 +428,7 @@
       ans.horizon = S.SLIDER.horizon[+sliders[0].value]; ans.risk = S.SLIDER.risk[+sliders[1].value];   /* q02, q04 */
       var about = (vQuiz.querySelector(".q-text textarea") || {}).value || "";
       var res; try { res = S.score(ans); } catch (err) { res = { type: "diamond_hands", axes: [] }; }
-      var kol = new URLSearchParams(location.search).get("kol") || (JSON.parse(sessionStorage.getItem("donut.profile") || "null") || {}).kol || "";
+      var kol = new URLSearchParams(location.search).get("kol") || (JSON.parse(sessionStorage.getItem("donut.profile") || "null") || {}).kol || (window.DonutDemo && DonutDemo.current() || {}).id || "";
       sessionStorage.setItem("donut.result", JSON.stringify({ type: res.type, name: S.NAMES[res.type], slug: S.SLUGS[res.type], axes: res.axes, answers: ans, about: about, kol: kol, at: Date.now() }));
       setTimeout(function () { location.href = "./analysis.html"; }, 350);
     }
@@ -450,5 +451,23 @@
 })();
 </script>
 
+
+<script>
+/* demo X profiles (demo-kols.js): the profile row, the card preview's name and the six answers prefilled so Next lands on
+   the persona's type (its art is already cached); every answer stays editable */
+(function () {
+  var D = window.DonutDemo && DonutDemo.current(); if (!D) return;
+  var img = document.querySelector(".x-profile img"), nm = document.querySelector(".xp-name"), hd = document.querySelector(".xp-handle");
+  if (img) { img.onerror = function () { img.onerror = null; img.src = "../flashcard/kol-pfp.jpg"; }; img.src = D.avatar; }
+  if (nm) nm.textContent = D.name;
+  if (hd) hd.textContent = D.handle;
+  var prev = document.querySelector(".card-stage iframe");
+  if (prev) prev.src = prev.src.replace(/user=[^&]*/, "user=" + encodeURIComponent(D.handle.toUpperCase()));
+  var S = window.DonutScore, vQuiz = document.getElementById("view-quiz"); if (!S || !D.answers || !vQuiz) return;
+  var gridKeys = ["market", "strategy", "execution", "information"], sliderKeys = ["horizon", "risk"];
+  vQuiz.querySelectorAll(".q-grid").forEach(function (g, i) { if (g.querySelector(".q-opt.on")) return; var opt = g.querySelectorAll(".q-opt")[S.OPTIONS[gridKeys[i]].indexOf(D.answers[gridKeys[i]])]; if (opt) opt.click(); });
+  vQuiz.querySelectorAll(".q-slider input").forEach(function (inp, i) { var idx = S.SLIDER[sliderKeys[i]].indexOf(D.answers[sliderKeys[i]]); if (idx >= 0) { inp.value = idx; inp.dispatchEvent(new Event("input", { bubbles: true })); } });
+})();
+</script>
 </body>
 </html>

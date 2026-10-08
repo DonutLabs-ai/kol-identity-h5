@@ -8,8 +8,8 @@
 <link rel="icon" href="../identity/favicon.ico">
 <link rel="stylesheet" href="./landing.css?v=3">
 <link rel="stylesheet" href="./flow.css?v=1">
-<link rel="stylesheet" href="./summon.css?v=4">
-<link rel="stylesheet" href="./v2-overrides.css?v=11">
+<link rel="stylesheet" href="./summon.css?v=5">
+<link rel="stylesheet" href="./v2-overrides.css?v=12">
 <style>
 @font-face { font-family: "Timeless Serif"; font-weight: 350; font-style: italic; font-display: swap; src: url(./fonts/TimelessSerif-BookItalic.woff2) format("woff2"); }
 .reveal-main {
@@ -233,6 +233,8 @@
   </div>
 </div>
 <script src="./score.js?v=2"></script>
+<script src="./demo-kols.js?v=1"></script>
+<script src="./summon-gl.js?v=1"></script>
 <script src="./summon.js?v=4"></script>
 
 <main class="reveal-main">
@@ -379,10 +381,11 @@
   var cutWin = document.querySelector(".reveal-win-cut"), cut = document.getElementById("reveal-cut");
 
   var f = document.getElementById("result-card");
-  var DEMO = { name: "Chris Zhu", handle: "@chriszhu", avatar: "../identity/img/demo/chriszhu.png" };
-  var KOL = new URLSearchParams(location.search).get("kol") || (saved && saved.kol) || "";
-  var HANDLE = KOL === "chriszhu" ? DEMO.handle : "@RU7CRYPTOLONG";
-  var AVATAR = HANDLE === DEMO.handle ? DEMO.avatar : "../flashcard/kol-pfp.jpg";
+  /* demo X profiles (demo-kols.js): ?kol=<id>, else the id the claim page saved with the result, else the session's pick */
+  var KOLID = new URLSearchParams(location.search).get("kol") || (saved && saved.kol) || "";
+  var D = window.DonutDemo ? (DonutDemo.KOLS[KOLID] ? Object.assign({ id: KOLID }, DonutDemo.KOLS[KOLID]) : DonutDemo.current()) : null;
+  var DEMO = D || { name: "Your Donut ID", handle: "@RU7CRYPTOLONG", avatar: "../flashcard/kol-pfp.jpg" };
+  var HANDLE = DEMO.handle, AVATAR = DEMO.avatar;
   function cardSrc(img) {
     return "../flashcard/kol-v0.html?code=DONUT2026&skin=amethyst" + "&user=" + encodeURIComponent(HANDLE.toUpperCase()) + "&type=" + encodeURIComponent(type) + (img ? "&img=" + encodeURIComponent(img) : "");
   }

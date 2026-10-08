@@ -72,6 +72,7 @@
       if (opt.handle) d.querySelectorAll(".kol-notch span").forEach(function (sp, i) { if (i) sp.textContent = opt.handle; });
     } catch (e) {} });
     host.appendChild(root);
+    if (window.DonutSummonGL && !reduce.matches) DonutSummonGL.mount(root);   /* WebGL particle field behind the stage */
     if (reduce.matches) { root.querySelector(".ds-card").style.opacity = "1"; root.querySelectorAll(".node").forEach(function (n) { n.style.opacity = "1"; }); return root; }
     var E = "cubic-bezier(.2,.7,.2,1)", card = root.querySelector(".ds-card"), halo = root.querySelector(".ds-halo"), scan = root.querySelector(".scan");
     card.animate([{ opacity: 0, transform: "translateY(60vh) rotateY(-40deg) scale(.9)" }, { opacity: 1, offset: .35 }, { opacity: 1, transform: "translateY(0) rotateY(0) scale(1)" }], { duration: 1500, easing: E, fill: "both" });
@@ -93,6 +94,7 @@
   function flare(root) {
     if (!root || reduce.matches) return;
     var E = "cubic-bezier(.2,.7,.2,1)", seal = root.querySelector(".ds-seal"), card = root.querySelector(".ds-card"), glow = root.querySelector(".ds-glow");
+    if (window.DonutSummonGL) DonutSummonGL.flare();
     seal.animate([{ filter: "brightness(1)" }, { filter: "brightness(2.2)" }, { filter: "brightness(1.2)" }], { duration: 1200, easing: E, fill: "both" });
     card.animate([{ scale: 1, filter: "brightness(1)" }, { scale: 1.18, filter: "brightness(1.28)" }], { duration: 1200, easing: E, fill: "both" });
     glow.animate([{ opacity: 0, transform: "scale(.7)" }, { opacity: 1, transform: "scale(1.3)" }], { duration: 1200, easing: E, fill: "both" });
