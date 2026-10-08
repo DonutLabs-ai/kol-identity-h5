@@ -118,3 +118,27 @@ export async function judgeImage({ key, model, imagePng, avatarPath, moodRefs, s
   }
   throw new Error("judge returned no JSON: " + last.slice(0, 200));
 }
+
+/* ── the other two prompt texts live here too, so harness/export-prompt.mjs reproduces exactly what runs ── */
+/* stage 2 (harness/restyle.mjs — the mock backend's second call, Gemini): re-render the GPT card in the moodboard style */
+export function restylePrompt({ strict = true, edgeSparkle = false, faceClean = false } = {}) {
+  return `Re-render the SOURCE IMAGE entirely in the visual style of the STYLE REFERENCES: the same medium and rendering technique, film-still texture and grain, halation, big star-filter cross flares on the brightest points, prismatic light trails, high-contrast saturated electric violet / amber / cream colour, and the same way of drawing a figure (a silhouette outlined in light, body shimmering with stars and sparkles).
+KEEP from the SOURCE, exactly: the composition and framing, the pose and gesture, the props and what the hands are doing, the clothing shapes, and the person's face and identity (features, glasses, hairline, expression) — recognisable at first glance.
+CRITICAL: re-render the PROPS in the same material language as the rest of the image (light, sparkle, chrome reflections, glare) — never a glossy modern 3D object dropped onto a film-still figure. Everything in the frame must look like it was made by one artist in one medium.
+${strict ? "Do not add, remove or move anything. Do not change the background layout, only its rendering." : "You may simplify the background."}
+${edgeSparkle ? "SPARKLE RULE: star glints and sparkles live ONLY along the outer edges / rim outlines of the figure and the props, and on a few brightest specular points — the interiors of the body, clothing and face stay clean and readable (no glitter fill). Restyle the background TOGETHER with the figure in the same film-still language, but keep it quieter than the figure. " : ""}${faceClean ? "FACE: keep the face, glasses and hair clean, legible and softly lit — NO glitter, stars or sparkles on the face; sparkles live on the clothing, hair edges, hands, props and background only." : ""}
+No text, letters or logos. Output one square image.`;
+}
+/* the stage-2 attachment captions, in order: STYLE REFERENCE n ×3 → SOURCE IMAGE → IDENTITY (avatar) → COLOUR REFERENCE (--brand) → the text */
+export const RESTYLE_CAPTIONS = {
+  ref: (k) => `STYLE REFERENCE ${k + 1}:`,
+  source: "SOURCE IMAGE — the card to restyle:",
+  identity: "IDENTITY — the person in the source; their face must stay recognisable as this:",
+  brand: "COLOUR REFERENCE — use this palette for the background and the light: deep violet field with amber, cream and periwinkle ribbons. Not cobalt, not sky blue.",
+};
+/* fast path (harness/fast.mjs — one Gemini call, avatar only): `action` is the type's section from prompts.md */
+export function fastPrompt(action) {
+  return `Turn this profile picture into a collectible trading-card portrait, square. Keep the subject exactly recognisable (same face, hair, glasses, expression; if it is not a person, keep the same creature or object). ${action}
+Style: 1980s retro-futurist album-cover art shot on film — the figure rim-lit with liquid chrome and glitter on the clothing edges and props (face stays clean), a few big four-point star flares, prismatic light streaks, deep violet background (#3c0996 → near-black) with flowing amber-orange, cream and periwinkle light ribbons, film grain and halation. Not a clean modern illustration. No text, no logo, no border.`;
+}
+export const BRAND_CAPTION = "DONUT BRAND BACKGROUND REFERENCE — use exactly this palette and these soft flowing light ribbons for the background and the colour of the light. Its colours win over every other reference:";

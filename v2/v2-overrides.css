@@ -55,7 +55,7 @@ body.has-art .reveal-pop { display: none !important; }
 }
 /* the hint never overlaps the card: it sits under it, and hides while hovering and after the first tap */
 .reveal-hint { margin-top: 14px; transition: opacity .2s ease; }
-.reveal-stage:hover .reveal-hint, .reveal-stage.tapped .reveal-hint { opacity: 0 !important; }
+/* (2026-10-08 evening) the hint no longer hides on hover / after a tap — it had vanished for Cory; it sits under the card, so nothing overlaps */
 /* conclusion typography: one left-aligned column; the attribution follows the quote; a readable measure */
 .reveal-quote span:last-child { text-align: left !important; margin-top: 8px; }
 .reveal-info { max-width: 54ch; }

@@ -9,7 +9,7 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join, resolve, basename } from "node:path";
 import { execFileSync } from "node:child_process";
-import { apiKey, loadPrompts, dataUrl, Budget, STYLE_DIR, CARDGEN, HERE, judgeImage, judgeRefs } from "./lib.mjs";
+import { apiKey, loadPrompts, dataUrl, Budget, STYLE_DIR, CARDGEN, HERE, judgeImage, judgeRefs, restylePrompt } from "./lib.mjs";
 
 const args = Object.fromEntries(process.argv.slice(2).reduce((a, v, i, all) => (v.startsWith("--") ? a.concat([[v.slice(2), all[i + 1] && !all[i + 1].startsWith("--") ? all[i + 1] : true]]) : a), []));
 const MODEL = args.model || "google/gemini-3-pro-image", key = await apiKey(), p = await loadPrompts(), budget = new Budget(Number(args.cap || 2));
@@ -26,13 +26,7 @@ if (avatar) content.push({ type: "text", text: "IDENTITY — the person in the s
 /* --brand: pin the palette with the Donut ribbon image (Gemini otherwise drifts to the references' cobalt) */
 if (args.brand) content.push({ type: "text", text: "COLOUR REFERENCE — use this palette for the background and the light: deep violet field with amber, cream and periwinkle ribbons. Not cobalt, not sky blue." }, { type: "image_url", image_url: { url: await dataUrl(join(CARDGEN, "refs/donut-ribbons.webp")) } });
 const strict = String(args.strength || "strict") === "strict";
-content.push({ type: "text", text:
-  `Re-render the SOURCE IMAGE entirely in the visual style of the STYLE REFERENCES: the same medium and rendering technique, film-still texture and grain, halation, big star-filter cross flares on the brightest points, prismatic light trails, high-contrast saturated electric violet / amber / cream colour, and the same way of drawing a figure (a silhouette outlined in light, body shimmering with stars and sparkles).
-KEEP from the SOURCE, exactly: the composition and framing, the pose and gesture, the props and what the hands are doing, the clothing shapes, and the person's face and identity (features, glasses, hairline, expression) — recognisable at first glance.
-CRITICAL: re-render the PROPS in the same material language as the rest of the image (light, sparkle, chrome reflections, glare) — never a glossy modern 3D object dropped onto a film-still figure. Everything in the frame must look like it was made by one artist in one medium.
-${strict ? "Do not add, remove or move anything. Do not change the background layout, only its rendering." : "You may simplify the background."}
-${args["edge-sparkle"] ? "SPARKLE RULE: star glints and sparkles live ONLY along the outer edges / rim outlines of the figure and the props, and on a few brightest specular points — the interiors of the body, clothing and face stay clean and readable (no glitter fill). Restyle the background TOGETHER with the figure in the same film-still language, but keep it quieter than the figure. " : ""}${args["face-clean"] ? "FACE: keep the face, glasses and hair clean, legible and softly lit — NO glitter, stars or sparkles on the face; sparkles live on the clothing, hair edges, hands, props and background only." : ""}
-No text, letters or logos. Output one square image.` });
+content.push({ type: "text", text: restylePrompt({ strict, edgeSparkle: !!args["edge-sparkle"], faceClean: !!args["face-clean"] }) });
 const t0 = Date.now();
 const res = await fetch("https://openrouter.ai/api/v1/chat/completions", { method: "POST", headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" }, body: JSON.stringify({ model: MODEL, modalities: ["image", "text"], messages: [{ role: "user", content }] }) });
 const json = await res.json(); if (!res.ok) throw new Error("OpenRouter " + res.status + ": " + JSON.stringify(json.error || json).slice(0, 300));

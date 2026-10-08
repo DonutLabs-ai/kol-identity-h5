@@ -3,22 +3,48 @@
    reveal happens (art-gated); this only animates. window.DonutSummon.mount(host, {name, handle, demo}) */
 (function () {
   var reduce = matchMedia("(prefers-reduced-motion: reduce)");
+  /* the astrolabe seal (Cory 2026-10-08: "星阵不够精致" — finer): an outer 360° scale between hairlines with twelve
+     diamonds, a dashed orbit, the twelve-point star (one point per trader type) inside a hairline dodecagon, twelve
+     spokes, tip rings, a counter-rotating inner band with a hexagram, a small hub; the six answers stay the bright figure */
   function sealSvg(points) {
-    var S = 600, c = 300, ns = "http://www.w3.org/2000/svg";
+    var S = 600, c = 300, ns = "http://www.w3.org/2000/svg", TAU = Math.PI * 2;
     function el(name, attrs) { var e = document.createElementNS(ns, name); for (var k in attrs) e.setAttribute(k, attrs[k]); return e; }
+    function pt(a, r) { return (c + Math.cos(a) * r).toFixed(1) + " " + (c + Math.sin(a) * r).toFixed(1); }
+    function ring(r, cls, draw) { var at = { class: cls, cx: c, cy: c, r: r }; if (draw !== false) at["data-draw"] = "1"; return el("circle", at); }
+    function ticks(n, r1, r2, cls) { var d = ""; for (var i = 0; i < n; i++) { var a = i / n * TAU - Math.PI / 2; d += "M" + pt(a, r1) + "L" + pt(a, r2); } return el("path", { class: cls, d: d, "data-draw": "1" }); }
+    function star(n, ro, ri, rot) { var d = ""; for (var j = 0; j <= n * 2; j++) { var a = j / (n * 2) * TAU - Math.PI / 2 + rot; d += (j ? "L" : "M") + pt(a, j % 2 ? ri : ro); } return d + "Z"; }
+    function poly(n, r, rot) { var d = ""; for (var j = 0; j < n; j++) { var a = j / n * TAU - Math.PI / 2 + rot; d += (j ? "L" : "M") + pt(a, r); } return d + "Z"; }
     var svg = el("svg", { viewBox: "0 0 " + S + " " + S, "aria-hidden": "true" });
-    [292, 262, 176, 120].forEach(function (r, i) { svg.appendChild(el("circle", { class: "ring" + (i === 1 || i === 3 ? " faint" : ""), cx: c, cy: c, r: r, "data-draw": "1" })); });
-    var ticks = el("path", { class: "ticks", "data-draw": "1" }), d = "";
-    for (var i = 0; i < 72; i++) { var a = i / 72 * Math.PI * 2, r1 = i % 6 === 0 ? 248 : 256, r2 = 262; d += "M" + (c + Math.cos(a) * r1).toFixed(1) + " " + (c + Math.sin(a) * r1).toFixed(1) + "L" + (c + Math.cos(a) * r2).toFixed(1) + " " + (c + Math.sin(a) * r2).toFixed(1); }
-    ticks.setAttribute("d", d); svg.appendChild(ticks);
-    var star = "", n = 12;   /* twelve-point star: one point per trader type */
-    for (var j = 0; j <= n; j++) { var a2 = j / n * Math.PI * 2 - Math.PI / 2, rr = j % 2 ? 128 : 236; star += (j ? "L" : "M") + (c + Math.cos(a2) * rr).toFixed(1) + " " + (c + Math.sin(a2) * rr).toFixed(1); }
-    svg.appendChild(el("path", { class: "star", d: star + "Z", "data-draw": "1" }));
-    for (var g = 0; g < 12; g++) { var ag = g / 12 * Math.PI * 2 - Math.PI / 2; svg.appendChild(el("circle", { class: "glyph", cx: (c + Math.cos(ag) * 292).toFixed(1), cy: (c + Math.sin(ag) * 292).toFixed(1), r: 2.2 })); }
+    /* outer band: a degree scale between two hairlines, every 30° a long mark and a diamond on the rim */
+    svg.appendChild(ring(294, "ring"));
+    svg.appendChild(ring(270, "ring faint"));
+    svg.appendChild(ticks(360, 273, 277, "ticks fine"));
+    svg.appendChild(ticks(72, 273, 282, "ticks"));
+    svg.appendChild(ticks(12, 273, 290, "ticks"));
+    for (var g = 0; g < 12; g++) { var ag = g / 12 * TAU - Math.PI / 2, gx = c + Math.cos(ag) * 294, gy = c + Math.sin(ag) * 294; svg.appendChild(el("path", { class: "glyph", d: "M" + gx.toFixed(1) + " " + (gy - 3.4).toFixed(1) + "L" + (gx + 3.4).toFixed(1) + " " + gy.toFixed(1) + "L" + gx.toFixed(1) + " " + (gy + 3.4).toFixed(1) + "L" + (gx - 3.4).toFixed(1) + " " + gy.toFixed(1) + "Z" })); }
+    /* mid field: dashed orbit, spokes, the twelve-point star and its fainter twin, a small ring on every tip */
+    svg.appendChild(ring(236, "ring dash", false));
+    var spokes = ""; for (var sp = 0; sp < 12; sp++) { var as = sp / 12 * TAU - Math.PI / 2; spokes += "M" + pt(as, 188) + "L" + pt(as, 266); }
+    svg.appendChild(el("path", { class: "spoke", d: spokes, "data-draw": "1" }));
+    svg.appendChild(el("path", { class: "star faint", d: poly(12, 238, 0), "data-draw": "1" }));   /* a dodecagon through the tips: construction geometry, not a second blade */
+    svg.appendChild(el("path", { class: "star", d: star(12, 238, 130, 0), "data-draw": "1" }));
+    var tips = ""; for (var t = 0; t < 12; t++) { var at2 = t / 12 * TAU - Math.PI / 2, tx = c + Math.cos(at2) * 238, ty = c + Math.sin(at2) * 238; tips += "M" + (tx + 4.5).toFixed(1) + " " + ty.toFixed(1) + "a4.5 4.5 0 1 0 -9 0a4.5 4.5 0 1 0 9 0"; }
+    svg.appendChild(el("path", { class: "tip", d: tips, "data-draw": "1" }));
+    /* inner band (turns the other way): two hairlines, 24 ticks, a hexagram */
+    var inner = el("g", { class: "inner" });
+    inner.appendChild(ring(180, "ring"));
+    inner.appendChild(ring(168, "ring faint"));
+    inner.appendChild(ticks(24, 170, 178, "ticks"));
+    inner.appendChild(el("path", { class: "star faint", d: poly(3, 160, 0) + poly(3, 160, Math.PI), "data-draw": "1" }));
+    svg.appendChild(inner);
+    /* hub */
+    svg.appendChild(ring(14, "ring faint"));
+    svg.appendChild(ticks(4, 18, 30, "ticks fine"));
+    svg.appendChild(el("circle", { class: "glyph", cx: c, cy: c, r: 2.2 }));
     /* the six answers: one node per question at 60°, radius by the chosen option (unknown → middle) */
-    var pts = points.map(function (idx, i) { var a3 = i / 6 * Math.PI * 2 - Math.PI / 2, r3 = 70 + (idx < 0 ? 1.5 : idx) * 46; return [c + Math.cos(a3) * r3, c + Math.sin(a3) * r3]; });
-    var poly = el("path", { class: "constellation", "data-draw": "1", d: pts.map(function (p, i) { return (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1); }).join("") + "Z" });
-    svg.appendChild(poly);
+    var pts = points.map(function (idx, i) { var a3 = i / 6 * TAU - Math.PI / 2, r3 = 70 + (idx < 0 ? 1.5 : idx) * 46; return [c + Math.cos(a3) * r3, c + Math.sin(a3) * r3]; });
+    var cons = el("path", { class: "constellation", "data-draw": "1", d: pts.map(function (p, i) { return (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1); }).join("") + "Z" });
+    svg.appendChild(cons);
     pts.forEach(function (p) { var nd = el("circle", { class: "node", cx: p[0].toFixed(1), cy: p[1].toFixed(1), r: 4 }); nd.style.opacity = "0"; svg.appendChild(nd); });
     return svg;
   }
@@ -53,6 +79,7 @@
     halo.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 1200, delay: 600, fill: "both" });
     seal.querySelectorAll("[data-draw]").forEach(function (p, i) { var len = p.getTotalLength ? p.getTotalLength() : 2000; p.style.strokeDasharray = len; p.style.strokeDashoffset = len; if (p.classList.contains("constellation")) return; p.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }], { duration: 1400, delay: 400 + i * 120, easing: "ease-out", fill: "both" }); });
     seal.animate([{ transform: "rotateX(66deg) rotate(0deg)" }, { transform: "rotateX(66deg) rotate(360deg)" }], { duration: 42000, delay: 1900, iterations: Infinity, easing: "linear" });
+    var inner = seal.querySelector(".inner"); if (inner) inner.animate([{ transform: "rotate(0deg)" }, { transform: "rotate(-360deg)" }], { duration: 64000, delay: 1900, iterations: Infinity, easing: "linear" });
     card.animate([{ transform: "translateY(0)" }, { transform: "translateY(-8px)" }, { transform: "translateY(0)" }], { duration: 4200, delay: 1500, iterations: Infinity, easing: "ease-in-out" });
     /* the scan sweeps every 4 s for as long as D0 is reading */
     scan.animate([{ opacity: 0, top: "0%" }, { opacity: 1, offset: .06 }, { opacity: 1, offset: .94 }, { opacity: 0, top: "100%" }], { duration: 2400, delay: 1700, easing: "linear", iterations: Infinity, endDelay: 1600 });

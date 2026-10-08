@@ -6,7 +6,7 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join, resolve, basename, extname } from "node:path";
 import { execFileSync } from "node:child_process";
-import { apiKey, loadPrompts, dataUrl, Budget, STYLE_DIR, CARDGEN, HERE } from "./lib.mjs";
+import { apiKey, loadPrompts, dataUrl, Budget, STYLE_DIR, CARDGEN, HERE, fastPrompt } from "./lib.mjs";
 
 const args = Object.fromEntries(process.argv.slice(2).reduce((a, v, i, all) => (v.startsWith("--") ? a.concat([[v.slice(2), all[i + 1] && !all[i + 1].startsWith("--") ? all[i + 1] : true]]) : a), []));
 const MODEL = args.model || "google/gemini-3-pro-image", key = await apiKey(), p = await loadPrompts(), budget = new Budget(2);
@@ -18,8 +18,7 @@ const out = join(CARDGEN, "out/fast", name); await mkdir(out, { recursive: true 
 
 /* the type's gear + action, one sentence, taken from prompts.md's section (first sentence after the dash) */
 const sec = p.types[type] || "", action = sec.replace(/\s+/g, " ").trim();
-const text = `Turn this profile picture into a collectible trading-card portrait, square. Keep the subject exactly recognisable (same face, hair, glasses, expression; if it is not a person, keep the same creature or object). ${action}
-Style: 1980s retro-futurist album-cover art shot on film — the figure rim-lit with liquid chrome and glitter on the clothing edges and props (face stays clean), a few big four-point star flares, prismatic light streaks, deep violet background (#3c0996 → near-black) with flowing amber-orange, cream and periwinkle light ribbons, film grain and halation. Not a clean modern illustration. No text, no logo, no border.`;
+const text = fastPrompt(action);
 
 const content = [{ type: "text", text: "The profile picture:" }, { type: "image_url", image_url: { url: await dataUrl(avatar) } }];
 for (const r of refs) content.push({ type: "text", text: "Match this look (medium, light, chrome, glare, colour) exactly:" }, { type: "image_url", image_url: { url: await dataUrl(r) } });
