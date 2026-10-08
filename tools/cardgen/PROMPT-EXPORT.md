@@ -69,7 +69,7 @@ shoulders square, holding the diamond securely at centre chest with both hands, 
 expression.
 ```
 
-**hodler** — 风格参考：**（没有 refs 文件 → 第 1 步不带风格参考，只有品牌色带图）**
+**hodler** — 风格参考：`loose--591-331` · `loose--591-312` · `loose--591-379`
 
 ```text
 DCA Believer — disciplined, steady accumulation. Gear: a compact handheld rail of identical, evenly spaced small
@@ -85,7 +85,7 @@ waypoint orb. Action: stepping onto the stone and reaching for the orb, glancing
 with a confident grin.
 ```
 
-**scalper** — 风格参考：**（没有 refs 文件 → 第 1 步不带风格参考，只有品牌色带图）**
+**scalper** — 风格参考：`loose--591-331` · `loose--591-380` · `loose--591-379`
 
 ```text
 Day Trader — alert, immediate, precise. Gear: three small ROSE-PINK translucent candlestick-shaped blocks floating
@@ -101,7 +101,7 @@ one-knee kneel, rifle shouldered and aimed horizontally into empty space, eye at
 target, no muzzle flash.
 ```
 
-**grid_farmer** — 风格参考：**（没有 refs 文件 → 第 1 步不带风格参考，只有品牌色带图）**
+**grid_farmer** — 风格参考：`loose--591-312` · `loose--591-331` · `loose--591-379`
 
 ```text
 Grid Executor — methodical execution. Gear: a compact rigid ONYX-and-silver lattice with glinting nodes, a minimal dark
@@ -109,7 +109,7 @@ stool. Action: seated upright and symmetrical, both hands precisely adjusting tw
 lattice.
 ```
 
-**swing_hunter** — 风格参考：**（没有 refs 文件 → 第 1 步不带风格参考，只有品牌色带图）**
+**swing_hunter** — 风格参考：`loose--591-312` · `loose--591-331` · `loose--591-380`
 
 ```text
 Swing Hunter — timing the next wave. Gear: a short sculptural EMERALD ribbon wave with one clear crest and one trough.
@@ -148,7 +148,7 @@ reflections and a small luminous core. Action: side-on stance, feet planted, one
 the body, the other hand holding the core, head turned to the viewer with a direct resolute gaze.
 ```
 
-**bottom_fisher** — 风格参考：**（没有 refs 文件 → 第 1 步不带风格参考，只有品牌色带图）**
+**bottom_fisher** — 风格参考：`loose--591-331` · `loose--591-312` · `loose--591-380`
 
 ```text
 Contrarian — patient, independent observation. Gear: a small unmarked optical observation device and one small AURORA
@@ -156,7 +156,7 @@ prism. Action: back three-quarter view as if they just stopped walking, device h
 shoulder at the prism low at one side, calm and contemplative.
 ```
 
-**unresolved** — 风格参考：**（没有 refs 文件 → 第 1 步不带风格参考，只有品牌色带图）**
+**unresolved** — 风格参考：`loose--591-331` · `loose--591-312` · `loose--591-380`
 
 ```text
 Style Explorer — still writing their story. Gear: a small multi-faceted token that shows a different colour on each
