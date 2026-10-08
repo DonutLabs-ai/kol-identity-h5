@@ -8,8 +8,8 @@
 <link rel="icon" href="../identity/favicon.ico">
 <link rel="stylesheet" href="./landing.css?v=3">
 <link rel="stylesheet" href="./flow.css?v=1">
-<link rel="stylesheet" href="./summon.css?v=1">
-<link rel="stylesheet" href="./v2-overrides.css?v=1">
+<link rel="stylesheet" href="./summon.css?v=2">
+<link rel="stylesheet" href="./v2-overrides.css?v=6">
 <style>
 @font-face { font-family: "Timeless Serif"; font-weight: 350; font-style: italic; font-display: swap; src: url(./fonts/TimelessSerif-BookItalic.woff2) format("woff2"); }
 .reveal-main {
@@ -223,7 +223,7 @@
   <a class="visit" href="https://d0.getdonut.ai/d0-onboarding" target="_blank" rel="noopener" id="try-d0">Try D0
     <svg class="arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </a>
-  <a class="visit quiet" href="./">Logout</a>
+  <a class="visit quiet" href="./">Log out</a>
 </nav>
 
 <div class="analyze" id="analyze" aria-live="polite">
@@ -232,8 +232,8 @@
     <div class="az-bar" id="az-bar"></div>
   </div>
 </div>
-<script src="./score.js?v=1"></script>
-<script src="./summon.js?v=1"></script>
+<script src="./score.js?v=2"></script>
+<script src="./summon.js?v=2"></script>
 
 <main class="reveal-main">
 
@@ -420,7 +420,8 @@
     var r = stage.getBoundingClientRect();
     var px = Math.max(-0.9, Math.min(0.9, (cx - r.left) / r.width - 0.5));
     var py = Math.max(-0.9, Math.min(0.9, (cy - r.top) / r.height - 0.5));
-    tiltEl.style.transform = "perspective(900px) rotateY(" + (px * 10).toFixed(2) + "deg) rotateX(" + (-py * 8).toFixed(2) + "deg)";
+    var base = getComputedStyle(tiltEl).getPropertyValue("--tilt-base").trim();   /* ≤1000px: the scale that fits the card in its box */
+    tiltEl.style.transform = (base ? base + " " : "") + "perspective(900px) rotateY(" + (px * 10).toFixed(2) + "deg) rotateX(" + (-py * 8).toFixed(2) + "deg)";
     pop.style.setProperty("--px", (px * 9).toFixed(1) + "px");
     pop.style.setProperty("--py", (py * 7).toFixed(1) + "px");
     mid.style.setProperty("--mx", (px * 4.5).toFixed(1) + "px");
@@ -435,6 +436,7 @@
     if (now - lastFlip < 350) return;
     lastFlip = now;
     clearTimeout(autoFlipT);
+    stage.classList.add("tapped");
     if (flipEl) flipEl.classList.toggle("is-flipped");
   }
   stage.addEventListener("pointerup", tapFlip);
@@ -471,7 +473,7 @@
     ov.classList.add("done");
     setTimeout(function () { ov.remove(); }, 500);
     document.body.classList.add("revealed");
-    autoFlipT = setTimeout(function () { if (flipEl) flipEl.classList.add("is-flipped"); }, 4600);
+    /* no auto-flip (Cory): the card turns only when the user taps it */
   }
   var waitTick = setInterval(function () {
     var t = Date.now() - art.t0;
@@ -486,8 +488,11 @@
       /* the v0 snapshot ships fan-mode styles (hidden title): bring the title back; the
          photo window stays the dark ground so the cutout character owns the layer */
       var st = doc.createElement("style"); st.id = "v2x";
+      /* Yi's 2.5D portrait blurs the in-card photo as its ground plane (the sharp cut-out lives on .reveal-pop);
+         with generated art there is no cut-out, so the photo must stay sharp */
+      var hasArt = document.body.classList.contains("has-art");
       st.textContent = "[data-ticket-title]{display:block!important}" +
-        ".kol-photo img{display:block!important;filter:blur(3px) brightness(.9)!important}";
+        (hasArt ? ".kol-photo img{display:block!important;filter:none!important}" : ".kol-photo img{display:block!important;filter:blur(3px) brightness(.9)!important}");
       doc.head.appendChild(st);
       var dlg = doc.getElementById("flashcard");
       if (dlg) dlg.dataset.skin = "amethyst";
@@ -532,6 +537,18 @@
     d0.classList.remove("launch"); void d0.offsetWidth; d0.classList.add("launch");
   });
 })();
+
+  /* phones: Share / Save live in a bottom bar pinned to the viewport (Cory: GTM-critical, must be on the first screen);
+     moved out of .reveal-info because its reveal animation (translate) would otherwise capture position:fixed */
+  (function () {
+    var mq = matchMedia("(max-width: 760px)"), acts = document.querySelector(".reveal-actions"); if (!acts) return;
+    var marker = document.createComment("reveal-actions"); acts.parentNode.insertBefore(marker, acts);
+    function place() {
+      if (mq.matches) { if (acts.parentNode !== document.body) { document.body.appendChild(acts); acts.classList.add("is-bar"); } }
+      else if (acts.parentNode === document.body) { marker.parentNode.insertBefore(acts, marker.nextSibling); acts.classList.remove("is-bar"); }
+    }
+    place(); mq.addEventListener("change", place);
+  })();
 </script>
 
 </body>
