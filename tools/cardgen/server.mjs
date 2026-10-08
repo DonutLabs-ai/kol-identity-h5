@@ -10,7 +10,7 @@
    The real backend gets the avatar from X; here the client sends the (mock) avatar it is showing. */
 import http from "node:http";
 import { createHash } from "node:crypto";
-import { readFile, writeFile, mkdir, copyFile } from "node:fs/promises";
+import { readFile, writeFile, mkdir, copyFile, readdir, unlink } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join, resolve, extname } from "node:path";
 import { execFile } from "node:child_process";
@@ -30,6 +30,37 @@ import { createRequire } from "node:module"; const require = createRequire(impor
 
 /* extension from the bytes (magic numbers) — the URL's suffix lied for PNG avatars fetched via a .jpg-looking path */
 const extOf = (buf) => buf[0] === 0x89 && buf[1] === 0x50 ? ".png" : buf[0] === 0x52 && buf[8] === 0x57 ? ".webp" : buf[0] === 0x47 ? ".gif" : ".jpg";
+/* subject cut-out for the H5's 2.5D portrait (BACKEND.md §4 step 5b): the art's foreground lifted onto alpha, so the
+   reveal can float the figure in front of the art. macOS Vision via harness/cutout.swift, built on first use.
+   <key>.cut.png = RGBA subject only · <key>.plate.jpg = the art with the subject blurred away (the plane under the cut-out, so
+   no second rim shows while they pan apart) · <key>.cut.none = tried, nothing usable (so polls don't retry) */
+const CUTOUT_BIN = join(HARNESS, "bin/cutout"), CUTOUT_SRC = join(HARNESS, "cutout.swift");
+let cutoutReady = null;
+function ensureCutout() {
+  return cutoutReady || (cutoutReady = (async () => {
+    if (existsSync(CUTOUT_BIN)) return true;
+    if (process.platform !== "darwin") { console.error("cutout: not macOS — no 2.5D layer (a Linux backend uses rembg, see BACKEND.md)"); return false; }
+    try { await mkdir(join(HARNESS, "bin"), { recursive: true }); await exec("swiftc", ["-O", CUTOUT_SRC, "-o", CUTOUT_BIN]); return true; }
+    catch (e) { console.error("cutout: cannot build (" + String(e.message).split("\n")[0] + ") — cards ship without the 2.5D layer"); return false; }
+  })());
+}
+/* → { cutout_url, plate_url } or {} */
+async function cutoutFor(key) {
+  const png = join(CACHE, key + ".png"), cut = join(CACHE, key + ".cut.png"), plate = join(CACHE, key + ".plate.jpg"), none = join(CACHE, key + ".cut.none");
+  const urls = { cutout_url: `/art/${key}.cut.png`, plate_url: `/art/${key}.plate.jpg` };
+  if (existsSync(cut) && existsSync(plate)) return urls;
+  if (existsSync(none) || !existsSync(png) || !(await ensureCutout())) return {};
+  try {
+    const { stdout } = await exec(CUTOUT_BIN, [png, cut, plate]);
+    const cov = Number((/coverage ([\d.]+)/.exec(stdout) || [])[1]);
+    if (!(cov >= 0.03 && cov <= 0.9)) throw new Error("coverage " + cov);   /* nothing lifted, or the whole frame: no depth to gain */
+    console.log("cutout", key, "coverage", cov.toFixed(2));
+    return urls;
+  } catch (e) {
+    await writeFile(none, String(e.message || e)); for (const f of [cut, plate]) if (existsSync(f)) await unlink(f);
+    console.error("cutout", key, "skipped:", String(e.message || e).split("\n")[0]); return {};
+  }
+}
 const cacheKey = (avatarBytes, type) => createHash("sha256").update(avatarBytes).update(":" + type + ":" + prompts.version + ":v2").digest("hex").slice(0, 24);
 
 async function pipeline(job) {
@@ -42,6 +73,7 @@ async function pipeline(job) {
   const faceClean = PHOTO_AVATAR.test(avatarPath) ? ["--face-clean"] : [];
   await exec("node", [join(HARNESS, "restyle.mjs"), "--image", stage1, "--avatar", avatarPath, "--type", type, "--refs", refs.map((p) => "figma/" + p.split("/").pop().replace(/\.\w+$/, "")).join(","), "--name", "server-" + job.key, "--brand", "--edge-sparkle", ...faceClean], { env: { ...process.env, NODE_USE_ENV_PROXY: "1" } });
   await copyFile(join(CARDGEN, "out/restyle", "server-" + job.key, "restyled.png"), join(CACHE, job.key + ".png"));
+  job.stage = "cutout"; Object.assign(job, await cutoutFor(job.key));   /* ~0.3 s; done is reported with the cut-out already in place */
   job.status = "done"; job.image_url = `/art/${job.key}.png`;
 }
 
@@ -50,7 +82,7 @@ http.createServer(async (req, res) => {
   try {
     if (req.method === "OPTIONS") return json(res, 204, {});
     const u = new URL(req.url, "http://x");
-    if (u.pathname.startsWith("/art/")) { const f = join(CACHE, u.pathname.slice(5)); if (!existsSync(f)) return json(res, 404, { error: "not_found" }); res.writeHead(200, { "Content-Type": "image/png", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=86400" }); return res.end(await readFile(f)); }
+    if (u.pathname.startsWith("/art/")) { const name = u.pathname.slice(5); if (!/^[a-f0-9]+(\.png|\.cut\.png|\.plate\.jpg)$/.test(name)) return json(res, 404, { error: "not_found" }); const f = join(CACHE, name); if (!existsSync(f)) return json(res, 404, { error: "not_found" }); res.writeHead(200, { "Content-Type": name.endsWith(".jpg") ? "image/jpeg" : "image/png", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=86400" }); return res.end(await readFile(f)); }
     if (req.method === "POST" && u.pathname === "/v1/identity/card-art") {
       let body = ""; for await (const c of req) body += c; const b = JSON.parse(body || "{}");
       if (!prompts.types[b.type]) return json(res, 400, { error: "unknown_type" });
@@ -59,7 +91,7 @@ http.createServer(async (req, res) => {
       else if (b.avatar_url) { const r = await fetch(new URL(b.avatar_url, "http://127.0.0.1:3021/")); avatarBytes = Buffer.from(await r.arrayBuffer()); }
       else return json(res, 400, { error: "no_avatar" });
       const k = cacheKey(avatarBytes, b.type);
-      if (existsSync(join(CACHE, k + ".png"))) return json(res, 200, { status: "done", job_id: k, image_url: `/art/${k}.png`, prompt_version: prompts.version, cached: true });
+      if (existsSync(join(CACHE, k + ".png"))) return json(res, 200, { status: "done", job_id: k, image_url: `/art/${k}.png`, ...(await cutoutFor(k)), prompt_version: prompts.version, cached: true });
       /* a job record whose output vanished (cache cleared) must not be trusted — start over */
       const stale = jobs.get(k); if (stale && (stale.status === "done" || stale.status === "failed") && !existsSync(join(CACHE, k + ".png"))) jobs.delete(k);
       if (!jobs.has(k)) {
@@ -72,7 +104,7 @@ http.createServer(async (req, res) => {
     const m = /^\/v1\/identity\/card-art\/([a-f0-9]+)$/.exec(u.pathname);
     if (req.method === "GET" && m) {
       const k = m[1];
-      if (existsSync(join(CACHE, k + ".png"))) return json(res, 200, { status: "done", image_url: `/art/${k}.png`, prompt_version: prompts.version });
+      if (existsSync(join(CACHE, k + ".png"))) return json(res, 200, { status: "done", image_url: `/art/${k}.png`, ...(await cutoutFor(k)), prompt_version: prompts.version });
       const job = jobs.get(k); if (!job) return json(res, 404, { error: "not_found" });
       if (job.status === "done") { jobs.delete(k); return json(res, 200, { status: "failed", error: "output_missing" }); }   /* done but the PNG is gone */
       return json(res, 200, { status: job.status, stage: job.stage, error: job.error, elapsed_s: Math.round((Date.now() - job.started) / 1000) });
@@ -84,7 +116,10 @@ http.createServer(async (req, res) => {
 /* --warm who:type:avatar → pre-compute (or register an existing PNG via --warm-from path) */
 if (args.warm) {
   const [who, type, avatar] = String(args.warm).split(":"); const bytes = await readFile(resolve(CARDGEN, avatar)); const k = cacheKey(bytes, type);
-  if (args["warm-from"]) { await copyFile(resolve(CARDGEN, String(args["warm-from"])), join(CACHE, k + ".png")); console.log(`warm: ${who}/${type} ← ${args["warm-from"]} (key ${k})`); }
+  if (args["warm-from"]) { await copyFile(resolve(CARDGEN, String(args["warm-from"])), join(CACHE, k + ".png")); await cutoutFor(k); console.log(`warm: ${who}/${type} ← ${args["warm-from"]} (key ${k})`); }
   else if (!existsSync(join(CACHE, k + ".png"))) { const p = join(CACHE, k + extname(avatar)); await writeFile(p, bytes); const job = { id: k, key: k, type, avatarPath: p, status: "queued", started: Date.now() }; jobs.set(k, job); pipeline(job).then(() => console.log("warm done", k)).catch((e) => console.error("warm failed", e.message)); }
   else console.log(`warm: ${who}/${type} already cached (key ${k})`);
 }
+
+/* cut-outs for art cached before this step existed (sequential, ~0.3 s each) */
+(async () => { for (const f of await readdir(CACHE)) { const m = /^([a-f0-9]+)\.png$/.exec(f); if (m) await cutoutFor(m[1]); } })().catch((e) => console.error("cutout sweep:", e.message));

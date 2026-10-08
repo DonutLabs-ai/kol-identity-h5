@@ -11,8 +11,15 @@
 @media (max-width: 760px) { .donut-summon .ds-stage { top: 40%; } .donut-summon .ds-pct { font-size: 32px; } }
 @font-face { font-family: "Instrument Serif"; font-weight: 400; src: url(../identity/fonts/instrument-serif-latin-400-normal.woff2) format("woff2"); font-display: swap; }
 
-/* generated card art replaces Yi's demo portrait: the 2.5D cut-out layers belong to his sample image only */
-body.has-art .reveal-win, body.has-art .reveal-pop { display: none !important; }
+/* generated card art replaces Yi's demo portrait. His cut-out (art/pfp-cut.png) belongs to the sample photo only, so it
+   goes; the art itself takes the sharp window plane (.reveal-mid), and the backend's subject cut-out (cutout_url, see
+   tools/cardgen/BACKEND.md) rides on a second clipped window in front of it — the same three planes, rebuilt per card. */
+body.has-art .reveal-pop { display: none !important; }
+.reveal-win-cut[hidden] { display: none; }
+/* 8px nearer than the window plane; the scale cancels the perspective magnification (900/(900-24) ÷ 900/(900-16)) so both
+   windows share one outline at rest, and only the tilt and the pan separate them */
+.reveal-win.reveal-win-cut { z-index: 3; transform: translateZ(24px) scale(.9911); }   /* two classes: Yi's inline .reveal-win rule comes later in the cascade */
+.reveal-win-cut .reveal-cut { transform: translate(var(--px, 0px), var(--py, 0px)); filter: drop-shadow(0 10px 22px rgb(0 0 0 / .5)); }
 
 /* ── phones (Yi flagged "no mobile adaptation"): the summon stage sat at 44% of a tall screen with the card off to the
    right; the reveal card was scaled from its top-left corner inside a centred 330px box and overflowed the right edge. ── */
@@ -92,3 +99,9 @@ body.has-art .reveal-win, body.has-art .reveal-pop { display: none !important; }
 label[for="f-email"] { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='4' width='20' height='16' rx='2'/%3E%3Cpath d='m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7'/%3E%3C/svg%3E"); }
 label[for="f-discord"] { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7.9 20A9 9 0 1 0 4 16.1L2 22Z'/%3E%3C/svg%3E"); }
 #field-wallet label { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1'/%3E%3Cpath d='M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4'/%3E%3C/svg%3E"); }
+
+/* ── flags (Cory 2026-10-08: the "GREEN FLAG / RED FLAG" labels read as AI boilerplate): the label becomes a flag glyph in
+   its colour; the words stay in the markup for screen readers (font-size 0), the sentence carries the meaning ── */
+.flag-row { align-items: center; gap: 12px; }
+.flag-row b { display: inline-grid; place-items: center; width: 18px; height: 18px; font-size: 0 !important; line-height: 0; letter-spacing: 0; }
+.flag-row b::before { content: ""; width: 16px; height: 16px; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z' fill='%23000' stroke='%23000' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M4 22v-7' stroke='%23000' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z' fill='%23000' stroke='%23000' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M4 22v-7' stroke='%23000' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat; }

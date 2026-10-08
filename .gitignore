@@ -3,6 +3,7 @@ node_modules
 *.log
 .claude/
 .env
-tools/cardgen/out/
-tools/cardgen/avatars/
-tools/cardgen/style-refs/
+tools/cardgen/out
+tools/cardgen/avatars
+tools/cardgen/style-refs
+tools/cardgen/harness/bin/

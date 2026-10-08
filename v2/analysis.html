@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="./landing.css?v=3">
 <link rel="stylesheet" href="./flow.css?v=1">
 <link rel="stylesheet" href="./summon.css?v=2">
-<link rel="stylesheet" href="./v2-overrides.css?v=8">
+<link rel="stylesheet" href="./v2-overrides.css?v=10">
 <style>
 @font-face { font-family: "Timeless Serif"; font-weight: 350; font-style: italic; font-display: swap; src: url(./fonts/TimelessSerif-BookItalic.woff2) format("woff2"); }
 .reveal-main {
@@ -243,6 +243,8 @@
       <div class="reveal-tilt" id="reveal-tilt">
         <iframe id="result-card" title="Your Donut Trader card"></iframe>
         <div class="reveal-win" aria-hidden="true"><img class="reveal-mid" id="reveal-mid" alt=""></div>
+        <!-- generated art: the backend's subject cut-out (cutout_url) floats in front of the art on its own clipped plane -->
+        <div class="reveal-win reveal-win-cut" aria-hidden="true" hidden><img class="reveal-mid reveal-cut" id="reveal-cut" alt=""></div>
         <img class="reveal-pop" id="reveal-pop" alt="">
       </div>
     </div>
@@ -374,6 +376,7 @@
   pop.src = "./art/pfp-cut.png";
   var mid = document.getElementById("reveal-mid");
   mid.src = "../flashcard/kol-pfp.jpg";
+  var cutWin = document.querySelector(".reveal-win-cut"), cut = document.getElementById("reveal-cut");
 
   var f = document.getElementById("result-card");
   var DEMO = { name: "Chris Zhu", handle: "@chriszhu", avatar: "../identity/img/demo/chriszhu.png" };
@@ -393,21 +396,41 @@
   if (API && typeId) {
     avatarData().then(function (data) { return fetch(API + "/v1/identity/card-art", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ avatar_data: data, handle: HANDLE, type: typeId }) }); })
       .then(function (r) { return r.json(); }).then(function (j) {
-        if (j.status === "done") return artDone(j.image_url);
+        if (j.status === "done") return artDone(j.image_url, j.cutout_url, j.plate_url);
         if (!j.job_id) { art.status = "failed"; return; }
         var poll = setInterval(function () {
           fetch(API + "/v1/identity/card-art/" + j.job_id).then(function (r) { return r.json(); }).then(function (st) {
-            if (st.status === "done") { clearInterval(poll); artDone(st.image_url); }
+            if (st.status === "done") { clearInterval(poll); artDone(st.image_url, st.cutout_url, st.plate_url); }
             else if (st.status === "failed") { clearInterval(poll); art.status = "failed"; }
             else art.stage = st.stage;
           }).catch(function () {});
         }, 3000);
       }).catch(function () { art.status = "failed"; });
   } else art.status = "none";
-  function artDone(url) {
-    var abs = /^https?:/.test(url) ? url : API + url; var im = new Image();
-    im.onload = function () { art.url = abs; f.src = cardSrc(abs); art.status = "done"; document.body.classList.add("has-art"); };
-    im.onerror = function () { art.status = "failed"; }; im.src = abs;
+  /* Yi's 2.5D portrait, rebuilt for the generated art: the window plane shows the backend's clean plate (the art with
+     the subject blurred away — pans a little), the subject cut-out rides on a plane in front of it (pans more, sits 8px
+     nearer), and the card's own photo (the full art) stays the ground under both, so the flip never shows a hole.
+     Without a cut-out the art itself fills the window plane and keeps a little depth. The reveal waits for the images
+     (the art is mandatory; the cut-out and plate get 8 s, then the card goes without them). */
+  function artDone(url, cutUrl, plateUrl) {
+    var toAbs = function (u) { return /^https?:/.test(u) ? u : API + u; };
+    var abs = toAbs(url), extra = { cut: cutUrl ? toAbs(cutUrl) : "", plate: plateUrl ? toAbs(plateUrl) : "" };
+    var pending = { art: true, cut: !!extra.cut, plate: !!extra.plate }, ok = { cut: false, plate: false }, finished = false;
+    function settle(k, good) {
+      if (!pending[k]) return; pending[k] = false; ok[k] = good;
+      if (k === "art" && !good) { art.status = "failed"; finished = true; return; }
+      if (finished || pending.art || pending.cut || pending.plate) return; finished = true;
+      art.url = abs; f.src = cardSrc(abs);
+      mid.src = ok.cut && ok.plate ? extra.plate : abs;
+      if (ok.cut) { cut.src = extra.cut; cutWin.hidden = false; }
+      art.status = "done"; document.body.classList.add("has-art");
+    }
+    var im = new Image(); im.onload = function () { settle("art", true); }; im.onerror = function () { settle("art", false); }; im.src = abs;
+    ["cut", "plate"].forEach(function (k) {
+      if (!extra[k]) return;
+      var i = new Image(); i.onload = function () { settle(k, true); }; i.onerror = function () { settle(k, false); }; i.src = extra[k];
+      setTimeout(function () { settle(k, false); }, 8000);
+    });
   }
 
   var stage = document.getElementById("reveal-stage");
@@ -426,8 +449,22 @@
     pop.style.setProperty("--py", (py * 7).toFixed(1) + "px");
     mid.style.setProperty("--mx", (px * 4.5).toFixed(1) + "px");
     mid.style.setProperty("--my", (py * 3.5).toFixed(1) + "px");
+    /* the cut-out plane (generated art) inherits the same pan from the tilt box */
+    tiltEl.style.setProperty("--px", (px * 9).toFixed(1) + "px");
+    tiltEl.style.setProperty("--py", (py * 7).toFixed(1) + "px");
   }
   addEventListener("pointermove", function (e) { panAt(e.clientX, e.clientY); });
+  /* no pointer on phones: a slow drift shows the depth by itself, and yields to a finger for a few seconds */
+  if (matchMedia("(hover: none)").matches && matchMedia("(prefers-reduced-motion: no-preference)").matches) {
+    var driftT0 = Date.now(), touchedAt = 0;
+    addEventListener("pointerdown", function () { touchedAt = Date.now(); });
+    (function drift() {
+      requestAnimationFrame(drift);
+      if (!document.body.classList.contains("revealed") || Date.now() - touchedAt < 4000) return;
+      var t = (Date.now() - driftT0) / 1000, r = stage.getBoundingClientRect();
+      panAt(r.left + r.width * (0.5 + 0.34 * Math.sin(t * 0.5)), r.top + r.height * (0.5 + 0.24 * Math.sin(t * 0.33 + 1.1)));
+    })();
+  }
   /* tap-to-flip lives on the parent stage: pointerup AND click both land here,
      the debounce collapses them into one toggle */
   var lastFlip = 0;

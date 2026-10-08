@@ -30,6 +30,8 @@ open http://127.0.0.1:3021/tools/cardgen/harness/dashboard.html      # served by
   ART DIRECTION + PALETTE block in `prompts.md` and bump `prompt_version`.
 - The judge only ever rewrites the style block; identity (KEEP) and type action (ACT) stay fixed.
 - Judge: `anthropic/claude-sonnet-5.5` via OpenRouter (~$0.03/round). Image: ~$0.25/round, 2.5–3.5 min.
+- `harness/cutout.swift` — subject cut-out for the reveal's 2.5D portrait (macOS Vision, `swiftc -O cutout.swift -o bin/cutout`;
+  `server.mjs` builds and runs it itself, `bin/cutout art.png art.cut.png art.plate.jpg`). A Linux backend uses rembg instead, see `BACKEND.md` §4 5b.
 
 ## Moodboard library + reverse-prompting
 

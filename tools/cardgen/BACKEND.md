@@ -39,7 +39,7 @@ never takes an avatar URL or handle from the client.
 ```
 | Response | When |
 |---|---|
-| `200 { "status": "done", "job_id": "…", "image_url": "https://cdn…/card-art/<hash>.webp", "prompt_version": "2026-09-29.7" }` | cache hit |
+| `200 { "status": "done", "job_id": "…", "image_url": "https://cdn…/card-art/<hash>.webp", "cutout_url": "https://cdn…/card-art/<hash>.cut.png", "plate_url": "https://cdn…/card-art/<hash>.plate.jpg", "prompt_version": "2026-09-29.7" }` | cache hit |
 | `202 { "status": "queued", "job_id": "…" }` | new job |
 | `400 { "error": "unknown_type" }` | type isn't one of §5 |
 | `429 { "error": "rate_limited", "retry_after": 3600 }` | per-account limit |
@@ -48,6 +48,8 @@ never takes an avatar URL or handle from the client.
 ```json
 { "status": "queued" | "running" | "done" | "failed",
   "image_url": "…",                 // when done
+  "cutout_url": "…",                // when done and a subject could be lifted (step 5b) — optional, the H5 copes without it
+  "plate_url": "…",                 // with cutout_url: the art with the subject blurred away (step 5b)
   "fallback_url": "…/img/archetypes/04-day-trader.jpg",   // when failed
   "error": "moderation_blocked" | "provider_error" | "timeout" | "no_avatar" }
 ```
@@ -84,6 +86,18 @@ The front end polls every 3 s for up to 4 min, then keeps the fallback.
    Set a timeout of 240 s. Retry once on 5xx or timeout. Never retry a moderation or refusal response.
 5. **Store.** Decode the PNG (1024×1024, about 1.7 MB), convert it to WebP at q≈85 (roughly 200 KB), and upload it to
    the CDN under the cache-key hash. Save the job record: user, type, prompt_version, model, cost, latency.
+5b. **Subject cut-out (2.5D portrait).** The reveal page floats the figure in front of its own art (three planes:
+   the card's photo as ground, the art as a sharp window that pans ~4 px with the pointer, the cut-out subject ~9 px
+   and 8 px nearer — Yi's `v2/analysis.html` layering, rebuilt per card). Run background removal on the final art and
+   store the result as an RGBA image of the same size, subject only, everything else transparent, as `<hash>.cut.png`
+   (or WebP with alpha; 0.6–1.8 MB as PNG). Report it as `cutout_url`. Skip it (omit the field) when the lifted area
+   is under 3 % or over 90 % of the frame — nothing to float. Alongside it, store the **clean plate** as
+   `<hash>.plate.jpg` (`plate_url`): the art with the subject region (mask grown ~10 px) replaced by a ~28 px Gaussian
+   blur of itself. It is the plane under the cut-out, so when the two pan apart no second rim of the figure shows; only
+   a few px next to the silhouette are ever visible. The ground plane (the card's own photo) stays the full art. Tools: on Linux `rembg` with the `isnet-general-use`
+   model, or BiRefNet, ~1 s on CPU; the mock backend uses macOS Vision subject lifting (`harness/cutout.swift`,
+   ~0.3 s, no model download) — the same request Finder's "Remove Background" runs. Tested on the six cached cards:
+   figure plus props (book, orb, shield, rocket, rock) lifted cleanly with soft edges, coverage 0.17–0.60.
 6. **Don't bake in film grain.** The H5 adds the grain in CSS over the card art (`identity/theme.js`, `grainCards`),
    so the stored image stays clean and the grain looks the same on every card.
 7. **Fail safe.** On any error, set `failed` with `fallback_url` pointing to the type's default art (§5).
