@@ -13,3 +13,28 @@
 
 /* generated card art replaces Yi's demo portrait: the 2.5D cut-out layers belong to his sample image only */
 body.has-art .reveal-win, body.has-art .reveal-pop { display: none !important; }
+
+/* ── phones (Yi flagged "no mobile adaptation"): the summon stage sat at 44% of a tall screen with the card off to the
+   right; the reveal card was scaled from its top-left corner inside a centred 330px box and overflowed the right edge. ── */
+@media (max-width: 760px) {
+  .donut-summon .ds-stage { top: 38% !important; left: 50% !important; }
+  .donut-summon .ds-reading { left: 50% !important; width: 100vw !important; transform: translateX(-50%); font-size: 18px; }
+  .donut-summon .ds-pct { font-size: 30px; }
+  .analyze .az-foot { bottom: max(22px, 4svh); width: calc(100vw - 40px); }
+  .analyze .az-foot .az-bar { max-width: 100%; }
+}
+@media (max-width: 1000px) {
+  /* the scaled card: centre the 330px stage itself (Yi's inline <style> wins by order, hence !important) */
+  /* the 1fr column was sized by the info block's 54ch text (606px in a 375px viewport); let it shrink */
+  .reveal-main { grid-template-columns: minmax(0, 1fr) !important; overflow-x: clip !important; justify-items: center !important; }
+  .reveal-info { min-width: 0; max-width: 100%; }
+  .reveal-desc { max-width: 100% !important; }
+  .reveal-stage { margin: 0 auto !important; max-width: 100% !important; left: auto !important; }
+  .reveal-card-wrap, .reveal-hit { width: 330px !important; height: 458px !important; }
+}
+@media (max-width: 480px) {
+  /* header: brand and nav collided at 375px */
+  .brand .textmark { display: none; }
+  .topnav { gap: 6px; }
+  .topnav .visit { padding: 8px 10px; font-size: 12px; }
+}
