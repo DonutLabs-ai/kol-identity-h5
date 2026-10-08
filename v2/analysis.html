@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="./landing.css?v=3">
 <link rel="stylesheet" href="./flow.css?v=1">
 <link rel="stylesheet" href="./summon.css?v=5">
-<link rel="stylesheet" href="./v2-overrides.css?v=12">
+<link rel="stylesheet" href="./v2-overrides.css?v=13">
 <style>
 @font-face { font-family: "Timeless Serif"; font-weight: 350; font-style: italic; font-display: swap; src: url(./fonts/TimelessSerif-BookItalic.woff2) format("woff2"); }
 .reveal-main {
@@ -409,7 +409,16 @@
           }).catch(function () {});
         }, 3000);
       }).catch(function () { art.status = "failed"; });
+  } else if (D && D.avatar) {
+    /* no backend on this host (a static deploy): the profile's own avatar fills the card window instead of the sample photo */
+    artDone(new URL(D.avatar, location.href).href);
   } else art.status = "none";
+  /* the demo avatar isn't on this host (they stay out of git): back to the sample persona so card and copy agree */
+  function demoFallback() {
+    D = null; HANDLE = "@RU7CRYPTOLONG"; f.src = cardSrc("");
+    document.getElementById("r-quote-by").textContent = T.by.replace("\u2014 you,", "\u2014 " + HANDLE.toLowerCase() + ",");
+    try { sessionStorage.removeItem("donut.kol"); } catch (e) {}
+  }
   /* Yi's 2.5D portrait, rebuilt for the generated art: the window plane shows the backend's clean plate (the art with
      the subject blurred away — pans a little), the subject cut-out rides on a plane in front of it (pans more, sits 8px
      nearer), and the card's own photo (the full art) stays the ground under both, so the flip never shows a hole.
@@ -421,7 +430,7 @@
     var pending = { art: true, cut: !!extra.cut, plate: !!extra.plate }, ok = { cut: false, plate: false }, finished = false;
     function settle(k, good) {
       if (!pending[k]) return; pending[k] = false; ok[k] = good;
-      if (k === "art" && !good) { art.status = "failed"; finished = true; return; }
+      if (k === "art" && !good) { finished = true; if (!API && D) { demoFallback(); art.status = "none"; } else art.status = "failed"; return; }
       if (finished || pending.art || pending.cut || pending.plate) return; finished = true;
       art.url = abs; f.src = cardSrc(abs);
       mid.src = ok.cut && ok.plate ? extra.plate : abs;

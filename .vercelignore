@@ -1,0 +1,5 @@
+# Vercel serves the repo as static files: keep the pipeline, prompts and handoff docs off the public URL
+tools
+docs
+.github
+README.md

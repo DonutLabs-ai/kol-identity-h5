@@ -29,6 +29,8 @@
     var st = document.createElement("style"); st.textContent = CSS; document.head.appendChild(st);
     host.innerHTML = "<span>Demo as</span>" + Object.keys(KOLS).map(function (id) { var k = KOLS[id]; return '<a href="' + next + "?kol=" + id + '" title="' + k.name + " · " + k.handle + '"><img src="' + k.avatar + '" alt="' + k.name + '"></a>'; }).join("");
     host.hidden = false;
+    /* avatars that aren't on this host (they stay out of git) drop out; no avatars, no row */
+    host.querySelectorAll("img").forEach(function (im) { im.onerror = function () { im.parentNode.remove(); if (!host.querySelector("a")) host.hidden = true; }; });
   }
   window.DonutDemo = { KOLS: KOLS, current: current, renderPicker: renderPicker };
 })();

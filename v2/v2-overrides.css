@@ -145,3 +145,13 @@ label[for="f-discord"] { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www
   .q-stops { height: 28px; }
   .claim-main { overflow-x: clip; }
 }
+
+/* ── phones: the conclusion is centred under the card (Yi, 2026-10-08 evening: eyebrow, type name, quote, read, flags);
+   wider single-column windows keep the left column Cory asked for ── */
+@media (max-width: 760px) {
+  .reveal-info { justify-items: center; text-align: center; }
+  .reveal-info > * { margin-left: auto; margin-right: auto; }
+  .reveal-quote span:last-child { text-align: center !important; }
+  .reveal-desc { text-align: center; }
+  .flag-row { justify-content: center; }
+}
