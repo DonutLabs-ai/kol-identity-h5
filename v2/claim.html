@@ -8,6 +8,7 @@
 <link rel="icon" href="../identity/favicon.ico">
 <link rel="stylesheet" href="./landing.css?v=3">
 <link rel="stylesheet" href="./flow.css?v=2">
+<link rel="stylesheet" href="./v2-overrides.css?v=7">
 </head>
 <body>
 
@@ -438,7 +439,8 @@
     var r = cardStage.getBoundingClientRect();
     var px = Math.max(-0.9, Math.min(0.9, (e.clientX - r.left) / r.width - 0.5));
     var py = Math.max(-0.9, Math.min(0.9, (e.clientY - r.top) / r.height - 0.5));
-    prev.style.transform = "perspective(900px) rotateY(" + (px * 5).toFixed(2) + "deg) rotateX(" + (-py * 4).toFixed(2) + "deg)";
+    var base = getComputedStyle(prev).getPropertyValue("--tilt-base").trim();   /* ≤1000px: the scale that fits the card in its stage */
+    prev.style.transform = (base ? base + " " : "") + "perspective(900px) rotateY(" + (px * 5).toFixed(2) + "deg) rotateX(" + (-py * 4).toFixed(2) + "deg)";
   });
 
   var d0 = document.getElementById("try-d0");

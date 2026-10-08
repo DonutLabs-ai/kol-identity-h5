@@ -74,5 +74,12 @@ body.has-art .reveal-win, body.has-art .reveal-pop { display: none !important; }
     box-shadow: inset 0 1px 0 rgb(255 255 255 / .1); transition: opacity .4s ease; }
   .reveal-actions.is-bar .btn { flex: 1 1 0; justify-content: center; }
   body:not(.revealed) .reveal-actions.is-bar { opacity: 0; pointer-events: none; }
-  body { padding-bottom: 84px; }
+  body:has(.reveal-actions.is-bar) { padding-bottom: 84px; }   /* only the reveal page has the bar */
+}
+
+/* ── claim page (Cory 2026-10-08: the preview card ballooned over the form): same bug as the reveal — flow.css scales the
+   card iframe to .749 at ≤1000px with origin 0 0, and the pointer-lean JS overwrote that transform. The scale now lives in
+   --tilt-base (JS composes it) and is centred in the 310×431 stage. ── */
+@media (max-width: 1000px) {
+  .card-stage iframe { --tilt-base: translate(-12.55%, -12.55%) scale(.749); transform: var(--tilt-base) !important; transform-origin: 50% 50% !important; }
 }
