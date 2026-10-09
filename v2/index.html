@@ -7,7 +7,7 @@
 <meta name="description" content="Six questions. Your trading style, revealed. Get your Donut Trader card.">
 <meta name="theme-color" content="#0F1114">
 <link rel="icon" href="../identity/favicon.ico">
-<link rel="stylesheet" href="./landing.css?v=3">
+<link rel="stylesheet" href="./landing.css?v=4">
 </head>
 <body>
 
@@ -41,10 +41,10 @@
 <div class="fan-zone" aria-hidden="true"></div>
 <!-- card fan: four live flashcard tickets (amethyst), archetype in its pill, archetype art as the pfp -->
 <div class="cardfan" aria-hidden="true">
-  <div class="fan-card"><div class="fan-tilt"><iframe class="fan-frame" title="" tabindex="-1"></iframe><img class="fan-pop" alt=""></div></div>
-  <div class="fan-card"><div class="fan-tilt"><iframe class="fan-frame" title="" tabindex="-1"></iframe><img class="fan-pop" alt=""></div></div>
-  <div class="fan-card"><div class="fan-tilt"><iframe class="fan-frame" title="" tabindex="-1"></iframe><img class="fan-pop" alt=""></div></div>
-  <div class="fan-card"><div class="fan-tilt"><iframe class="fan-frame" title="" tabindex="-1"></iframe><img class="fan-pop" alt=""></div></div>
+  <div class="fan-card"><div class="fan-tilt"><img class="fan-frame" alt="" decoding="async"><img class="fan-pop" alt=""></div></div>
+  <div class="fan-card"><div class="fan-tilt"><img class="fan-frame" alt="" decoding="async"><img class="fan-pop" alt=""></div></div>
+  <div class="fan-card"><div class="fan-tilt"><img class="fan-frame" alt="" decoding="async"><img class="fan-pop" alt=""></div></div>
+  <div class="fan-card"><div class="fan-tilt"><img class="fan-frame" alt="" decoding="async"><img class="fan-pop" alt=""></div></div>
 </div>
 
 <main class="hero">
@@ -110,13 +110,11 @@
   ];
   /* the character rides its own layer (v2/art cutouts) over the card's black photo window */
   function cutUrl(slug) { return "./art/" + slug + ".webp"; }
-  DECK.forEach(function (t) { new Image().src = cutUrl(t[0]); });
-  function cardUrl(t) {
-    /* kol-v0.html = the build served at :8477 (square photo, plain big title), snapshotted into the repo */
-    return "../flashcard/kol-v0.html?code=DONUT2026" +
-      "&user=" + encodeURIComponent(t[1].toUpperCase()) +
-      "&type=" + encodeURIComponent(t[1]);
-  }
+  /* the ticket itself is a pre-rendered image of flashcard/kol-v0.html (414×575 viewport, amethyst, 2×) — four live
+     iframes sat dark for seconds on a cold load, and nothing on the landing interacts with them.
+     Re-render after a card change: scratchpad pw/render-tickets.js (Playwright WebKit) → v2/art/ticket-<slug>.webp */
+  function ticketUrl(slug) { return "./art/ticket-" + slug + ".webp"; }
+  DECK.forEach(function (t) { new Image().src = cutUrl(t[0]); new Image().src = ticketUrl(t[0]); });
   /* 6 slots: 0 and 5 sit offscreen, 1-4 are the visible fan */
   var POS_D = [
     { l: "-23%", b: -280, r: -28 },
@@ -143,22 +141,16 @@
   var shifting = false;
   var popTimers = new WeakMap();
   cards.forEach(function (card) {
-    var f = card.querySelector("iframe");
-    f.addEventListener("load", function () {
-      try {
-        /* embed styling lives in kol-v0.html itself; here only force purple (v0 picks a skin per type) */
-        var dlg = f.contentDocument && f.contentDocument.getElementById("flashcard");
-        if (dlg) dlg.dataset.skin = "amethyst";
-      } catch (e) {}
-      /* the ticket's stage unhides 750ms after load; start the character with it so they rise together */
+    /* the character rises right after its ticket image is in */
+    card.querySelector(".fan-frame").addEventListener("load", function () {
       clearTimeout(popTimers.get(card));
-      popTimers.set(card, setTimeout(function () { card.classList.add("pop-ready"); }, 750));
+      popTimers.set(card, setTimeout(function () { card.classList.add("pop-ready"); }, 120));
     });
   });
   function setArt(j) {
     var t = DECK[(head + slotOf[j]) % 12];
     cards[j].classList.remove("pop-ready");
-    cards[j].querySelector("iframe").src = cardUrl(t);
+    cards[j].querySelector(".fan-frame").src = ticketUrl(t[0]);
     cards[j].querySelector(".fan-pop").src = cutUrl(t[0]);
   }
   function place(j, instant) {
