@@ -54,8 +54,15 @@ function ensureCutout() {
   })());
 }
 const cutoutCmd = (png, cut, plate) => MAC ? [CUTOUT_BIN, [png, cut, plate]] : ["python3", [CUTOUT_PY, png, cut, plate]];
-/* → { cutout_url, plate_url } or {} */
-async function cutoutFor(key) {
+/* → { cutout_url, plate_url } or {}. Single-flight per key: the job and the polls used to start the segmenter
+   concurrently (three rembg processes on a 2 GB machine → out of memory, 2026-10-09); now they share one run. */
+const inflight = new Map();
+function cutoutFor(key) {
+  if (inflight.has(key)) return inflight.get(key);
+  const p = cutoutRun(key).finally(() => inflight.delete(key));
+  inflight.set(key, p); return p;
+}
+async function cutoutRun(key) {
   const png = join(CACHE, key + ".png"), cut = join(CACHE, key + ".cut.png"), plate = join(CACHE, key + ".plate.jpg"), none = join(CACHE, key + ".cut.none");
   const urls = { cutout_url: `/art/${key}.cut.png`, plate_url: `/art/${key}.plate.jpg` };
   if (existsSync(cut) && existsSync(plate)) return urls;
@@ -111,7 +118,11 @@ http.createServer(async (req, res) => {
       else if (b.avatar_url) { const r = await fetch(new URL(b.avatar_url, "http://127.0.0.1:3021/")); avatarBytes = Buffer.from(await r.arrayBuffer()); }
       else return json(res, 400, { error: "no_avatar" });
       const k = cacheKey(avatarBytes, b.type);
-      if (existsSync(join(CACHE, k + ".png"))) return json(res, 200, { status: "done", job_id: k, image_url: `/art/${k}.png`, ...(await cutoutFor(k)), prompt_version: prompts.version, cached: true });
+      if (existsSync(join(CACHE, k + ".png"))) {
+        const extra = cutoutFor(k);
+        if (inflight.has(k)) { extra.catch(() => {}); return json(res, 202, { status: "running", stage: "cutout", job_id: k }); }
+        return json(res, 200, { status: "done", job_id: k, image_url: `/art/${k}.png`, ...(await extra), prompt_version: prompts.version, cached: true });
+      }
       /* a job record whose output vanished (cache cleared) must not be trusted — start over */
       const stale = jobs.get(k); if (stale && (stale.status === "done" || stale.status === "failed") && !existsSync(join(CACHE, k + ".png"))) jobs.delete(k);
       if (!jobs.has(k)) {
@@ -125,7 +136,11 @@ http.createServer(async (req, res) => {
     const m = /^\/v1\/identity\/card-art\/([a-f0-9]+)$/.exec(u.pathname);
     if (req.method === "GET" && m) {
       const k = m[1];
-      if (existsSync(join(CACHE, k + ".png"))) return json(res, 200, { status: "done", image_url: `/art/${k}.png`, ...(await cutoutFor(k)), prompt_version: prompts.version });
+      if (existsSync(join(CACHE, k + ".png"))) {
+        const extra = cutoutFor(k);
+        if (inflight.has(k)) { extra.catch(() => {}); return json(res, 200, { status: "running", stage: "cutout" }); }
+        return json(res, 200, { status: "done", image_url: `/art/${k}.png`, ...(await extra), prompt_version: prompts.version });
+      }
       const job = jobs.get(k); if (!job) return json(res, 404, { error: "not_found" });
       if (job.status === "done") { jobs.delete(k); return json(res, 200, { status: "failed", error: "output_missing" }); }   /* done but the PNG is gone */
       return json(res, 200, { status: job.status, stage: job.stage, error: job.error, elapsed_s: Math.round((Date.now() - job.started) / 1000) });
