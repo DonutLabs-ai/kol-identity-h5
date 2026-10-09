@@ -1,35 +1,37 @@
-# Fly.io config for the card-art mock backend — `fly launch --copy-config` picks this up. See DEPLOY.md.
-app = "donut-card-art"
-primary_region = "sjc"
+# fly.toml app configuration file generated for donut-card-art on 2026-10-09T12:06:59+08:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'donut-card-art'
+primary_region = 'sjc'
 
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = 'Dockerfile'
 
 [env]
-  CARD_PIPELINE = "fast"
-  HOST = "0.0.0.0"
-  PORT = "3022"
-  CARD_BUDGET = "50"
+  CARD_BUDGET = '50'
+  CARD_PIPELINE = 'fast'
+  HOST = '0.0.0.0'
+  PORT = '3022'
+
+[[mounts]]
+  source = 'cache'
+  destination = '/app/out'
 
 [http_service]
   internal_port = 3022
   force_https = true
-  auto_stop_machines = "off"
+  auto_stop_machines = 'off'
   auto_start_machines = true
   min_machines_running = 1
 
   [[http_service.checks]]
-    interval = "30s"
-    timeout = "5s"
-    method = "GET"
-    path = "/healthz"
+    interval = '30s'
+    timeout = '5s'
+    method = 'GET'
+    path = '/healthz'
 
-# the segmentation model needs ~1.5 GB while a cut-out runs
 [[vm]]
-  size = "shared-cpu-2x"
-  memory = "2gb"
-
-# generated cards survive deploys (cache = out/server-cache)
-[mounts]
-  source = "cache"
-  destination = "/app/out"
+  size = 'shared-cpu-2x'
+  memory = '2gb'
