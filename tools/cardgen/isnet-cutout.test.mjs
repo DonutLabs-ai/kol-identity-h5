@@ -76,6 +76,15 @@ test("invalid input remains a failed call and a later job can use the same sessi
   assert.equal(f.processes(), 1);
 });
 
+test("resident inference observation is one local attempt, not a new LLM/provider request or invented zero cost", async t => {
+  const f = await fixture(t), receipts = [];
+  let starts = 0;
+  const result = await f.cutout(null, async () => {}, { source: "good", target: join(f.directory, "observed.png"),
+    onDispatch: async () => { starts++; }, onReceipt: async receipt => receipts.push(receipt) });
+  assert.equal(starts, 1); assert.equal(receipts.at(-1).reportedSeconds, result.seconds);
+  assert.equal(result.seconds, 0.01); assert.ok(receipts.every(receipt => receipt.costUSD === null && receipt.newProviderRequests === 0));
+});
+
 for (const behavior of ["exit", "hang", "null"]) {
   test(`IS-Net ${behavior} fails pending work, becomes unhealthy and never restarts or switches provider`, async (t) => {
     const f = await fixture(t, behavior);

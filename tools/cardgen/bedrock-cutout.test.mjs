@@ -38,6 +38,18 @@ test("uses approved US profile, same source image, PNG output and returns actual
   assert.equal(commands[0].modelId, "us.stability.stable-image-remove-background-v1:0");
 });
 
+test("stage observation brackets actual Bedrock dispatch, preserves real seconds and never estimates charge", async t => {
+  for (const fails of [false, true]) {
+    const receipts = [], order = [];
+    const f = await setup(t, fails ? async () => { order.push("send"); throw Object.assign(new Error("private body"), { name: "ThrottlingException" }); } : async () => { order.push("send"); return { body: body(), $metadata: { requestId: "offline" } }; });
+    const observed = { onDispatch: async () => { order.push("dispatch-journal"); assert.equal(f.starts.length, 0); }, onReceipt: async receipt => receipts.push(receipt) };
+    if (fails) await assert.rejects(f.cutout(original, async () => {}, observed), error => error.category === "provider_throttled");
+    else assert.equal((await f.cutout(original, async () => {}, observed)).seconds, receipts.at(-1).reportedSeconds);
+    assert.deepEqual(order, ["dispatch-journal", "send"]); assert.equal(f.starts.length, 1);
+    assert.ok(receipts.every(receipt => receipt.newProviderRequests === 1 && receipt.costUSD === null));
+  }
+});
+
 test("concurrent callers are spaced and a restarted scheduler retains previous dispatch time", async (t) => {
   const { cutout, options, starts, waits } = await setup(t);
   await Promise.all(Array.from({ length: 10 }, () => cutout(original)));
