@@ -10,6 +10,10 @@ retention and frontend integration remain in donut-backend.
 The ARM64 image runs as UID 1000. It contains the pinned model
 SHA-256 `60920e99c45464f2ba57bee2ad08c919a52bbf852739e96947fbb4358c0d964a`,
 rembg 2.0.69, ONNX Runtime 1.31.0 and a Numba import cache prepared during build.
+`NUMBA_CPU_NAME=generic` is set at build and runtime: QEMU's detected CPU features
+and Graviton's `neoverse-n1` differ, which caused cache misses and a measured
+51.52-second native first readiness. A portable compilation target addresses that
+cache identity mismatch ([Numba documentation](https://numba.readthedocs.io/en/stable/reference/envvars.html#numba-cpu-name)).
 Startup verifies the model before declaring readiness. The model session is loaded
 once, and every local cutout uses a serial queue. Concurrent whole pipelines do not
 spawn more segmenters. No model is downloaded at runtime. Numba cache usability

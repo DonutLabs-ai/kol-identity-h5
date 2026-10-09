@@ -3,7 +3,9 @@
 FROM node:24-bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip && rm -rf /var/lib/apt/lists/*
 RUN pip3 install --no-cache-dir --break-system-packages "pillow==11.3.0" "rembg[cpu]==2.0.69" "onnxruntime==1.31.0"
-ENV U2NET_HOME=/opt/cardgen-models NUMBA_CACHE_DIR=/opt/cardgen-numba OMP_NUM_THREADS=2
+# QEMU's detected ARM features differ from Graviton. Use the same portable
+# compilation target at build and runtime so startup can load the baked cache.
+ENV U2NET_HOME=/opt/cardgen-models NUMBA_CACHE_DIR=/opt/cardgen-numba NUMBA_CPU_NAME=generic OMP_NUM_THREADS=2
 RUN mkdir -p "$U2NET_HOME" "$NUMBA_CACHE_DIR" && chown -R node:node "$U2NET_HOME" "$NUMBA_CACHE_DIR"
 ADD --chown=node:node --checksum=sha256:60920e99c45464f2ba57bee2ad08c919a52bbf852739e96947fbb4358c0d964a https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-general-use.onnx /opt/cardgen-models/isnet-general-use.onnx
 USER node
