@@ -1,5 +1,8 @@
+.env
+.env.*
+**/.env
+**/.env.*
 out
-avatars
 style-refs
 harness/bin
 *.log
