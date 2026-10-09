@@ -5,7 +5,8 @@
      two: GPT card → Gemini restyle with the glare-set references — ~3.5 min, ~$0.39 (BACKEND.md §11; needs style-refs/)
 
    NODE_USE_ENV_PROXY=1 node tools/cardgen/server.mjs [--port 3022] [--host 0.0.0.0] [--pipeline fast|two] [--warm who:type:avatar]
-   env: OPENROUTER_API_KEY (or ../../.env) · PORT · HOST · CARD_PIPELINE · CARD_BUDGET (USD cap per process, default 20)
+   env: OPENROUTER_API_KEY (or ../../.env) · PORT · HOST · CARD_PIPELINE · CARD_BUDGET (optional advisory USD cap per process)
+        CARD_AUTH_TOKEN (service bearer token) · CARD_REQUIRE_AUTH=true (fail startup without a token) · CARD_SOURCE_REVISION
 
    POST /v1/identity/card-art   { avatar_url|avatar_data, handle, type }  → 200 done (cache) | 202 queued
    GET  /v1/identity/card-art/:job                                          → queued | running | done | failed
@@ -19,13 +20,17 @@ import { join, resolve } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { apiKey, loadPrompts, buildPrompt, generateImage, fastPrompt, Budget, STYLE_DIR, CARDGEN, HERE as HARNESS } from "./harness/lib.mjs";
+import { readServerConfig, withAuthentication } from "./server-config.mjs";
+import { createSerialTaskQueue } from "./serial-task-queue.mjs";
 
 const exec = promisify(execFile);
 const args = Object.fromEntries(process.argv.slice(2).reduce((a, v, i, all) => (v.startsWith("--") ? a.concat([[v.slice(2), all[i + 1] && !all[i + 1].startsWith("--") ? all[i + 1] : true]]) : a), []));
 const PORT = Number(args.port || process.env.PORT || 3022), HOST = String(args.host || process.env.HOST || "127.0.0.1");
 const PIPELINE = String(args.pipeline || process.env.CARD_PIPELINE || "fast");
+const config = readServerConfig(process.env, args.cap);
 const CACHE = join(CARDGEN, "out/server-cache"); await mkdir(CACHE, { recursive: true });
-const key = await apiKey(), prompts = await loadPrompts(), budget = new Budget(Number(args.cap || process.env.CARD_BUDGET || 20));
+// Advisory accounting is process-local and does not reserve spend for concurrent image calls.
+const key = await apiKey(), prompts = await loadPrompts(), budget = new Budget(config.budgetLimitUsd === null ? Infinity : config.budgetLimitUsd);
 const jobs = new Map();
 const PHOTO_AVATAR = /\.(jpe?g)$/i;   /* photo avatars get --face-clean in the restyle; drawn ones don't */
 
@@ -65,10 +70,11 @@ const cutoutCmd = (png, cut, plate) => MAC ? [CUTOUT_BIN, [png, cut, plate]] : [
 /* → { cutout_url, plate_url } or {}. Single-flight per key: the job and the polls used to start the segmenter
    concurrently (three rembg processes on a 2 GB machine → out of memory, 2026-10-09); now they share one run. */
 const inflight = new Map(), cutStart = new Map(), CUT_GRACE = 15000;   /* a poll waits this long for the layers (Fly: ~7 s), then "done" goes out without them */
+const enqueueCutout = createSerialTaskQueue();   /* one segmenter globally, including across different card keys */
 function cutoutFor(key) {
   if (inflight.has(key)) return inflight.get(key);
   cutStart.set(key, Date.now());
-  const p = cutoutRun(key).finally(() => { inflight.delete(key); cutStart.delete(key); });
+  const p = enqueueCutout(() => cutoutRun(key)).finally(() => { inflight.delete(key); cutStart.delete(key); });
   inflight.set(key, p); return p;
 }
 async function cutoutRun(key) {
@@ -114,13 +120,13 @@ async function pipeline(job) {
   job.stage = "cutout"; cutoutFor(job.key).catch(() => {});
 }
 
-const json = (res, code, body) => { res.writeHead(code, { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "content-type" }); res.end(JSON.stringify(body)); };
-http.createServer(async (req, res) => {
+const json = (res, code, body) => { res.writeHead(code, { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "content-type, authorization" }); res.end(JSON.stringify(body)); };
+http.createServer(withAuthentication(async (req, res) => {
   try {
     const u = new URL(req.url, "http://x");
     if (req.method === "OPTIONS") return json(res, 204, {});
-    if (u.pathname === "/healthz") return json(res, 200, { ok: true, pipeline: PIPELINE, spent_usd: Number(budget.spent.toFixed(3)), prompt_version: prompts.version });
-    if (u.pathname.startsWith("/art/")) { const name = u.pathname.slice(5); if (!/^[a-f0-9]+(\.png|\.cut\.png|\.plate\.jpg)$/.test(name)) return json(res, 404, { error: "not_found" }); const f = join(CACHE, name); if (!existsSync(f)) return json(res, 404, { error: "not_found" }); res.writeHead(200, { "Content-Type": name.endsWith(".jpg") ? "image/jpeg" : "image/png", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=86400" }); return res.end(await readFile(f)); }
+    if (req.method === "GET" && u.pathname === "/healthz") return json(res, 200, { ok: true, pipeline: PIPELINE, spent_usd: Number(budget.spent.toFixed(3)), prompt_version: prompts.version, ...(config.sourceRevision ? { source_revision: config.sourceRevision } : {}), auth_required: config.authRequired, budget_limit_usd: config.budgetLimitUsd });
+    if (u.pathname.startsWith("/art/")) { const name = u.pathname.slice(5); if (!/^[a-f0-9]+(\.png|\.cut\.png|\.plate\.jpg)$/.test(name)) return json(res, 404, { error: "not_found" }); const f = join(CACHE, name); if (!existsSync(f)) return json(res, 404, { error: "not_found" }); res.writeHead(200, { "Content-Type": name.endsWith(".jpg") ? "image/jpeg" : "image/png", "Access-Control-Allow-Origin": "*", "Cache-Control": config.authRequired ? "private, max-age=86400" : "public, max-age=86400" }); return res.end(await readFile(f)); }
     if (req.method === "POST" && u.pathname === "/v1/identity/card-art") {
       let body = ""; for await (const c of req) body += c; const b = JSON.parse(body || "{}");
       if (!prompts.types[b.type]) return json(res, 400, { error: "unknown_type" });
@@ -150,7 +156,7 @@ http.createServer(async (req, res) => {
     }
     json(res, 404, { error: "not_found" });
   } catch (e) { json(res, 500, { error: "server_error", message: e.message }); }
-}).listen(PORT, HOST, () => console.log(`card-art mock backend on http://${HOST}:${PORT}  pipeline=${PIPELINE}  (cache ${CACHE})`));
+}, config)).listen(PORT, HOST, () => console.log(`card-art mock backend on http://${HOST}:${PORT}  pipeline=${PIPELINE}  (cache ${CACHE})`));
 
 /* --warm who:type:avatar → pre-compute (or register an existing PNG via --warm-from path) */
 if (args.warm) {

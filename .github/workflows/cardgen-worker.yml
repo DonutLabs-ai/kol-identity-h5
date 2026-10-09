@@ -1,0 +1,36 @@
+name: Cardgen worker
+
+on:
+  pull_request:
+    paths:
+      - tools/cardgen/**
+      - .github/workflows/cardgen-worker.yml
+  push:
+    branches: [dev]
+    paths:
+      - tools/cardgen/**
+      - .github/workflows/cardgen-worker.yml
+
+permissions:
+  contents: read
+
+jobs:
+  worker-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: tools/cardgen/package-lock.json
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+        working-directory: tools/cardgen
+      - run: npm test
+        working-directory: tools/cardgen
+      - name: Validate worker image packaging
+        run: docker build --build-arg CARD_SOURCE_REVISION="$GITHUB_SHA" -t cardgen-ci tools/cardgen
+      - name: Verify Python plate and image imports without provider credentials
+        run: |
+          docker run --rm --entrypoint node cardgen-ci --input-type=module -e "await import('./card-art-service.mjs'); await import('./bedrock-cutout.mjs');"
+          docker run --rm -v "$PWD/tools/cardgen/test-fixtures:/fixtures:ro" --entrypoint python3 cardgen-ci harness/plate.py /fixtures/main.png /fixtures/cut.png /tmp/cardgen-plate.jpg

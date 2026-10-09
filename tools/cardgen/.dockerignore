@@ -1,5 +1,12 @@
+.env
+.env.*
+**/.env
+**/.env.*
 out
-avatars
 style-refs
 harness/bin
 *.log
+node_modules
+test-fixtures
+*.test.mjs
+load-test.mjs

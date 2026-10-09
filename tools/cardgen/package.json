@@ -1,0 +1,8 @@
+{
+  "name": "@donut/cardgen-worker",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": { "start": "node worker.mjs", "test": "node --test *.test.mjs" },
+  "dependencies": { "@aws-sdk/client-bedrock-runtime": "3.1148.0" }
+}
