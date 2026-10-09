@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="./landing.css?v=3">
 <link rel="stylesheet" href="./flow.css?v=1">
 <link rel="stylesheet" href="./summon.css?v=5">
-<link rel="stylesheet" href="./v2-overrides.css?v=13">
+<link rel="stylesheet" href="./v2-overrides.css?v=15">
 <style>
 @font-face { font-family: "Timeless Serif"; font-weight: 350; font-style: italic; font-display: swap; src: url(./fonts/TimelessSerif-BookItalic.woff2) format("woff2"); }
 .reveal-main {
@@ -219,7 +219,8 @@
 </a>
 
 <nav class="topnav">
-  <a class="visit" href="https://getdonut.ai/" target="_blank" rel="noopener">About D0</a>
+  <a class="visit follow" href="https://x.com/DonutAI" target="_blank" rel="noopener">Follow D0</a>
+  <a class="visit about" href="https://getdonut.ai/" target="_blank" rel="noopener">About D0</a>
   <a class="visit" href="https://d0.getdonut.ai/d0-onboarding" target="_blank" rel="noopener" id="try-d0">Try D0
     <svg class="arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </a>
@@ -236,7 +237,7 @@
 <script src="./config.js?v=1"></script>
 <script src="./demo-kols.js?v=1"></script>
 <script src="./summon-gl.js?v=1"></script>
-<script src="./summon.js?v=4"></script>
+<script src="./summon.js?v=5"></script>
 
 <main class="reveal-main">
 
@@ -391,7 +392,7 @@
     return "../flashcard/kol-v0.html?code=DONUT2026&skin=amethyst" + "&user=" + encodeURIComponent(HANDLE.toUpperCase()) + "&type=" + encodeURIComponent(type) + (img ? "&img=" + encodeURIComponent(img) : "");
   }
   f.src = cardSrc("");
-  document.getElementById("r-quote-by").textContent = T.by.replace("\u2014 you,", "\u2014 " + HANDLE.toLowerCase() + ",");
+  document.getElementById("r-quote-by").textContent = HANDLE.toLowerCase();   /* just the handle (Cory 2026-10-09) */
   /* ── card art from the backend (BACKEND.md §3): POST now, poll, then reveal with the art in place ── */
   /* pages opened from localhost talk to the local mock (so the demo never depends on the network); `?api=` overrides,
      everywhere else the deployed backend from config.js */
@@ -436,7 +437,7 @@
   /* the demo avatar isn't on this host (they stay out of git): back to the sample persona so card and copy agree */
   function demoFallback() {
     D = null; HANDLE = "@RU7CRYPTOLONG"; f.src = cardSrc("");
-    document.getElementById("r-quote-by").textContent = T.by.replace("\u2014 you,", "\u2014 " + HANDLE.toLowerCase() + ",");
+    document.getElementById("r-quote-by").textContent = HANDLE.toLowerCase();
     try { sessionStorage.removeItem("donut.kol"); } catch (e) {}
   }
   /* Yi's 2.5D portrait, rebuilt for the generated art: the window plane shows the backend's clean plate (the art with

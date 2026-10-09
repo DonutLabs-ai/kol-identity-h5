@@ -61,7 +61,9 @@
     shell.src = "../flashcard/kol-v0.html?code=DONUT2026&skin=amethyst&user=" + encodeURIComponent((opt.name || "YOUR DONUT ID").toUpperCase());
     shell.addEventListener("load", function () { try {
       var d = shell.contentDocument, st = d.createElement("style");
-      st.textContent = ".skin-bar{display:none!important}.kol-photo img{visibility:hidden}.kol-photo>.kol-q{position:absolute;inset:0;z-index:1;display:grid;place-items:center;background:radial-gradient(90% 70% at 50% 45%,#2a1a52 0%,#140c2c 60%,#0b0718 100%);font:400 150px/1 'Instrument Serif',Georgia,serif;color:rgb(222 208 255 / .85);text-shadow:0 0 24px rgb(178 150 255 / .8)}" +
+      var tlx = new URL("./fonts/TimelessText-W465.woff2", location.href).href;   /* the "?" uses the site's serif, like the claim page's */
+      st.textContent = "@font-face{font-family:'Timeless Text';font-weight:465;src:url('" + tlx + "') format('woff2')}" +
+        ".skin-bar{display:none!important}.kol-photo img{visibility:hidden}.kol-photo>.kol-q{position:absolute;inset:0;z-index:1;display:grid;place-items:center;background:radial-gradient(90% 70% at 50% 45%,#2a1a52 0%,#140c2c 60%,#0b0718 100%);font:465 150px/1 'Timeless Text',Georgia,serif;color:rgb(222 208 255 / .85);text-shadow:0 0 24px rgb(178 150 255 / .8)}" +
         ".kol-photo>.kol-bling{position:absolute;inset:-10% 0;z-index:2;pointer-events:none;mix-blend-mode:screen;opacity:0;background:linear-gradient(180deg,transparent 0%,rgb(255 214 170 / .55) 46%,rgb(255 255 255 / .95) 50%,rgb(190 170 255 / .75) 54%,transparent 62%);background-size:100% 42%;background-repeat:no-repeat;background-position:0 -60%}";
       d.head.appendChild(st);
       var ph = d.querySelector(".kol-photo");

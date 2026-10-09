@@ -282,6 +282,7 @@ body {
 
 /* ── phones ── */
 @media (max-width: 700px) {
+  .topnav .visit.about { display: none; }   /* four buttons don't fit a phone: Follow D0 (2026-10-09) takes About's slot */
   .brand { top: 24px; left: 20px; }
   .brand img { width: 28px; height: 28px; }
   .brand .textmark { width: 68px; height: 19px; }
