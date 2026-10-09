@@ -70,7 +70,9 @@ body {
 /* the whole bottom band accepts swipes (sits under the cards; gaps fall through to it) */
 .fan-zone { position: fixed; left: 0; right: 0; bottom: 0; height: 42vh; z-index: 1; cursor: grab; touch-action: pan-y; }
 .cardfan {
-  position: fixed; inset: 0; z-index: 2; pointer-events: none; overflow: hidden;
+  /* clip, not hidden: Safari scrolls an overflow:hidden box to reveal the ticket iframes when they take focus,
+     which lifted the whole fan 330px over the headline (2026-10-09); a clipped box cannot scroll */
+  position: fixed; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; overflow: clip;
   transition: transform .3s cubic-bezier(.2,.7,.2,1);
 }
 .cardfan.dragging { transition: none; }
