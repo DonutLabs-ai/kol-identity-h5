@@ -6,6 +6,7 @@ RUN pip3 install --no-cache-dir --break-system-packages rembg onnxruntime "pillo
 # bake the segmentation model (179 MB) so the first card never waits for a download
 ENV U2NET_HOME=/opt/cardgen-models
 RUN python3 -c "from rembg import new_session; new_session('isnet-general-use')"
+RUN chown -R node:node /opt/cardgen-models
 WORKDIR /app
 COPY --chown=node:node prompts.md server.mjs server-config.mjs serial-task-queue.mjs ./
 COPY --chown=node:node harness ./harness
@@ -17,6 +18,7 @@ LABEL org.opencontainers.image.source="https://github.com/DonutLabs-ai/kol-ident
 ENV CARD_SOURCE_REVISION=$CARD_SOURCE_REVISION
 ENV HOST=0.0.0.0 PORT=3022 CARD_PIPELINE=fast NODE_ENV=production
 USER node
+RUN python3 -c "from rembg import new_session; new_session('isnet-general-use')"
 EXPOSE 3022
 HEALTHCHECK --interval=30s --timeout=5s CMD node -e "fetch('http://127.0.0.1:3022/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 CMD ["node", "server.mjs"]
