@@ -126,8 +126,16 @@ body {
   text-align: center;
   /* full-viewport layer above the card fan: let the cards receive hover, re-enable on the CTA */
   pointer-events: none;
-  /* centre below the header band (logo bottoms out ~96px), biased up off the card fan */
-  padding: 96px 24px 190px;
+  /* centre in the band between the header (logo bottoms out ~96px) and the card fan: the desktop cards' tops sit
+     ~368px above the viewport bottom, so the hero's box ends 24px above them and the copy never lands on a card
+     (Cory 2026-10-09: on a short, wide window the CTA sat on the cards) */
+  padding: 96px 24px 392px;
+}
+/* short desktop windows: a 0.8× fan and a shorter reserve, so the copy still clears both the header and the cards */
+@media (max-height: 760px) and (min-width: 701px) {
+  .fan-card { width: 278px; height: 386px; }
+  .fan-frame { transform: scale(.672); }
+  .hero { padding-bottom: 300px; }
 }
 .hero h1 { margin: 0; font-weight: 465; max-width: 100%; }
 .line-caps {

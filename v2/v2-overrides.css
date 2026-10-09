@@ -99,11 +99,14 @@ label[for="f-email"] { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w
 label[for="f-discord"] { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7.9 20A9 9 0 1 0 4 16.1L2 22Z'/%3E%3C/svg%3E"); }
 #field-wallet label { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1'/%3E%3Cpath d='M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4'/%3E%3C/svg%3E"); }
 
-/* ── flags (Cory 2026-10-08: the "GREEN FLAG / RED FLAG" labels read as AI boilerplate): the label becomes a flag glyph in
+/* ── flags (Cory 2026-10-08: the "GREEN FLAG / RED FLAG" labels read as AI boilerplate): the label becomes a glyph in
    its colour; the words stay in the markup for screen readers (font-size 0), the sentence carries the meaning ── */
 .flag-row { align-items: center; gap: 12px; }
 .flag-row b { display: inline-grid; place-items: center; width: 18px; height: 18px; font-size: 0 !important; line-height: 0; letter-spacing: 0; }
-.flag-row b::before { content: ""; width: 16px; height: 16px; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z' fill='%23000' stroke='%23000' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M4 22v-7' stroke='%23000' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z' fill='%23000' stroke='%23000' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M4 22v-7' stroke='%23000' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat; }
+.flag-row b::before { content: ""; width: 16px; height: 16px; background: currentColor; -webkit-mask: var(--ico) center / contain no-repeat; mask: var(--ico) center / contain no-repeat; }
+/* candles, not flags (Cory 2026-10-09): a rising green candle for the green flag, a falling red one for the red flag */
+.flag-row.green b::before { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 1.5v6.5M12 20v2.5' stroke='%23000' stroke-width='2' stroke-linecap='round'/%3E%3Crect x='7' y='8' width='10' height='12' rx='1.5' fill='%23000'/%3E%3C/svg%3E"); }
+.flag-row.red b::before { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 1.5v2.5M12 16v6.5' stroke='%23000' stroke-width='2' stroke-linecap='round'/%3E%3Crect x='7' y='4' width='10' height='12' rx='1.5' fill='%23000'/%3E%3C/svg%3E"); }
 
 /* ── card size per viewport (Cory 2026-10-08 evening: "the desktop card is too small") ──
    ≤760 phones: 330px (scale .797) · 761–1000 (tablets and small desktop windows, e.g. a ~900px browser): the full
