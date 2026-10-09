@@ -393,18 +393,21 @@
   f.src = cardSrc("");
   document.getElementById("r-quote-by").textContent = T.by.replace("\u2014 you,", "\u2014 " + HANDLE.toLowerCase() + ",");
   /* ── card art from the backend (BACKEND.md §3): POST now, poll, then reveal with the art in place ── */
-  var API = new URLSearchParams(location.search).get("api") || window.DONUT_CARD_API || (/^(127\.0\.0\.1|localhost)$/.test(location.hostname) ? "http://127.0.0.1:3022" : "");
+  /* pages opened from localhost talk to the local mock (so the demo never depends on the network); `?api=` overrides,
+     everywhere else the deployed backend from config.js */
+  var LOCAL = /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
+  var API = new URLSearchParams(location.search).get("api") || (LOCAL ? "http://127.0.0.1:3022" : window.DONUT_CARD_API || "");
   var art = { status: API ? "pending" : "none", t0: Date.now(), url: "" };
   /* the avatar goes as bytes (avatar_data) — the mock server must not depend on reaching this page's origin */
   function avatarData() { return fetch(AVATAR).then(function (r) { return r.blob(); }).then(function (b) { return new Promise(function (res) { var fr = new FileReader(); fr.onload = function () { res(fr.result); }; fr.readAsDataURL(b); }); }); }
   if (API && typeId) {
     avatarData().then(function (data) { return fetch(API + "/v1/identity/card-art", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ avatar_data: data, handle: HANDLE, type: typeId }) }); })
       .then(function (r) { return r.json(); }).then(function (j) {
-        if (j.status === "done") return artDone(j.image_url, j.cutout_url, j.plate_url);
+        if (j.status === "done") { artDone(j.image_url, j.cutout_url, j.plate_url); if (!j.cutout_url && j.cutout === "pending") lateLayers(j.job_id); return; }
         if (!j.job_id) { art.status = "failed"; return; }
         var poll = setInterval(function () {
           fetch(API + "/v1/identity/card-art/" + j.job_id).then(function (r) { return r.json(); }).then(function (st) {
-            if (st.status === "done") { clearInterval(poll); artDone(st.image_url, st.cutout_url, st.plate_url); }
+            if (st.status === "done") { clearInterval(poll); artDone(st.image_url, st.cutout_url, st.plate_url); if (!st.cutout_url && st.cutout === "pending") lateLayers(j.job_id); }
             else if (st.status === "failed") { clearInterval(poll); art.status = "failed"; }
             else art.stage = st.stage;
           }).catch(function () {});
@@ -414,6 +417,22 @@
     /* no backend on this host (a static deploy): the profile's own avatar fills the card window instead of the sample photo */
     artDone(new URL(D.avatar, location.href).href);
   } else art.status = "none";
+  /* the backend reports the art before its 2.5D layers exist (the segmenter can take minutes on a small server):
+     keep asking for up to 2.5 min and attach the layers when they arrive — the figure lifts off the plate in one frame */
+  function lateLayers(jobId) {
+    var toAbs = function (u) { return /^https?:/.test(u) ? u : API + u; }, tries = 0;
+    var t = setInterval(function () {
+      if (++tries > 50) { clearInterval(t); return; }
+      fetch(API + "/v1/identity/card-art/" + jobId).then(function (r) { return r.json(); }).then(function (st) {
+        if (st.cutout === "none" || st.status === "failed") { clearInterval(t); return; }
+        if (!st.cutout_url || !st.plate_url) return;
+        clearInterval(t);
+        var cutAbs = toAbs(st.cutout_url), plateAbs = toAbs(st.plate_url), left = 2;
+        function one() { if (--left) return; mid.src = plateAbs; cut.src = cutAbs; cutWin.hidden = false; }
+        var a = new Image(); a.onload = one; a.src = cutAbs; var b = new Image(); b.onload = one; b.src = plateAbs;
+      }).catch(function () {});
+    }, 3000);
+  }
   /* the demo avatar isn't on this host (they stay out of git): back to the sample persona so card and copy agree */
   function demoFallback() {
     D = null; HANDLE = "@RU7CRYPTOLONG"; f.src = cardSrc("");
