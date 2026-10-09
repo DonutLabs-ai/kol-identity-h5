@@ -43,7 +43,7 @@ test("operational bounds default independently of unlimited business spend and r
   assert.equal(config.maxActiveJobs, 4);
   assert.equal(config.maxQueuedJobs, 1000);
   assert.equal(config.budgetLimitUsd, null);
-  for (const key of ["CARD_MAX_ACTIVE_JOBS", "CARD_MAX_QUEUED_JOBS", "CARD_MAX_HTTP_REQUESTS",
+  for (const key of ["CARD_MAX_ACTIVE_JOBS", "CARD_MAX_QUEUED_JOBS", "CARD_MAX_HTTP_REQUESTS", "CARD_MAX_RETAINED_JOBS", "CARD_MIN_FREE_DISK_BYTES",
     "CARD_MAX_REQUEST_BYTES", "CARD_MAX_AVATAR_BYTES", "CARD_BEDROCK_MIN_INTERVAL_MS",
     "CARD_BEDROCK_TIMEOUT_MS"]) {
     for (const value of ["0", "-1", "1.5", "NaN", "Infinity", " ", "1e309"]) {

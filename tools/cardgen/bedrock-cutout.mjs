@@ -1,4 +1,5 @@
 import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
+import { fromTokenFile } from "@aws-sdk/credential-provider-web-identity";
 import { readFile, open, rename } from "node:fs/promises";
 import { dirname } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -46,8 +47,16 @@ function decodeResponse(body, input) {
 
 // Persist spacing across restarts. This scheduler belongs to the single PVC-backed worker;
 // horizontal replicas require a shared limiter before they can be enabled.
+export function createWorkloadBedrockClient({ region, credentialRegion = "ap-southeast-2", credentialRequestHandler }) {
+  return new BedrockRuntimeClient({ region, maxAttempts: 1,
+    credentials: fromTokenFile({ clientConfig: { region: credentialRegion,
+      maxAttempts: 1, requestHandler: credentialRequestHandler } }),
+  });
+}
+
 export function createBedrockCutout({ region, model, minIntervalMs, timeoutMs, stateFile,
-  client = new BedrockRuntimeClient({ region, maxAttempts: 1 }), now = Date.now, sleep = delay }) {
+  credentialRegion = "ap-southeast-2",
+  client = createWorkloadBedrockClient({ region, credentialRegion }), now = Date.now, sleep = delay }) {
   const enqueue = createSerialTaskQueue();
   let initialized = false, lastStarted = 0;
   async function initialize() {
@@ -100,6 +109,7 @@ export function createBedrockCutout({ region, model, minIntervalMs, timeoutMs, s
     try {
       response = await client.send(command, { abortSignal: AbortSignal.timeout(timeoutMs) });
     } catch (cause) {
+      lastStarted = now(); // A receipt is a conservative bound on actual network dispatch.
       const code = cause.name === "ThrottlingException" ? "bedrock_throttled" :
         cause.name === "AbortError" || cause.name === "TimeoutError" ? "bedrock_result_unknown" : "bedrock_call_failed";
       const category = code === "bedrock_throttled" ? "provider_throttled" :
@@ -107,6 +117,7 @@ export function createBedrockCutout({ region, model, minIntervalMs, timeoutMs, s
       await persist(false);
       throw providerError(code, category, cause);
     }
+    lastStarted = now();
     await persist(false);
     const png = decodeResponse(response.body, input);
     return { png, requestId: response.$metadata.requestId, seconds: (now() - started) / 1000 };

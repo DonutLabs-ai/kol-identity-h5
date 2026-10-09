@@ -30,7 +30,7 @@ function deferred() {
 }
 async function sourceHashes() {
   const names = ["card-art-service.mjs", "job-queue.mjs", "server-config.mjs", "bedrock-cutout.mjs",
-    "openrouter-image.mjs", "worker.mjs", "harness/plate.py", "load-test.mjs"];
+    "openrouter-image.mjs", "worker.mjs", "harness/plate.py", "harness/validate-main.py", "load-test.mjs"];
   return Object.fromEntries(await Promise.all(names.map(async (name) => [name, sha256(await readFile(new URL(name, import.meta.url)))])));
 }
 function finite(number) { return Number.isFinite(number) ? number : null; }
@@ -50,6 +50,7 @@ async function worker() {
   const service = await createCardArtService({ config, cache, apiKey: "offline-only",
     prompts: { version: "load-test-v1", types: Object.fromEntries(TYPES.map((type) => [type, "Hold a telescope."])) },
     logger: { log() {}, error() {} },
+    async validateMain() {},
     async generate() {
       counts.gemini++;
       if (counts.gemini === 4) firstFour.resolve();

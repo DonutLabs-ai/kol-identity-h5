@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promis
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { JobStoreError, PersistentJobQueue, QueueClosedError, QueueFullError } from "./job-queue.mjs";
+import { HistoryFullError, JobStoreError, PersistentJobQueue, QueueClosedError, QueueFullError } from "./job-queue.mjs";
 
 function deferred() {
   let resolve, reject;
@@ -295,10 +295,12 @@ test("invalid persisted shapes, filenames and duplicate sequences also fail star
 
 test("configuration and JSON input are validated before reserving admission", async (t) => {
   const f = await fixture(t);
-  for (const limits of [{ maxActive: 0 }, { maxQueued: -1 }, { maxActive: 1.5 }]) {
+  for (const limits of [{ maxActive: 0 }, { maxQueued: -1 }, { maxActive: 1.5 },
+    { maxRetainedJobs: 0 }, { maxRetainedJobs: -1 }, { maxRetainedJobs: 1.5 }]) {
     assert.throws(() => f.queue({ run() {}, ...limits }), TypeError);
   }
   const queue = f.queue({ run() {} });
+  assert.equal(queue.maxRetainedJobs, 20000); assert.equal(queue.retainedJobs, 0);
   await assert.rejects(queue.submit("early", {}), /Initialize/);
   await queue.initialize();
   for (const id of ["../escape", "", "id.json"]) await assert.rejects(queue.submit(id, {}), TypeError);
@@ -307,4 +309,111 @@ test("configuration and JSON input are validated before reserving admission", as
   }
   assert.deepEqual(await readdir(f.directory), []);
   assert.equal(queue.get("invalid"), undefined);
+});
+
+test("history capacity counts pending prepare, retains terminals and leaves duplicates readable", async (t) => {
+  const f = await fixture(t), preparing = f.gate(), prepared = f.gate(), started = f.gate(), release = f.gate();
+  let prepares = 0, runs = 0;
+  const queue = f.queue({ maxRetainedJobs: 1, async run() { runs++; started.resolve(); await release.promise; } });
+  await queue.initialize();
+  const first = queue.submit("paid", {}, async () => { prepares++; preparing.resolve(); await prepared.promise; });
+  const duplicate = queue.submit("paid", { ignored: true }, () => { assert.fail("Duplicate preparation"); });
+  await preparing.promise;
+  assert.equal(queue.retainedJobs, 1); assert.equal(queue.maxRetainedJobs, 1);
+  await assert.rejects(queue.submit("new", {}, () => { prepares++; }), HistoryFullError);
+  assert.equal(prepares, 1); assert.equal(runs, 0); assert.deepEqual(await readdir(f.directory), []);
+  prepared.resolve(); const admitted = await first, repeated = await duplicate; await started.promise;
+  assert.equal(repeated.created, false); assert.equal(repeated.job.id, admitted.job.id);
+  release.resolve(); await queue.close();
+  assert.equal(queue.retainedJobs, 1); assert.equal(queue.get("paid").status, "done");
+  assert.equal((await queue.submit("paid", {})).created, false);
+  const terminal = await readFile(join(f.directory, "paid.json"), "utf8");
+  const restarted = f.queue({ maxRetainedJobs: 1, run() { assert.fail("Terminal paid record replayed"); } });
+  await restarted.initialize();
+  assert.equal(restarted.retainedJobs, 1);
+  assert.deepEqual(restarted.stats(), { active: 0, queued: 0, max_active: 1, max_queued: 8 });
+  await assert.rejects(restarted.submit("after-drain", {}, () => { prepares++; }), HistoryFullError);
+  assert.equal((await restarted.submit("paid", { changed: true })).job.status, "done");
+  assert.equal(prepares, 1); assert.equal(runs, 1); assert.equal(restarted.healthy, true);
+  assert.equal(await readFile(join(f.directory, "paid.json"), "utf8"), terminal);
+  assert.deepEqual(await readdir(f.directory), ["paid.json"]);
+});
+
+test("failed prepare releases the history reservation without admitting or paying", async (t) => {
+  const f = await fixture(t), started = f.gate(), release = f.gate();
+  let runs = 0;
+  const queue = f.queue({ maxRetainedJobs: 1, async run() { runs++; started.resolve(); await release.promise; } });
+  await queue.initialize();
+  const failure = new Error("prepare I/O failure");
+  await assert.rejects(queue.submit("rejected", {}, async () => { throw failure; }), (error) => error === failure);
+  assert.equal(queue.retainedJobs, 0); assert.equal(runs, 0);
+  assert.deepEqual(await readdir(f.directory), []);
+  await queue.submit("accepted", {}); await started.promise;
+  assert.equal(queue.retainedJobs, 1); assert.equal(runs, 1);
+  release.resolve(); await queue.close();
+});
+
+test("exact-cap restart preserves done and failed paid records without eviction", async (t) => {
+  const f = await fixture(t), done = record("done", 1, "done"), failed = record("failed", 2, "failed", { error: "provider_result_unknown" });
+  await writeFile(join(f.directory, "done.json"), JSON.stringify(done));
+  await writeFile(join(f.directory, "failed.json"), JSON.stringify(failed));
+  const queue = f.queue({ maxRetainedJobs: 2, run() { assert.fail("Retained terminal replayed"); } });
+  await queue.initialize();
+  assert.deepEqual((await queue.submit("done", {})).job, done);
+  assert.deepEqual((await queue.submit("failed", {})).job, failed);
+  await assert.rejects(queue.submit("new", {}, () => { assert.fail("Full history prepared avatar"); }), HistoryFullError);
+  assert.equal(queue.retainedJobs, 2);
+  assert.deepEqual((await readdir(f.directory)).sort(), ["done.json", "failed.json"]);
+});
+
+test("overflow history fails the bounded startup scan before hydration or recovery writes", async (t) => {
+  const f = await fixture(t); f.expectStoreFailure();
+  const rows = [record("queued", 1, "queued"), record("unknown", 2, "running"), record("done", 3, "done")];
+  const saved = new Map(rows.map((job) => [job.id, JSON.stringify(job)]));
+  await Promise.all(rows.map((job) => writeFile(join(f.directory, job.id + ".json"), saved.get(job.id))));
+  let runs = 0;
+  const queue = f.queue({ maxRetainedJobs: 2, run() { runs++; } });
+  await assert.rejects(queue.initialize(), (error) => error instanceof JobStoreError
+    && error.cause instanceof HistoryFullError && /retained job limit 2/.test(error.message));
+  assert.equal(runs, 0); assert.equal(queue.retainedJobs, 0); assert.equal(queue.healthy, false);
+  for (const job of rows) {
+    assert.equal(queue.get(job.id), undefined);
+    assert.equal(await readFile(join(f.directory, job.id + ".json"), "utf8"), saved.get(job.id));
+  }
+});
+
+test("oversized journal is rejected by its byte limit before any paid recovery", async (t) => {
+  const f = await fixture(t); f.expectStoreFailure();
+  await writeFile(join(f.directory, "queued.json"), JSON.stringify(record("queued", 1, "queued")));
+  // Deliberately invalid JSON: a size failure must win before the parser sees its private contents.
+  await writeFile(join(f.directory, "huge.json"), "{private-invalid-json" + "x".repeat(16 * 1024));
+  let runs = 0;
+  const queue = f.queue({ maxRetainedJobs: 2, run() { runs++; } });
+  await assert.rejects(queue.initialize(), (error) => error instanceof JobStoreError
+    && error.message === "Cannot recover job record huge.json"
+    && error.cause instanceof TypeError && /16384-byte metadata limit/.test(error.cause.message));
+  assert.equal(runs, 0); assert.equal(queue.retainedJobs, 0);
+  assert.equal((await f.disk("queued")).status, "queued");
+});
+
+test("UTF-8 metadata limit rejects new payload before prepare and releases no phantom reservation", async (t) => {
+  const f = await fixture(t); let prepares = 0, runs = 0;
+  const queue = f.queue({ maxRetainedJobs: 1, run() { runs++; } });
+  await queue.initialize();
+  await assert.rejects(queue.submit("large", { privateMetadata: "🙂".repeat(5000) }, () => { prepares++; }), /16384-byte metadata limit/);
+  assert.equal(prepares, 0); assert.equal(runs, 0); assert.equal(queue.retainedJobs, 0);
+  assert.equal(queue.get("large"), undefined); assert.equal(queue.healthy, true);
+  assert.deepEqual(await readdir(f.directory), []);
+});
+
+test("prepare cannot grow metadata beyond the ceiling before durable admission or paid dispatch", async (t) => {
+  const f = await fixture(t); let prepares = 0, runs = 0;
+  const queue = f.queue({ maxRetainedJobs: 1, run() { runs++; } });
+  await queue.initialize();
+  await assert.rejects(queue.submit("expanded", {}, async (payload) => {
+    prepares++; payload.prompt = "x".repeat(16 * 1024);
+  }), /16384-byte metadata limit/);
+  assert.equal(prepares, 1); assert.equal(runs, 0); assert.equal(queue.retainedJobs, 0);
+  assert.equal(queue.get("expanded"), undefined); assert.equal(queue.healthy, true);
+  assert.deepEqual(await readdir(f.directory), []);
 });

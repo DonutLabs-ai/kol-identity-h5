@@ -56,19 +56,37 @@ Operational limits are separate from the backend's optional business quota:
 | --- | --- | --- |
 | `CARD_MAX_ACTIVE_JOBS` | 4 | Bound complete render pipelines |
 | `CARD_MAX_QUEUED_JOBS` | 1000 | Bound waiting jobs; new overflow returns 429 |
+| `CARD_MAX_RETAINED_JOBS` | 20000 | Bound all retained identities, including terminal history; new overflow returns 503 |
+| `CARD_MIN_FREE_DISK_BYTES` | 5368709120 | Preserve 5 GiB headroom after reserving outstanding output capacity |
 | `CARD_MAX_HTTP_REQUESTS` | 64 | Bound simultaneous protected HTTP handlers; overflow returns 503 |
 | `CARD_MAX_REQUEST_BYTES` | 8388608 | Bound JSON request size |
 | `CARD_MAX_AVATAR_BYTES` | 5242880 | Bound decoded/downloaded avatar size |
-| `CARD_BEDROCK_MIN_INTERVAL_MS` | 3100 | Space paid Bedrock starts, including after restart |
+| `CARD_BEDROCK_MIN_INTERVAL_MS` | 3100 | Cooldown after each SDK outcome, including conservative restart recovery |
 | `CARD_BEDROCK_TIMEOUT_MS` | 90000 | Deadline with unknown outcome; no automatic paid retry |
 
 The applied US-West-2 account quota was 20 Remove Background requests/minute when
-verified on 2026-10-09, marked non-adjustable. Do not lower the interval without an
+verified on 2026-10-09, marked non-adjustable. The worker waits 3100ms after each
+SDK outcome before invoking again, because credentials and transport can delay
+the actual HTTP start. This conservatively bounds arrival spacing. At a 3s
+response latency, this dispatcher can sustain only about 9-10 calls/minute;
+the account's 20RPM quota is a ceiling, not measured worker throughput.
+Do not lower the interval without an
 approved and read-back quota allocation. Other account consumers reduce available
 capacity. With every main image already ready and no competing traffic, 1000
 distinct jobs take roughly 52 minutes just to dispatch at this pace; this is not
 a completion guarantee. Four complete pipelines may have lower throughput because
 they also wait for Gemini. A Go rewrite does not change those provider limits.
+
+Before writing an avatar or starting a provider, reserve at least 80 MiB per
+active/queued job against the cache filesystem's available bytes. Main image,
+cutout and plate sizes are bounded at 12/24/32 MiB; larger avatar overrides
+increase the reservation. Disk pressure returns `503 storage_capacity` and
+retained-identity pressure returns `503 history_capacity`; existing duplicates
+remain readable. These are resource backpressure, not per-user/day business
+quotas. A 50-GiB PVC can hit its byte reservation before 1000 waiting jobs. The
+worker preserves all paid/unknown identities and refuses new work rather than
+evicting them. Raising capacity or an owner-acknowledged archive/tombstone handoff
+is required for more history; this release introduces no deletion TTL.
 
 Durable admission precedes dispatch. Same-key concurrent requests share one job;
 duplicates remain queryable when the queue is full. Queued jobs resume after a
@@ -96,5 +114,7 @@ or outputs, and a PVC is not an indefinite output archive.
 `GET /healthz` includes `source_revision`, `auth_required`, `budget_limit_usd`,
 the cutout provider/model/region and queue occupancy. `spent_usd` reports process-local
 Gemini usage only; it does not include AWS charges or establish a hard campaign budget.
+Known provider cost is recorded even when output processing fails;
+`unknown_gemini_cost_calls` counts responses without usable cost metadata.
 Health does not expose credentials. Verify these along with every serving Pod digest,
 unauthorized 401 and three real output files after deployment.

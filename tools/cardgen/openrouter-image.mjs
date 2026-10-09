@@ -1,5 +1,20 @@
 import { readFile } from "node:fs/promises";
 import { extname } from "node:path";
+import { Budget } from "./harness/lib.mjs";
+
+export class WorkerBudget extends Budget {
+  unknownCostCalls = 0;
+  add(usage) {
+    this.calls++;
+    const value = usage?.cost;
+    if ((typeof value !== "number" && typeof value !== "string") || (typeof value === "string" && value.trim() === "")) {
+      this.unknownCostCalls++; return null;
+    }
+    const cost = Number(value);
+    if (!Number.isFinite(cost) || cost < 0) { this.unknownCostCalls++; return null; }
+    this.spent += cost; return cost;
+  }
+}
 
 const MIME = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
   ".webp": "image/webp", ".gif": "image/gif" };
@@ -54,6 +69,8 @@ export function createImageGenerator({ fetcher = fetch } = {}) {
     let result;
     try { result = JSON.parse(raw.toString("utf8")); }
     catch (cause) { throw failure("invalid_provider_json", "invalid_output", cause); }
+    // A successful provider response may report usage even when its image is unusable.
+    const cost = budget.add(result.usage);
     const url = result.choices?.[0]?.message?.images?.[0]?.image_url?.url;
     if (typeof url !== "string") throw failure("provider_image_missing", "invalid_output");
     let png;
@@ -74,6 +91,6 @@ export function createImageGenerator({ fetcher = fetch } = {}) {
       if (!download.ok) { await download.body?.cancel(); throw failure("provider_image_download_failed", "provider_error"); }
       png = await boundary(() => bytes(download, 12 * 1024 * 1024));
     }
-    return { png, cost: budget.add(result.usage), secs: (Date.now() - started) / 1000 };
+    return { png, cost, secs: (Date.now() - started) / 1000 };
   };
 }

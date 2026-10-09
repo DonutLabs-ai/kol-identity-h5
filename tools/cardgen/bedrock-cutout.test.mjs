@@ -3,7 +3,7 @@ import { readFile, mkdtemp, rm, writeFile, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { createBedrockCutout, pngInfo } from "./bedrock-cutout.mjs";
+import { createBedrockCutout, createWorkloadBedrockClient, pngInfo } from "./bedrock-cutout.mjs";
 
 const original = await readFile(new URL("./test-fixtures/main.png", import.meta.url));
 const foreground = await readFile(new URL("./test-fixtures/cut.png", import.meta.url));
@@ -105,4 +105,30 @@ test("a failed durable paid-stage checkpoint starts no provider request", async 
   const { cutout, starts } = await setup(t);
   await assert.rejects(cutout(original, async () => { throw new Error("checkpoint failed"); }), /checkpoint failed/);
   assert.equal(starts.length, 0);
+});
+
+test("web identity credential acquisition uses Sydney STS even though Bedrock uses Oregon", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "cardgen-sts-"));
+  const token = join(directory, "test-token");
+  await writeFile(token, "offline-test-token");
+  const keys = ["AWS_ROLE_ARN", "AWS_WEB_IDENTITY_TOKEN_FILE", "AWS_REGION", "AWS_DEFAULT_REGION"];
+  const prior = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+  t.after(async () => {
+    for (const key of keys) {
+      if (prior[key] === undefined) delete process.env[key]; else process.env[key] = prior[key];
+    }
+    await rm(directory, { recursive: true });
+  });
+  process.env.AWS_ROLE_ARN = "arn:aws:iam::123456789012:role/offline-only";
+  process.env.AWS_WEB_IDENTITY_TOKEN_FILE = token;
+  process.env.AWS_REGION = "ap-southeast-2";
+  process.env.AWS_DEFAULT_REGION = "ap-southeast-2";
+  const hosts = [];
+  const client = createWorkloadBedrockClient({ region: "us-west-2", credentialRegion: "ap-southeast-2",
+    credentialRequestHandler: { async handle(request) { hosts.push(request.hostname); throw new Error("offline_transport_blocked"); } },
+  });
+  await assert.rejects(client.config.credentials(), /offline_transport_blocked/);
+  assert.deepEqual(hosts, ["sts.ap-southeast-2.amazonaws.com"]);
+  assert.equal(await client.config.region(), "us-west-2");
+  client.destroy();
 });

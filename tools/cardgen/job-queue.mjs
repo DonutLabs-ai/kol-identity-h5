@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, open, readFile, readdir, rename, unlink } from "node:fs/promises";
+import { mkdir, open, opendir, rename, unlink } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
 const ID = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/;
 const STATUSES = new Set(["queued", "running", "done", "failed"]);
+const MAX_RECORD_BYTES = 16 * 1024;
 const ERRORS = new Set([
   "provider_error", "provider_timeout", "provider_throttled", "provider_rejected",
   "provider_result_unknown", "invalid_output", "plate_error", "job_failed",
@@ -11,6 +12,10 @@ const ERRORS = new Set([
 
 export class QueueFullError extends Error {
   constructor() { super("Job queue capacity reached"); this.name = "QueueFullError"; }
+}
+
+export class HistoryFullError extends Error {
+  constructor() { super("Retained job history capacity reached"); this.name = "HistoryFullError"; }
 }
 
 export class QueueClosedError extends Error {
@@ -57,6 +62,36 @@ function validateRecord(job) {
   return jsonCopy(job);
 }
 
+function encodedRecord(job) {
+  const snapshot = validateRecord(job);
+  const serialized = JSON.stringify(snapshot) + "\n";
+  if (Buffer.byteLength(serialized, "utf8") > MAX_RECORD_BYTES) {
+    throw new TypeError(`Job record exceeds ${MAX_RECORD_BYTES}-byte metadata limit`);
+  }
+  return { snapshot, serialized };
+}
+
+async function readStoredRecord(path) {
+  const handle = await open(path, "r");
+  try {
+    const info = await handle.stat();
+    if (!info.isFile()) throw new TypeError("Job record must be a regular file");
+    if (info.size > MAX_RECORD_BYTES) {
+      throw new TypeError(`Job record exceeds ${MAX_RECORD_BYTES}-byte metadata limit`);
+    }
+    // One extra byte detects growth after stat without ever reading an unbounded file.
+    const buffer = Buffer.alloc(info.size + 1);
+    let length = 0;
+    while (length < buffer.length) {
+      const { bytesRead } = await handle.read(buffer, length, buffer.length - length, length);
+      if (bytesRead === 0) break;
+      length += bytesRead;
+    }
+    if (length !== info.size) throw new TypeError("Job record changed during recovery");
+    return JSON.parse(buffer.subarray(0, length).toString("utf8"));
+  } finally { await handle.close(); }
+}
+
 function errorCategory(error) {
   if (error !== null && typeof error === "object") {
     for (const field of ["category", "code", "message"]) {
@@ -69,6 +104,9 @@ function errorCategory(error) {
 }
 
 /** Single process/replica only. maxQueued bounds waiting admission in addition to maxActive slots.
+ * maxRetainedJobs bounds all job identities, including pending preparation and terminal history.
+ * History is never evicted: the limit gates new admissions, not business spend or duplicate reads.
+ * Each journal record is bounded to 16 KiB of UTF-8 JSON, including its trailing newline.
  * Records contain a sequence so FIFO survives equal timestamps and process replacement.
  * prepare(payload), when supplied, runs once before durable admission and may update payload.
  * run must await checkpoint(job) before each paid call and after publishing known outputs.
@@ -78,6 +116,7 @@ export class PersistentJobQueue {
   #directory;
   #maxActive;
   #maxQueued;
+  #maxRetainedJobs;
   #run;
   #jobs = new Map();
   #committed = new Map();
@@ -92,16 +131,18 @@ export class PersistentJobQueue {
   #closed = false;
   #fatal;
 
-  constructor({ directory, maxActive, maxQueued, run }) {
+  constructor({ directory, maxActive, maxQueued, maxRetainedJobs = 20000, run }) {
     if (typeof directory !== "string" || directory.length === 0
       || !Number.isSafeInteger(maxActive) || maxActive < 1
       || !Number.isSafeInteger(maxQueued) || maxQueued < 0
-      || !Number.isSafeInteger(maxActive + maxQueued) || typeof run !== "function") {
-      throw new TypeError("Configure directory, positive maxActive, nonnegative maxQueued and run");
+      || !Number.isSafeInteger(maxActive + maxQueued)
+      || !Number.isSafeInteger(maxRetainedJobs) || maxRetainedJobs < 1 || typeof run !== "function") {
+      throw new TypeError("Configure directory, positive maxActive/maxRetainedJobs, nonnegative maxQueued and run");
     }
     this.#directory = resolve(directory);
     this.#maxActive = maxActive;
     this.#maxQueued = maxQueued;
+    this.#maxRetainedJobs = maxRetainedJobs;
     this.#run = run;
   }
 
@@ -111,21 +152,29 @@ export class PersistentJobQueue {
   }
 
   async #initialize() {
-    let files;
+    const files = [];
     try {
       await mkdir(this.#directory, { recursive: true, mode: 0o700 });
-      files = await readdir(this.#directory, { withFileTypes: true });
+      const directory = await opendir(this.#directory);
+      // Count first: an oversized history must fail before any records are hydrated or changed.
+      for await (const file of directory) {
+        if (!file.name.endsWith(".json")) continue; // Unrenamed .tmp files were never admitted.
+        if (files.length === this.#maxRetainedJobs) throw new HistoryFullError();
+        files.push(file);
+      }
     } catch (error) {
+      if (error instanceof HistoryFullError) {
+        throw new JobStoreError(`Job store exceeds retained job limit ${this.#maxRetainedJobs}`, error);
+      }
       throw new JobStoreError("Cannot open job store", error);
     }
     // Read and validate everything before dispatching or changing recovery records.
     const loaded = [];
     const sequences = new Set();
     for (const file of files) {
-      if (!file.name.endsWith(".json")) continue; // Unrenamed .tmp files were never admitted.
       try {
         if (!file.isFile()) throw new TypeError("Job record must be a regular file");
-        const job = validateRecord(JSON.parse(await readFile(join(this.#directory, file.name), "utf8")));
+        const { snapshot: job } = encodedRecord(await readStoredRecord(join(this.#directory, file.name)));
         if (file.name !== `${job.id}.json` || sequences.has(job.sequence)) {
           throw new TypeError("Job filename or sequence does not match its record");
         }
@@ -162,6 +211,7 @@ export class PersistentJobQueue {
     if (this.#fatal) throw this.#fatal;
     if (this.#closed) throw new QueueClosedError();
     if (prepare !== undefined && typeof prepare !== "function") throw new TypeError("prepare must be a function");
+    if (this.#jobs.size >= this.#maxRetainedJobs) throw new HistoryFullError();
     if (this.#active.size + this.#waiting.length >= this.#maxActive + this.#maxQueued) {
       throw new QueueFullError();
     }
@@ -169,8 +219,10 @@ export class PersistentJobQueue {
     const now = new Date().toISOString();
     const job = {
       id, payload: jsonCopy(payload), status: "queued", stage: "queued",
-      sequence: ++this.#sequence, createdAt: now, updatedAt: now,
+      sequence: this.#sequence + 1, createdAt: now, updatedAt: now,
     };
+    encodedRecord(job); // Reject oversized metadata before prepare or any capacity reservation.
+    this.#sequence++;
     // Reserve identity and capacity synchronously, before the first filesystem await.
     const entry = { job, ready: false };
     this.#jobs.set(id, job);
@@ -203,6 +255,10 @@ export class PersistentJobQueue {
   }
 
   get healthy() { return this.#initialized && !this.#closed && this.#fatal === undefined; }
+
+  get retainedJobs() { return this.#jobs.size; }
+
+  get maxRetainedJobs() { return this.#maxRetainedJobs; }
 
   stats() {
     // Pending preparation reserves available start slots before any I/O.
@@ -291,8 +347,7 @@ export class PersistentJobQueue {
 
   #persist(job) {
     // Capture now: later job mutations must not change an earlier checkpoint's contents.
-    const snapshot = validateRecord(job);
-    const serialized = JSON.stringify(snapshot) + "\n";
+    const { snapshot, serialized } = encodedRecord(job);
     const previous = this.#writes.get(snapshot.id) || Promise.resolve();
     const writing = previous.then(async () => {
       await this.#atomicWrite(snapshot.id, serialized);

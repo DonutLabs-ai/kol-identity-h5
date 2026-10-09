@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { createImageGenerator } from "./openrouter-image.mjs";
+import { createImageGenerator, WorkerBudget } from "./openrouter-image.mjs";
 import { Budget } from "./harness/lib.mjs";
 
 const avatarPath = new URL("./test-fixtures/main.png", import.meta.url).pathname;
@@ -46,6 +46,26 @@ test("malformed provider output fails instead of publishing an empty image", asy
     await assert.rejects(createImageGenerator({ fetcher: async () => response() })(args()),
       (error) => error.category === "invalid_output");
   }
+});
+
+test("known provider cost is recorded even when the returned image is missing", async () => {
+  const input = args();
+  const generate = createImageGenerator({ fetcher: async () => Response.json({ usage: { cost: 0.14 }, choices: [] }) });
+  for (let i = 0; i < 5; i++) await assert.rejects(generate(input), /provider_image_missing/);
+  assert.ok(Math.abs(input.budget.spent - 0.7) < 1e-10);
+  assert.equal(input.budget.calls, 5);
+});
+
+test("missing or malformed provider usage remains explicitly unknown rather than a zero charge", () => {
+  const budget = new WorkerBudget(Infinity);
+  for (const usage of [undefined, {}, { cost: "" }, { cost: -1 }, { cost: "not-a-number" }]) {
+    assert.equal(budget.add(usage), null);
+  }
+  assert.equal(budget.unknownCostCalls, 5);
+  assert.equal(budget.add({ cost: 0 }), 0);
+  assert.equal(budget.add({ cost: "0.14" }), 0.14);
+  assert.equal(budget.spent, 0.14);
+  assert.equal(budget.calls, 7);
 });
 
 test("remote provider assets use HTTPS, no redirect and a separate abort deadline", async () => {

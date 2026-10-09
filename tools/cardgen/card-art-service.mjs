@@ -1,13 +1,13 @@
 import http from "node:http";
 import { createHash, randomUUID } from "node:crypto";
-import { access, mkdir, readFile, writeFile, rename } from "node:fs/promises";
+import { access, mkdir, readFile, writeFile, rename, statfs, stat } from "node:fs/promises";
 import { createReadStream } from "node:fs";
 import { pipeline as streamPipeline } from "node:stream/promises";
 import { join } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { Budget, fastPrompt, TYPES } from "./harness/lib.mjs";
-import { createImageGenerator } from "./openrouter-image.mjs";
+import { fastPrompt, TYPES } from "./harness/lib.mjs";
+import { createImageGenerator, WorkerBudget } from "./openrouter-image.mjs";
 import { withAuthentication } from "./server-config.mjs";
 import { createSerialTaskQueue } from "./serial-task-queue.mjs";
 import { createBedrockCutout, pngInfo } from "./bedrock-cutout.mjs";
@@ -15,6 +15,7 @@ import { PersistentJobQueue, QueueFullError } from "./job-queue.mjs";
 
 const exec = promisify(execFile);
 const ALLOWED_TYPES = new Set(TYPES.filter((type) => type !== "unresolved"));
+const RESERVED_JOB_BYTES = 80 * 1024 * 1024;
 class RequestError extends Error {
   constructor(status, code) { super(code); this.status = status; }
 }
@@ -32,8 +33,8 @@ const json = (res, status, body) => {
     "Access-Control-Allow-Headers": "content-type, authorization" });
   res.end(JSON.stringify(body));
 };
-function publicJob(job, promptVersion) {
-  return { job_id: job.id, status: job.status, stage: job.stage, prompt_version: promptVersion,
+function publicJob(job) {
+  return { job_id: job.id, status: job.status, stage: job.stage, prompt_version: job.payload.promptVersion,
     ...(job.status === "done" ? { image_url: job.image_url, cutout_url: job.cutout_url,
       plate_url: job.plate_url } : {}),
     ...(job.status === "failed" ? { error: job.error } : {}) };
@@ -89,17 +90,22 @@ async function avatarBytes(body, config) {
 }
 
 export async function createCardArtService({ config, cache, prompts, apiKey,
-  generate = createImageGenerator(), cutout, makePlate, logger = console }) {
+  generate = createImageGenerator(), cutout, makePlate, validateMain, diskInfo = statfs, logger = console }) {
   await mkdir(cache, { recursive: true });
-  const budget = new Budget(config.budgetLimitUsd === null ? Infinity : config.budgetLimitUsd);
+  const budget = new WorkerBudget(config.budgetLimitUsd === null ? Infinity : config.budgetLimitUsd);
   let foreground = cutout;
   if (foreground === undefined) {
     foreground = createBedrockCutout({ region: config.bedrockRegion,
+      credentialRegion: config.credentialRegion,
       model: config.bedrockModel, minIntervalMs: config.bedrockMinIntervalMs,
       timeoutMs: config.bedrockTimeoutMs, stateFile: join(cache, ".bedrock-rate.json") });
     await foreground.initialize();
   }
   const enqueuePlate = createSerialTaskQueue();
+  const validate = validateMain || (async (source) => {
+    await exec("python3", [new URL("./harness/validate-main.py", import.meta.url).pathname, source],
+      { timeout: 30000, maxBuffer: 4096 });
+  });
   const plate = makePlate || (async (source, cut, target) => {
     const { stdout } = await exec("python3", [new URL("./harness/plate.py", import.meta.url).pathname,
       source, cut, target], { timeout: 30000, maxBuffer: 4096 });
@@ -107,6 +113,10 @@ export async function createCardArtService({ config, cache, prompts, apiKey,
   });
   let queue;
   async function render(job) {
+    if (typeof job.payload.prompt !== "string" || typeof job.payload.promptVersion !== "string" ||
+        job.payload.imageModel !== "google/gemini-3-pro-image" || job.payload.cutoutModel !== config.bedrockModel) {
+      throw Object.assign(new Error("unsupported_persisted_job_version"), { category: "invalid_output" });
+    }
     const checkpoint = async (stage, updates = {}) => {
       job.stage = stage; Object.assign(job, updates); await queue.checkpoint(job);
     };
@@ -114,15 +124,18 @@ export async function createCardArtService({ config, cache, prompts, apiKey,
       background = join(cache, job.id + ".plate.jpg");
     if (!(await fileExists(main))) {
       await checkpoint("gemini");
-      const result = await generate({ key: apiKey, model: "google/gemini-3-pro-image",
-        prompt: fastPrompt(prompts.types[job.payload.type].replace(/\s+/g, " ").trim()),
+      const result = await generate({ key: apiKey, model: job.payload.imageModel,
+        prompt: job.payload.prompt,
         avatarPath: job.payload.avatarPath, refs: [], budget });
       pngInfo(result.png);
+      if (result.png.length > 12 * 1024 * 1024) throw Object.assign(new Error("main_image_too_large"), { category: "invalid_output" });
       await atomicWrite(main, result.png);
       await checkpoint("image_ready", { image_url: `/art/${job.id}.png` });
     }
+    await validate(main);
     await checkpoint("cutout_queued");
     const result = await foreground(await readFile(main), () => checkpoint("bedrock"));
+    if (result.png.length > 24 * 1024 * 1024) throw Object.assign(new Error("cutout_too_large"), { category: "invalid_output" });
     await atomicWrite(cut, result.png);
     await checkpoint("plate", typeof result.requestId === "string" ? { cutout_request_id: result.requestId } : {});
     const quality = await enqueuePlate(() => plate(main, cut, background));
@@ -132,28 +145,34 @@ export async function createCardArtService({ config, cache, prompts, apiKey,
     for (const output of [main, cut, background]) {
       if (!(await fileExists(output))) throw Object.assign(new Error("output_missing"), { category: "invalid_output" });
     }
+    if ((await stat(background)).size > 32 * 1024 * 1024) throw Object.assign(new Error("plate_too_large"), { category: "invalid_output" });
     job.image_url = `/art/${job.id}.png`; job.cutout_url = `/art/${job.id}.cut.png`;
     job.plate_url = `/art/${job.id}.plate.jpg`; job.stage = "complete";
     logger.log(JSON.stringify({ event: "cardgen.completed", job_id: job.id,
       cutout_request_id: result.requestId, cutout_seconds: result.seconds, coverage: quality.coverage }));
   }
   queue = new PersistentJobQueue({ directory: join(cache, "jobs"),
-    maxActive: config.maxActiveJobs, maxQueued: config.maxQueuedJobs, run: render });
+    maxActive: config.maxActiveJobs, maxQueued: config.maxQueuedJobs, maxRetainedJobs: config.maxRetainedJobs, run: render });
   await queue.initialize();
   async function jobResponse(job) {
+    if (typeof job.payload.promptVersion !== "string") return {
+      job_id: job.id, status: "failed", error: "unsupported_persisted_job_version",
+    };
     if (job.status === "done") {
       for (const suffix of [".png", ".cut.png", ".plate.jpg"]) {
         if (!(await fileExists(join(cache, job.id + suffix)))) return {
-          job_id: job.id, status: "failed", error: "output_missing", prompt_version: prompts.version,
+          job_id: job.id, status: "failed", error: "output_missing", prompt_version: job.payload.promptVersion,
         };
       }
     }
-    return publicJob(job, prompts.version);
+    return publicJob(job);
   }
   let httpActive = 0;
   const server = http.createServer(withAuthentication(async (req, res) => {
     if (req.method === "GET" && req.url.split("?")[0] === "/healthz") {
       return json(res, queue.healthy ? 200 : 503, { ok: queue.healthy, pipeline: "fast", spent_usd: Number(budget.spent.toFixed(3)),
+        unknown_gemini_cost_calls: budget.unknownCostCalls,
+        retained_jobs: queue.retainedJobs, max_retained_jobs: config.maxRetainedJobs,
         prompt_version: prompts.version, source_revision: config.sourceRevision,
         auth_required: config.authRequired, budget_limit_usd: config.budgetLimitUsd,
         cutout_provider: "bedrock", cutout_region: config.bedrockRegion, cutout_model: config.bedrockModel,
@@ -184,7 +203,21 @@ export async function createCardArtService({ config, cache, prompts, apiKey,
         const id = createHash("sha256").update(bytes).update(":" + body.type + ":" + prompts.version + ":v2").digest("hex").slice(0, 24);
         const extension = avatarExtension(bytes);
         const avatarPath = join(cache, id + ".avatar" + extension);
-        const { job, created } = await queue.submit(id, { type: body.type, avatarPath }, () => atomicWrite(avatarPath, bytes));
+        const { job, created } = await queue.submit(id, { type: body.type, avatarPath,
+          promptVersion: prompts.version,
+          prompt: fastPrompt(prompts.types[body.type].replace(/\s+/g, " ").trim()),
+          imageModel: "google/gemini-3-pro-image", cutoutModel: config.bedrockModel,
+        }, async () => {
+          const disk = await diskInfo(cache);
+          const available = disk.bavail * disk.bsize;
+          if (!Number.isSafeInteger(available) || available < 0) throw new Error("Invalid filesystem available capacity");
+          const pending = queue.stats();
+          const reservation = Math.max(RESERVED_JOB_BYTES, config.maxAvatarBytes + 68 * 1024 * 1024 + 128 * 1024);
+          if (available - (pending.active + pending.queued) * reservation < config.minFreeDiskBytes) {
+            throw new RequestError(503, "storage_capacity");
+          }
+          await atomicWrite(avatarPath, bytes);
+        });
         const committed = queue.get(job.id);
         if (committed === undefined) throw new Error("Admitted job has no durable record");
         const response = await jobResponse(committed);
@@ -205,6 +238,7 @@ export async function createCardArtService({ config, cache, prompts, apiKey,
       }
       if (error instanceof RequestError) return json(res, error.status, { error: error.message });
       if (error instanceof QueueFullError) return json(res, 429, { error: "queue_full" });
+      if (error.name === "HistoryFullError") return json(res, 503, { error: "history_capacity" });
       logger.error(JSON.stringify({ event: "cardgen.request_failed", code: error.code || error.name }));
       return json(res, 500, { error: "server_error" });
     } finally { httpActive--; }

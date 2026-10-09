@@ -2,12 +2,13 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import http from "node:http";
 import { performance } from "node:perf_hooks";
-import { mkdir, mkdtemp, readFile, rm, unlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { createCardArtService } from "./card-art-service.mjs";
 import { createBedrockCutout } from "./bedrock-cutout.mjs";
+import { JobStoreError } from "./job-queue.mjs";
 import { readServerConfig } from "./server-config.mjs";
 import { TYPES } from "./harness/lib.mjs";
 import { BedrockRuntimeClient } from "@aws-sdk/client-bedrock-runtime";
@@ -46,9 +47,14 @@ async function fixture(t) {
     gate() { const gate = deferred(); gates.push(gate); return gate; },
     async start(overrides = {}, env = {}) {
       const config = readServerConfig({ CARD_AUTH_TOKEN: TOKEN, CARD_REQUIRE_AUTH: "true", ...env });
+      const { prompts = { version: "http-test-v1", types: Object.fromEntries(TYPES.map((type) => [type, "Hold a telescope."])) },
+        diskInfo = async () => ({ bavail: 100 * 1024 ** 3, bsize: 1 }) } = overrides;
       const service = await createCardArtService({
         config, cache, apiKey: "offline-only-never-sent",
-        prompts: { version: "http-test-v1", types: Object.fromEntries(TYPES.map((type) => [type, "Hold a telescope."])) },
+        prompts, diskInfo,
+        async validateMain(source) {
+          if (overrides.validateMain !== undefined) await overrides.validateMain(source);
+        },
         logger: { log() {}, error() {} },
         async generate(options) {
           counts.gemini++; geminiStarted.resolve();
@@ -199,11 +205,79 @@ test("pending dispatch recovered after restart waits a full interval before anot
   assert.deepEqual(JSON.parse(await readFile(path, "utf8")), { lastStarted: 103100, pending: false });
 });
 
+test("real SDK credential delay cannot compress HTTP dispatches or exceed 20 in rolling 60 seconds", async (t) => {
+  const f = await fixture(t), allCalls = deferred(), starts = [], path = join(f.cache, ".sdk-mock-rate.json");
+  let clock = 100000, credentialCalls = 0;
+  const client = new BedrockRuntimeClient({ region: "us-west-2", maxAttempts: 1,
+    credentials: async () => {
+      await Promise.resolve();
+      if (credentialCalls++ === 0) clock += 10000;
+      return { accessKeyId: "offline-test-access-key", secretAccessKey: "offline-test-secret-key" };
+    },
+    requestHandler: { async handle(request) {
+      assert.equal(request.method, "POST"); assert.match(request.hostname, /us-west-2/);
+      assert.equal(JSON.parse(await readFile(path, "utf8")).pending, true);
+      starts.push(clock); clock++;
+      if (starts.length === 21) allCalls.resolve({});
+      return { response: { statusCode: 200, headers: { "content-type": "application/json",
+        "x-amzn-requestid": "offline-sdk-" + starts.length },
+        body: Buffer.from(JSON.stringify({ images: [CUT.toString("base64")], finish_reasons: [null] })) } };
+    } },
+  });
+  t.after(() => client.destroy());
+  const cutout = createBedrockCutout({ region: "us-west-2", model: "us.stability.stable-image-remove-background-v1:0",
+    minIntervalMs: 3100, timeoutMs: 90000, stateFile: path, client, now: () => clock,
+    sleep: async (duration) => { clock += duration; } });
+  const service = await f.start({ cutout: async (image, checkpoint) => {
+    try { return await cutout(image, checkpoint); }
+    catch (error) { allCalls.resolve({ error }); throw error; }
+  } });
+  const bodies = TYPES.filter((type) => type !== "unresolved").flatMap((type) => [
+    { type, avatar_data: AVATAR }, { type, avatar_data: "data:image/png;base64," + CUT.toString("base64") },
+  ]).slice(0, 21);
+  assert.equal(bodies.length, 21);
+  const admissions = await Promise.all(bodies.map((body) => post(service, body)));
+  for (const response of admissions) assert.ok([200, 202].includes(response.status));
+  assert.equal(new Set(admissions.map((response) => response.body.job_id)).size, 21);
+  const outcome = await allCalls.promise; assert.equal(outcome.error, undefined);
+  await service.queue.close();
+  assert.equal(starts.length, 21); assert.ok(credentialCalls >= 1); assert.ok(starts[0] >= 110000);
+  for (let index = 1; index < starts.length; index++) assert.ok(starts[index] - starts[index - 1] >= 3100);
+  const rolling = starts.map((start) => starts.filter((time) => time >= start && time < start + 60000).length);
+  assert.ok(Math.max(...rolling) <= 20);
+  assert.deepEqual(JSON.parse(await readFile(path, "utf8")), { lastStarted: starts.at(-1) + 1, pending: false });
+  for (const response of admissions) assert.equal(service.queue.get(response.body.job_id).status, "done");
+  assert.deepEqual(f.counts, { gemini: 21, cutout: 21, plate: 21, checkpoints: 21 });
+  t.diagnostic(`Fake HTTP handlers: 21, first gap ${starts[1] - starts[0]} ms, max rolling-minute starts ${Math.max(...rolling)}; zero AWS calls`);
+});
+
+test("full PNG validation failure stops before cutout and preserves failure without Gemini fallback", async (t) => {
+  const f = await fixture(t), entered = f.gate(), release = f.gate(), malformed = MAIN.subarray(0, 33);
+  let validations = 0;
+  const service = await f.start({ generate: async () => ({ png: malformed, cost: 0, secs: 0 }),
+    validateMain: async (source) => {
+      validations++; assert.deepEqual(await readFile(source), malformed); entered.resolve(); await release.promise;
+      throw Object.assign(new Error("injected_full_png_decode_failed"), { category: "invalid_output" });
+    },
+  });
+  const admitted = await post(service); await entered.promise;
+  const pending = await poll(service, admitted.body.job_id);
+  assert.equal(pending.body.status, "running"); assert.equal(pending.body.stage, "image_ready"); noUrls(pending.body);
+  release.resolve(); await service.queue.close();
+  for (const response of [await poll(service, admitted.body.job_id), await post(service)]) {
+    assert.equal(response.body.status, "failed"); assert.equal(response.body.error, "invalid_output");
+    assert.equal(response.body.stage, "image_ready"); noUrls(response.body);
+  }
+  assert.equal(validations, 1); assert.deepEqual(f.counts, { gemini: 1, cutout: 0, plate: 0, checkpoints: 0 });
+});
+
 test("corrupt default pacing state fails startup before queued Gemini recovery", async (t) => {
   const f = await fixture(t), id = "a".repeat(24), jobs = join(f.cache, "jobs");
   const avatarPath = join(f.cache, id + ".avatar.png"), createdAt = new Date().toISOString();
   await mkdir(jobs); await writeFile(avatarPath, MAIN);
-  const queued = JSON.stringify({ id, payload: { type: "sniper", avatarPath }, status: "queued", stage: "queued",
+  const queued = JSON.stringify({ id, payload: { type: "sniper", avatarPath, promptVersion: "http-test-v1",
+    prompt: "Immutable queued test prompt", imageModel: "google/gemini-3-pro-image",
+    cutoutModel: "us.stability.stable-image-remove-background-v1:0" }, status: "queued", stage: "queued",
     sequence: 1, createdAt, updatedAt: createdAt });
   const jobPath = join(jobs, id + ".json"); await writeFile(jobPath, queued);
   let unexpectedDispatch = 0;
@@ -213,7 +287,9 @@ test("corrupt default pacing state fails startup before queued Gemini recovery",
   });
   for (const state of ["bad-json", '{"lastStarted":-1}', '{"lastStarted":100000,"pending":"true"}']) {
     await writeFile(join(f.cache, ".bedrock-rate.json"), state);
-    await assert.rejects(f.start({ useDefaultCutout: true }), /invalid_bedrock_scheduler_state|Unexpected|JSON/);
+    await assert.rejects(f.start({ useDefaultCutout: true }), (error) => {
+      assert.ok(error instanceof JobStoreError); assert.match(error.message, /Invalid Bedrock scheduler state/); return true;
+    });
     assert.equal(f.counts.gemini, 0); assert.equal(unexpectedDispatch, 0);
     assert.equal(await readFile(jobPath, "utf8"), queued, "Startup failure must leave the queued job unstarted");
   }
@@ -401,4 +477,95 @@ test("HTTP admission cap returns worker_busy while public health bypasses held r
   held.forEach(({ req }) => req.end("}"));
   assert.deepEqual(await Promise.all(held.map(({ responseDone }) => responseDone)), [400, 400]);
   assert.equal(f.counts.gemini, 0);
+});
+
+test("retained-history limit returns 503 for a new job while completed duplicates remain usable", async (t) => {
+  const f = await fixture(t), env = { CARD_MAX_RETAINED_JOBS: "1" };
+  const first = await f.start({}, env), done = await completed(f, first);
+  await f.stop(first);
+  let diskChecks = 0;
+  const service = await f.start({ diskInfo: async () => { diskChecks++; return { bavail: 100 * 1024 ** 3, bsize: 1 }; } }, env);
+  const full = await post(service, { type: "hodler", avatar_data: AVATAR });
+  assert.equal(full.status, 503); assert.equal(full.body.error, "history_capacity"); noUrls(full.body);
+  const duplicate = await post(service);
+  assert.equal(duplicate.status, 200); assert.equal(duplicate.body.status, "done");
+  assert.equal(duplicate.body.job_id, done.job_id); assert.equal(duplicate.body.cached, true);
+  assert.equal(diskChecks, 0, "Full history and duplicates must not call prepare");
+  assert.deepEqual(f.counts, { gemini: 1, cutout: 1, plate: 1, checkpoints: 1 });
+  const health = await request(service, "/healthz");
+  assert.equal(health.body.retained_jobs, 1); assert.equal(health.body.max_retained_jobs, 1);
+  assert.equal(health.body.budget_limit_usd, null, "Storage history limit must not impose a business spend cap");
+  assert.equal((await readdir(f.cache)).filter((name) => name.includes(".avatar.")).length, 1);
+});
+
+test("disk headroom rejects before avatar, journal admission or provider dispatch", async (t) => {
+  const f = await fixture(t);
+  const service = await f.start({ diskInfo: async () => ({ bavail: 5 * 1024 ** 3 + 79 * 1024 ** 2, bsize: 1 }) });
+  assert.equal(service.config.minFreeDiskBytes, 5 * 1024 ** 3);
+  const rejected = await post(service);
+  assert.equal(rejected.status, 503); assert.equal(rejected.body.error, "storage_capacity"); noUrls(rejected.body);
+  assert.equal(service.queue.retainedJobs, 0); assert.deepEqual(await readdir(join(f.cache, "jobs")), []);
+  assert.deepEqual(await readdir(f.cache), ["jobs"]);
+  assert.deepEqual(f.counts, { gemini: 0, cutout: 0, plate: 0, checkpoints: 0 });
+  assert.equal((await request(service, "/healthz")).status, 200);
+});
+
+test("disk reservation counts the held active job and refuses a second new admission", async (t) => {
+  const f = await fixture(t), gate = f.gate(); let diskChecks = 0;
+  const service = await f.start({
+    diskInfo: async () => { diskChecks++; return { bavail: 5 * 1024 ** 3 + 120 * 1024 ** 2, bsize: 1 }; },
+    generate: async () => { await gate.promise; return { png: MAIN, cost: 0, secs: 0 }; },
+  }, { CARD_MAX_ACTIVE_JOBS: "1" });
+  const first = await post(service); assert.equal(first.status, 202); await f.geminiStarted.promise;
+  const second = await post(service, { type: "hodler", avatar_data: AVATAR });
+  assert.equal(second.status, 503); assert.equal(second.body.error, "storage_capacity");
+  assert.equal(service.queue.retainedJobs, 1); assert.equal(service.queue.stats().active, 1); assert.equal(service.queue.stats().queued, 0);
+  const duplicate = await post(service);
+  assert.equal(duplicate.status, 202); assert.equal(duplicate.body.job_id, first.body.job_id); assert.equal(duplicate.body.cached, true);
+  assert.equal(diskChecks, 2); assert.equal(f.counts.gemini, 1);
+  assert.equal((await readdir(f.cache)).filter((name) => name.includes(".avatar.")).length, 1);
+  assert.equal((await readdir(join(f.cache, "jobs"))).length, 1);
+  gate.resolve(); await f.plateFinished.promise; await service.queue.close();
+  assert.equal((await poll(service, first.body.job_id)).body.status, "done");
+});
+
+test("disk reservation increases when the configured avatar limit exceeds the default", async (t) => {
+  const f = await fixture(t);
+  const service = await f.start({ diskInfo: async () => ({ bavail: 5 * 1024 ** 3 + 88 * 1024 ** 2, bsize: 1 }) },
+    { CARD_MAX_AVATAR_BYTES: String(20 * 1024 ** 2) });
+  const rejected = await post(service);
+  assert.equal(rejected.status, 503); assert.equal(rejected.body.error, "storage_capacity");
+  assert.equal(service.queue.retainedJobs, 0); assert.deepEqual(await readdir(f.cache), ["jobs"]);
+  assert.equal(f.counts.gemini, 0);
+});
+
+test("prompt upgrade preserves completed and queued A snapshots while factory B resumes A", async (t) => {
+  const f = await fixture(t), releaseA = f.gate(), startedB = f.gate(), releaseB = f.gate();
+  const promptsA = { version: "prompt-A", types: Object.fromEntries(TYPES.map((type) => [type, "A_ONLY immutable direction"])) };
+  const promptsB = { version: "prompt-B", types: Object.fromEntries(TYPES.map((type) => [type, "B_ONLY new direction"])) };
+  const first = await f.start({ prompts: promptsA,
+    generate: async () => { await releaseA.promise; return { png: MAIN, cost: 0, secs: 0 }; } }, { CARD_MAX_ACTIVE_JOBS: "1" });
+  const activeA = await post(first); await f.geminiStarted.promise;
+  const queuedA = await post(first, { type: "hodler", avatar_data: AVATAR });
+  const savedA = first.queue.get(queuedA.body.job_id);
+  assert.equal(savedA.status, "queued"); assert.equal(savedA.payload.promptVersion, "prompt-A");
+  assert.match(savedA.payload.prompt, /A_ONLY/); assert.equal(queuedA.body.prompt_version, "prompt-A");
+  const closingA = first.queue.close(); releaseA.resolve(); await closingA;
+  assert.equal(first.queue.get(activeA.body.job_id).status, "done");
+  assert.equal(first.queue.get(queuedA.body.job_id).status, "queued");
+  await f.stop(first);
+  let resumedOptions;
+  const second = await f.start({ prompts: promptsB, generate: async (options) => {
+    resumedOptions = options; startedB.resolve(); await releaseB.promise; return { png: MAIN, cost: 0, secs: 0 };
+  } });
+  await startedB.promise;
+  assert.equal(resumedOptions.prompt, savedA.payload.prompt); assert.equal(resumedOptions.model, savedA.payload.imageModel);
+  assert.doesNotMatch(resumedOptions.prompt, /B_ONLY/); assert.deepEqual(resumedOptions.refs, []);
+  const done = await poll(second, activeA.body.job_id), running = await poll(second, queuedA.body.job_id);
+  assert.equal(done.body.status, "done"); assert.equal(done.body.prompt_version, "prompt-A");
+  assert.equal(running.body.status, "running"); assert.equal(running.body.prompt_version, "prompt-A"); noUrls(running.body);
+  releaseB.resolve(); await second.queue.close();
+  const recovered = await poll(second, queuedA.body.job_id);
+  assert.equal(recovered.body.status, "done"); assert.equal(recovered.body.prompt_version, "prompt-A");
+  assert.deepEqual(f.counts, { gemini: 2, cutout: 2, plate: 2, checkpoints: 2 });
 });
