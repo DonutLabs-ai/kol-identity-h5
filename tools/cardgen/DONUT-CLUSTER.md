@@ -104,7 +104,7 @@ two ONNX threads; four whole pipelines overlapped validation/plate work.
 The main image provider was an existing portrait fixture: no paid Gemini call,
 no live OpenRouter throughput or end-to-end generation latency is asserted.
 
-| Burst | Last completion | Sustained completions/minute |
+| Burst | Last completion | Burst completions/minute |
 | --- | --- | --- |
 | 10 | 68.13 s | 8.81 |
 | 25 | 169.52 s | 8.85 |
@@ -115,6 +115,8 @@ was 1.33 ms over 1152 samples. Peak cgroup memory was 2,434,854,912 bytes
 (2.27 GiB), with zero OOM/OOM kills. All 255 output files decoded as 1024x1024:
 main RGB PNG, foreground RGBA PNG, plate RGB JPEG.
 
+Each burst drained before the next; these are burst averages, not a continuous
+arrival or long-duration stability result. Replica scaling was not tested.
 This load used frozen source overlay
 `bb6f184df58026e7c7d36cf3218c5e97932b29f484147fce900fb60e308eae32` on runtime
 image `sha256:9a00c0fe53017ec754766d3a77d80f461e1dae17c1b9895ca4dc5f1db3b17c66`,
