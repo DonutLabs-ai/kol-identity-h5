@@ -1,6 +1,6 @@
 /* Demo X profiles for the mock-up (Cory 2026-10-08): `?kol=<id>` on any v2 page picks one; the landing's login sheet
-   lists them. Avatars live in tools/cardgen/avatars, symlinked to v2/img/demo and NOT in git (real people's pictures
-   stay out of the repo), so the demo runs on a machine that has them. Each profile carries quiz answers that score to a
+   lists them. The six avatars are committed in v2/img/demo (Cory, 2026-10-09) so the demo works on any deploy; the
+   mock backend's own copies stay in tools/cardgen/avatars. Each profile carries quiz answers that score to a
    persona type whose card art the mock backend already holds, so the reveal is instant; change an answer and the
    backend generates live (~3 min). */
 (function () {
