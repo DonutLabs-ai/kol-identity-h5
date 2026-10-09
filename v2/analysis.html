@@ -433,10 +433,14 @@
       if (!pending[k]) return; pending[k] = false; ok[k] = good;
       if (k === "art" && !good) { finished = true; if (!API && D) { demoFallback(); art.status = "none"; } else art.status = "failed"; return; }
       if (finished || pending.art || pending.cut || pending.plate) return; finished = true;
-      art.url = abs; f.src = cardSrc(abs);
+      art.url = abs; document.body.classList.add("has-art");
+      /* swap the art into the loaded card rather than reloading the iframe — the reload left a dark card for a few
+         seconds on a slow first load (Vercel + tunnel, 2026-10-09) */
+      var doc = f.contentDocument, ph = doc && doc.querySelector(".kol-photo img"), stx = doc && doc.getElementById("v2x");
+      if (ph && stx) { stx.textContent = cardStyleText(); ph.src = abs; } else f.src = cardSrc(abs);
       mid.src = ok.cut && ok.plate ? extra.plate : abs;
       if (ok.cut) { cut.src = extra.cut; cutWin.hidden = false; }
-      art.status = "done"; document.body.classList.add("has-art");
+      art.status = "done";
     }
     var im = new Image(); im.onload = function () { settle("art", true); }; im.onerror = function () { settle("art", false); }; im.src = abs;
     ["cut", "plate"].forEach(function (k) {
@@ -531,6 +535,13 @@
     if (t > 8000 && azPct) { var f = t / ART_EXPECT, pct = Math.min(96, 100 * (1 - Math.exp(-f * 2.2))); if (art.stage === "gemini") pct = Math.max(pct, 78); azPct.hidden = false; azPct.querySelector("b").textContent = String(Math.round(pct)); }
   }, 250);
   
+  /* Yi's 2.5D portrait blurs the in-card photo as its ground plane (the sharp cut-out lives on .reveal-pop); with
+     generated art the photo is the art itself and stays sharp. Re-applied when the art arrives. */
+  function cardStyleText() {
+    var hasArt = document.body.classList.contains("has-art");
+    return "[data-ticket-title]{display:block!important}" +
+      (hasArt ? ".kol-photo img{display:block!important;filter:none!important}" : ".kol-photo img{display:block!important;filter:blur(3px) brightness(.9)!important}");
+  }
   function injectCard() {
     try {
       var doc = f.contentDocument; if (!doc || !doc.head) return;
@@ -538,11 +549,7 @@
       /* the v0 snapshot ships fan-mode styles (hidden title): bring the title back; the
          photo window stays the dark ground so the cutout character owns the layer */
       var st = doc.createElement("style"); st.id = "v2x";
-      /* Yi's 2.5D portrait blurs the in-card photo as its ground plane (the sharp cut-out lives on .reveal-pop);
-         with generated art there is no cut-out, so the photo must stay sharp */
-      var hasArt = document.body.classList.contains("has-art");
-      st.textContent = "[data-ticket-title]{display:block!important}" +
-        (hasArt ? ".kol-photo img{display:block!important;filter:none!important}" : ".kol-photo img{display:block!important;filter:blur(3px) brightness(.9)!important}");
+      st.textContent = cardStyleText();
       doc.head.appendChild(st);
       var dlg = doc.getElementById("flashcard");
       if (dlg) dlg.dataset.skin = "amethyst";
