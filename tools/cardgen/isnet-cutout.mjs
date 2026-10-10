@@ -67,6 +67,8 @@ export function createIsnetCutout({ modelPath, threads, timeoutMs, startupTimeou
   const cutout = (_image, checkpoint, paths) => enqueue(async () => {
     await initialize();
     await checkpoint();
+    if (paths.onDispatch !== undefined) await paths.onDispatch();
+    if (paths.onReceipt !== undefined) await paths.onReceipt({ newProviderRequests: 0, costUSD: null, reportedSeconds: null });
     const id = ++sequence;
     const message = await new Promise((resolve, reject) => {
       const timer = setTimeout(() => stop(failure("isnet_inference_timeout", "provider_timeout")), timeoutMs);
@@ -75,6 +77,7 @@ export function createIsnetCutout({ modelPath, threads, timeoutMs, startupTimeou
         (cause) => { if (cause) stop(failure("isnet_dispatch_failed", "provider_error", cause)); });
     });
     const png = await readFile(paths.target);
+    if (paths.onReceipt !== undefined) await paths.onReceipt({ newProviderRequests: 0, costUSD: null, reportedSeconds: message.seconds });
     return { png, seconds: message.seconds };
   });
   cutout.initialize = initialize;

@@ -42,8 +42,16 @@ export function readServerConfig(env = process.env, budgetOverride) {
     minFreeDiskBytes: positiveInteger(env.CARD_MIN_FREE_DISK_BYTES, 5 * 1024 ** 3, "CARD_MIN_FREE_DISK_BYTES"),
     maxRequestBytes: positiveInteger(env.CARD_MAX_REQUEST_BYTES, 8 * 1024 * 1024, "CARD_MAX_REQUEST_BYTES"),
     maxAvatarBytes: positiveInteger(env.CARD_MAX_AVATAR_BYTES, 5 * 1024 * 1024, "CARD_MAX_AVATAR_BYTES"),
+    retentionSweepMs: boundedInteger(env.CARD_RETENTION_SWEEP_MS, 60000, 1000, 600000, "CARD_RETENTION_SWEEP_MS"),
+    retentionBatchSize: boundedInteger(env.CARD_RETENTION_BATCH_SIZE, 100, 1, 1000, "CARD_RETENTION_BATCH_SIZE"),
     maxHttpRequests: positiveInteger(env.CARD_MAX_HTTP_REQUESTS, 64, "CARD_MAX_HTTP_REQUESTS"),
   };
+}
+
+function boundedInteger(value, defaultValue, min, max, name) {
+  const parsed = positiveInteger(value, defaultValue, name);
+  if (parsed < min || parsed > max) throw new Error(name + " must be between " + min + " and " + max);
+  return parsed;
 }
 
 function positiveInteger(value, defaultValue, name) {

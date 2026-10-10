@@ -7,7 +7,9 @@
   },
   "scripts": {
     "start": "node worker.mjs",
-    "test": "node --test --test-timeout=30000 *.test.mjs"
+    "test": "node --test --test-concurrency=1 --test-timeout=30000 *.test.mjs",
+    "test:retention": "node --test --test-timeout=30000 retention.test.mjs",
+    "test:metrics": "node --test --test-timeout=30000 stage-samples.test.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "3.1148.0",

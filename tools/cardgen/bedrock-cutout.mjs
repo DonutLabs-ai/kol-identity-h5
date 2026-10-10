@@ -90,7 +90,7 @@ export function createBedrockCutout({ region, model, minIntervalMs, timeoutMs, s
       finally { await directory.close(); }
     } catch (cause) { throw new JobStoreError("Cannot persist Bedrock pacing; dispatch stopped", cause); }
   }
-  const cutout = async (image, checkpoint = async () => {}) => enqueue(async () => {
+  const cutout = async (image, checkpoint = async () => {}, observation = {}) => enqueue(async () => {
     const input = pngInfo(image);
     if (image.length > 12 * 1024 * 1024) throw providerError("cutout_input_too_large", "invalid_output");
     await initialize();
@@ -102,6 +102,7 @@ export function createBedrockCutout({ region, model, minIntervalMs, timeoutMs, s
       modelId: model, contentType: "application/json", accept: "application/json",
       body: JSON.stringify({ image: image.toString("base64"), output_format: "png" }),
     });
+    if (observation.onDispatch !== undefined) await observation.onDispatch();
     // No asynchronous work between this timestamp and SDK dispatch.
     lastStarted = now();
     const started = lastStarted;
@@ -109,6 +110,7 @@ export function createBedrockCutout({ region, model, minIntervalMs, timeoutMs, s
     try {
       response = await client.send(command, { abortSignal: AbortSignal.timeout(timeoutMs) });
     } catch (cause) {
+      if (observation.onReceipt !== undefined) await observation.onReceipt({ newProviderRequests: 1, costUSD: null, reportedSeconds: (now() - started) / 1000 });
       lastStarted = now(); // A receipt is a conservative bound on actual network dispatch.
       const code = cause.name === "ThrottlingException" ? "bedrock_throttled" :
         cause.name === "AbortError" || cause.name === "TimeoutError" ? "bedrock_result_unknown" : "bedrock_call_failed";
@@ -117,10 +119,13 @@ export function createBedrockCutout({ region, model, minIntervalMs, timeoutMs, s
       await persist(false);
       throw providerError(code, category, cause);
     }
+    if (observation.onReceipt !== undefined) await observation.onReceipt({ newProviderRequests: 1, costUSD: null, reportedSeconds: (now() - started) / 1000 });
     lastStarted = now();
     await persist(false);
     const png = decodeResponse(response.body, input);
-    return { png, requestId: response.$metadata.requestId, seconds: (now() - started) / 1000 };
+    const seconds = (now() - started) / 1000;
+    if (observation.onReceipt !== undefined) await observation.onReceipt({ newProviderRequests: 1, costUSD: null, reportedSeconds: seconds });
+    return { png, requestId: response.$metadata.requestId, seconds };
   });
   cutout.initialize = initialize;
   return cutout;

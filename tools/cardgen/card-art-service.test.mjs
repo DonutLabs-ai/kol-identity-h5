@@ -35,7 +35,7 @@ async function fixture(t) {
     if (service.server.listening) {
       await new Promise((resolve) => { service.server.close(resolve); service.server.closeAllConnections(); });
     }
-    await service.queue.close();
+    await service.close();
   }
   t.after(async () => {
     gates.forEach((gate) => gate.resolve());
@@ -125,14 +125,21 @@ test("IS-Net selection retains complete-layer gating and reports its actual prov
   assert.equal(f.counts.gemini, 1);
 });
 
-test("switching to IS-Net keeps completed paid identities readable without another Gemini call", async (t) => {
+test("switching to IS-Net preserves old readable metadata and isolates newly requested pipeline identities", async (t) => {
   const f = await fixture(t), old = await f.start(), done = await completed(f, old);
   await f.stop(old);
-  const current = await f.start({}, { CARD_CUTOUT_PROVIDER: "isnet" });
-  const repeated = await post(current);
-  assert.equal(repeated.body.job_id, done.job_id);
-  assert.equal(repeated.body.status, "done"); assert.equal(repeated.body.cached, true);
+  const rendered = deferred();
+  const current = await f.start({ makePlate: async (_source, _cut, target) => {
+    await writeFile(target, PLATE); rendered.resolve(); return { coverage: 0.3 };
+  } }, { CARD_CUTOUT_PROVIDER: "isnet" });
+  const oldRead = await poll(current, done.job_id);
+  assert.equal(oldRead.body.status, "done"); assert.equal(oldRead.body.cutout_provider, "bedrock");
   assert.equal(f.counts.gemini, 1);
+  const repeated = await post(current);
+  assert.notEqual(repeated.body.job_id, done.job_id);
+  assert.equal(repeated.body.cached, false);
+  await rendered.promise; await current.queue.close();
+  assert.equal(f.counts.gemini, 2);
 });
 
 test("dead IS-Net blocks new paid work while completed duplicates remain readable", async (t) => {
