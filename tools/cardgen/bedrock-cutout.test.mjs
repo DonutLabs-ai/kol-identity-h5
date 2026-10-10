@@ -3,6 +3,7 @@ import { readFile, mkdtemp, rm, writeFile, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { ThrottlingException, ModelTimeoutException, BedrockRuntimeServiceException } from "@aws-sdk/client-bedrock-runtime";
 import { createBedrockCutout, createWorkloadBedrockClient, pngInfo } from "./bedrock-cutout.mjs";
 
 const original = await readFile(new URL("./test-fixtures/main.png", import.meta.url));
@@ -41,7 +42,7 @@ test("uses approved US profile, same source image, PNG output and returns actual
 test("stage observation brackets actual Bedrock dispatch, preserves real seconds and never estimates charge", async t => {
   for (const fails of [false, true]) {
     const receipts = [], order = [];
-    const f = await setup(t, fails ? async () => { order.push("send"); throw Object.assign(new Error("private body"), { name: "ThrottlingException" }); } : async () => { order.push("send"); return { body: body(), $metadata: { requestId: "offline" } }; });
+    const f = await setup(t, fails ? async () => { order.push("send"); throw new ThrottlingException({ message: "private body", $metadata: { httpStatusCode: 429 } }); } : async () => { order.push("send"); return { body: body(), $metadata: { requestId: "offline" } }; });
     const observed = { onDispatch: async () => { order.push("dispatch-journal"); assert.equal(f.starts.length, 0); }, onReceipt: async receipt => receipts.push(receipt) };
     if (fails) await assert.rejects(f.cutout(original, async () => {}, observed), error => error.category === "provider_throttled");
     else assert.equal((await f.cutout(original, async () => {}, observed)).seconds, receipts.at(-1).reportedSeconds);
@@ -64,7 +65,8 @@ test("a throttled or ambiguous call reaches its caller without repeating the pai
   let calls = 0;
   const { cutout } = await setup(t, () => {
     calls++;
-    throw Object.assign(new Error("upstream"), { name: calls === 1 ? "ThrottlingException" : "TimeoutError" });
+    throw calls === 1 ? new ThrottlingException({ message: "upstream", $metadata: { httpStatusCode: 429 } })
+      : Object.assign(new Error("upstream"), { name: "TimeoutError" });
   });
   await assert.rejects(cutout(original), /bedrock_throttled/);
   assert.equal(calls, 1);
@@ -143,4 +145,24 @@ test("web identity credential acquisition uses Sydney STS even though Bedrock us
   assert.deepEqual(hosts, ["sts.ap-southeast-2.amazonaws.com"]);
   assert.equal(await client.config.region(), "us-west-2");
   client.destroy();
+});
+
+test("only typed Bedrock service responses confirm a request; transport, credentials and spoofed names stay unknown", async t => {
+  for (const cause of [Object.assign(new Error("offline transport"), { code: "ECONNRESET" }),
+    Object.assign(new Error("offline credentials"), { name: "CredentialsProviderError" }),
+    Object.assign(new Error("spoofed service name"), { name: "ThrottlingException", $metadata: { httpStatusCode: 429 } }),
+    new ThrottlingException({ message: "no HTTP receipt", $metadata: {} }),
+    new ThrottlingException({ message: "missing metadata" })]) {
+    const f = await setup(t, () => { throw cause; }), receipts = [];
+    await assert.rejects(f.cutout(original, async () => {}, { onReceipt: async value => receipts.push(value) }),
+      error => error.category === "provider_result_unknown");
+    assert.deepEqual(receipts, []); assert.equal(f.starts.length, 1);
+  }
+  for (const cause of [new ModelTimeoutException({ message: "server deadline", $metadata: { httpStatusCode: 408 } }),
+    new BedrockRuntimeServiceException({ name: "InternalServerException", $fault: "server", message: "server failure", $metadata: { httpStatusCode: 500 } })]) {
+    const f = await setup(t, () => { throw cause; }), receipts = [];
+    await assert.rejects(f.cutout(original, async () => {}, { onReceipt: async value => receipts.push(value) }),
+      error => error.category === (cause.name === "ModelTimeoutException" ? "provider_timeout" : "provider_error"));
+    assert.equal(receipts.length, 1); assert.equal(receipts[0].newProviderRequests, 1); assert.equal(receipts[0].costUSD, null);
+  }
 });

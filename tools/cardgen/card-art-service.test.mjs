@@ -62,6 +62,7 @@ async function fixture(t) {
           if (overrides.validateMain !== undefined) await overrides.validateMain(source);
         },
         logger: { log() {}, error() {} },
+        validateLayer: async () => {},
         async generate(options) {
           counts.gemini++; geminiStarted.resolve();
           if (overrides.generate) return overrides.generate(options);
@@ -570,7 +571,7 @@ test("retained-history limit returns 503 for a new job while completed duplicate
 
 test("disk headroom rejects before avatar, journal admission or provider dispatch", async (t) => {
   const f = await fixture(t);
-  const service = await f.start({ diskInfo: async () => ({ bavail: 5 * 1024 ** 3 + 79 * 1024 ** 2, bsize: 1 }) });
+  const service = await f.start({ diskInfo: async () => ({ bavail: 5 * 1024 ** 3 + 159 * 1024 ** 2, bsize: 1 }) });
   assert.equal(service.config.minFreeDiskBytes, 5 * 1024 ** 3);
   const rejected = await post(service);
   assert.equal(rejected.status, 503); assert.equal(rejected.body.error, "storage_capacity"); noUrls(rejected.body);
@@ -583,7 +584,7 @@ test("disk headroom rejects before avatar, journal admission or provider dispatc
 test("disk reservation counts the held active job and refuses a second new admission", async (t) => {
   const f = await fixture(t), gate = f.gate(); let diskChecks = 0;
   const service = await f.start({
-    diskInfo: async () => { diskChecks++; return { bavail: 5 * 1024 ** 3 + 120 * 1024 ** 2, bsize: 1 }; },
+    diskInfo: async () => { diskChecks++; return { bavail: 5 * 1024 ** 3 + 240 * 1024 ** 2, bsize: 1 }; },
     generate: async () => { await gate.promise; return { png: MAIN, cost: 0, secs: 0 }; },
   }, { CARD_MAX_ACTIVE_JOBS: "1" });
   const first = await post(service); assert.equal(first.status, 202); await f.geminiStarted.promise;
@@ -601,8 +602,8 @@ test("disk reservation counts the held active job and refuses a second new admis
 
 test("disk reservation increases when the configured avatar limit exceeds the default", async (t) => {
   const f = await fixture(t);
-  const service = await f.start({ diskInfo: async () => ({ bavail: 5 * 1024 ** 3 + 88 * 1024 ** 2, bsize: 1 }) },
-    { CARD_MAX_AVATAR_BYTES: String(20 * 1024 ** 2) });
+  const service = await f.start({ diskInfo: async () => ({ bavail: 5 * 1024 ** 3 + 163 * 1024 ** 2, bsize: 1 }) },
+    { CARD_MAX_AVATAR_BYTES: String(40 * 1024 ** 2) });
   const rejected = await post(service);
   assert.equal(rejected.status, 503); assert.equal(rejected.body.error, "storage_capacity");
   assert.equal(service.queue.retainedJobs, 0); assert.deepEqual(await readdir(f.cache), ["jobs"]);

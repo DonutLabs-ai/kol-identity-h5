@@ -46,7 +46,8 @@ test("throttle and ambiguous transport outcome are explicit failures and never a
   ]) {
     let calls = 0;
     const generate = createImageGenerator({ fetcher: async (...input) => { calls++; return fetcher(...input); } });
-    await assert.rejects(generate(args()), (error) => error.category === category && error.failure_stage === "llm");
+    await assert.rejects(generate(args()), (error) => error.category === category
+      && error.failure_stage === (category === "provider_result_unknown" ? "unknown" : "llm"));
     assert.equal(calls, 1);
   }
 });
