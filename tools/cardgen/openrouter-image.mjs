@@ -34,14 +34,13 @@ async function bytes(response, maximum) {
   }
   return Buffer.concat(chunks);
 }
-async function boundary(action, stage = "llm", onFailure) {
+async function boundary(action, stage = "llm") {
   try { return await action(); }
   catch (cause) {
-    if (onFailure !== undefined) await onFailure();
     const tagged = cause !== null && typeof cause === "object";
-    const unknown = tagged && (cause.name === "TimeoutError" || cause.name === "AbortError");
-    const error = tagged && cause.category !== undefined ? cause : failure(unknown ? "provider_result_unknown" : "provider_call_failed",
-      unknown ? "provider_result_unknown" : "provider_error", cause, stage);
+    // A failed fetch/read does not establish the remote job's outcome or a provider receipt.
+    const error = tagged && cause.category !== undefined ? cause : failure("provider_result_unknown",
+      "provider_result_unknown", cause, stage === "llm" ? "unknown" : stage);
     if (stage === "validation") Object.assign(error, { sampleOutcome: "asset_error", sampleReason: "asset_download_failed" });
     throw error;
   }
@@ -75,14 +74,14 @@ export function createImageGenerator({ fetcher = fetch } = {}) {
         { type: "image_url", image_url: { url: `data:${mime};base64,${avatar.toString("base64")}` } },
         { type: "text", text: prompt },
       ] }] }),
-    }), "llm", receipt);
+    }), "llm");
     await receipt();
     if (!response.ok) {
       await response.body?.cancel();
       throw failure("provider_http_" + response.status,
         response.status === 429 ? "provider_throttled" : "provider_error");
     }
-    const raw = await boundary(() => bytes(response, 32 * 1024 * 1024), "llm", receipt);
+    const raw = await boundary(() => bytes(response, 32 * 1024 * 1024), "llm");
     let result;
     try { result = JSON.parse(raw.toString("utf8")); }
     catch (cause) { throw failure("invalid_provider_json", "invalid_output", cause); }
@@ -106,7 +105,7 @@ export function createImageGenerator({ fetcher = fetch } = {}) {
       if (asset.protocol !== "https:" || asset.username !== "" || asset.password !== "") {
         throw failure("invalid_provider_asset_url", "invalid_output");
       }
-      const download = await boundary(() => fetcher(asset, { redirect: "error", signal: AbortSignal.timeout(30000) }), "validation", receipt);
+      const download = await boundary(() => fetcher(asset, { redirect: "error", signal: AbortSignal.timeout(30000) }), "validation");
       if (!download.ok) { await download.body?.cancel(); throw Object.assign(failure("provider_image_download_failed", "provider_error", undefined, "validation"), { sampleOutcome: "asset_error", sampleReason: "asset_download_failed" }); }
       png = await boundary(() => bytes(download, 12 * 1024 * 1024), "validation");
     }

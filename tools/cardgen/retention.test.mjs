@@ -132,6 +132,7 @@ async function fixture(
         logger: { log() {}, error() {} },
         cutout: foreground,
         validateMain: overrides.validateMain || (async () => {}),
+        validateLayer: async () => {},
         async generate(options) {
           paid++;
           return overrides.generate

@@ -14,7 +14,7 @@ USER root
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts --no-audit --no-fund
-COPY --chown=node:node prompts.md server.mjs worker.mjs server-config.mjs serial-task-queue.mjs bedrock-cutout.mjs isnet-cutout.mjs openrouter-image.mjs job-queue.mjs card-art-service.mjs retention.mjs pipeline-version.mjs stage-samples.mjs ./
+COPY --chown=node:node prompts.md server.mjs worker.mjs server-config.mjs serial-task-queue.mjs bedrock-cutout.mjs isnet-cutout.mjs openrouter-image.mjs job-queue.mjs card-art-service.mjs retention.mjs pipeline-version.mjs stage-samples.mjs layer-result.mjs layer-renderer.mjs asset-files.mjs ./
 COPY --chown=node:node harness ./harness
 COPY --chown=node:node refs ./refs
 RUN mkdir -p /app/out/server-cache && chown -R node:node /app/out
