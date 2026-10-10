@@ -1,0 +1,14 @@
+# Cory's interim card-art backend for the Fly demo (mock-server.mjs) — fast pipeline + the Python cut-out.
+# The real service image is ./Dockerfile (worker.mjs, DONUT-CLUSTER.md). Build context = tools/cardgen; see DEPLOY.md.
+FROM node:20-bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip && rm -rf /var/lib/apt/lists/*
+RUN pip3 install --no-cache-dir --break-system-packages rembg onnxruntime "pillow<12" numpy
+RUN python3 -c "from rembg import new_session; new_session('isnet-general-use')"
+WORKDIR /app
+COPY prompts.md mock-server.mjs ./
+COPY harness ./harness
+COPY refs ./refs
+ENV HOST=0.0.0.0 PORT=3022 CARD_PIPELINE=fast NODE_ENV=production
+EXPOSE 3022
+HEALTHCHECK --interval=30s --timeout=5s CMD node -e "fetch('http://127.0.0.1:3022/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+CMD ["node", "mock-server.mjs"]

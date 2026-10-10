@@ -1,8 +1,11 @@
 # 部署生图 mock 后端（快速路径）
 
+> 2026-10-10 起：仓库里的正式服务是 `worker.mjs` → `card-art-service.mjs`（Wenzhang 团队，部署见 `DONUT-CLUSTER.md`，镜像 `Dockerfile`）。
+> 本文说的是 Cory 的临时 demo 后端 `mock-server.mjs`（Fly 上跑的就是它，镜像 `Dockerfile.mock`，`fly.toml` 已指向）。前端对接的字段两边都支持。
+
 Donut 集群使用 `worker.mjs`、ARM64 镜像、内部鉴权、常驻 IS-Net CPU 抠图与持久队列，配置和部署步骤见 [DONUT-CLUSTER.md](DONUT-CLUSTER.md)。以下 `server.mjs` / Fly.io 说明仅用于历史 Demo；当前 Dockerfile 启动的是正式 worker，集群配置必须使用内部鉴权和持久缓存。
 
-`server.mjs` 就是后端：两个接口（`BACKEND.md` §3）+ 缓存 + 主体抠图。默认 **快速路径**（一次 Gemini，≈24 s，≈$0.14/张）。
+`mock-server.mjs` 就是 demo 后端：两个接口（`BACKEND.md` §3）+ 缓存 + 主体抠图。默认 **快速路径**（一次 Gemini，≈24 s，≈$0.14/张）。
 容器里用 Python `rembg` 做抠图（本机 Mac 用 Vision），所以线上也有卡内 2.5D 视差。
 
 ## Fly.io（推荐，一台常驻小机器 ≈ $10/月 + 3 GB 卷）

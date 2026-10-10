@@ -7,7 +7,7 @@ app = 'donut-card-art'
 primary_region = 'sjc'
 
 [build]
-  dockerfile = 'Dockerfile'
+  dockerfile = 'Dockerfile.mock'
 
 [env]
   CARD_BUDGET = '50'

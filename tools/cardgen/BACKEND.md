@@ -71,9 +71,15 @@ reach the server it shows "reconnecting" and re-asks about the same job. The pag
 Count LLM attempts and layer attempts separately (the mock writes `out/server-cache/jobs.jsonl` and exposes
 `/healthz.metrics`); never one merged failure rate. Timeout thresholds come from the samples, not from promises.
 
-**QA switches (mock only, never in production):** `POST …?fault=llm` fails the LLM stage after 2 s with `provider_error`;
-`POST …?fault=layers` makes the layers verdict `failed: simulated` until a layers retry. The pages pass `?fault=llm|layers|net`
-from their own URL (`net` is client-side: the first two requests go nowhere, so the reconnect state shows).
+**QA switches (page-side, work against any backend):** `analysis.html?fault=layers` reads the first answer's layers as
+failed (flat card, note, "Retry 3D effect" → the retry fetches the real layers); `?fault=llm` reads the first answer as an
+LLM failure (fallback card, "Regenerate card"); `?fault=net` sends the first two requests nowhere (reconnect note, "Check
+progress"). Nothing is simulated on the server. The interim demo backend on Fly is `mock-server.mjs` (`Dockerfile.mock`);
+its answers carry `layers: {status, cutout_url, plate_url, error}` and it offers `POST /{job}/layers`. The real service
+(`worker.mjs` → `card-art-service.mjs`, DONUT-CLUSTER.md) answers with the per-asset receipt (`main`, `layers.cutout`,
+`layers.plate` states, `attempt`, `expiresAt`, `workerContract`) and takes `POST /{job}/retry-layers` with
+`{requestKey, expiresAt, expectedContract, retryToken, expectedAttempt, mainSha256}`; the page sends `requestKey` and
+`expectedContract` on every POST and reads both shapes (`normalize()` in analysis.html).
 
 The front end polls every 3 s with no deadline of its own.
 

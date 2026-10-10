@@ -424,6 +424,7 @@
      from waiting, and every button says exactly what it does. */
   var art = { status: API ? "pending" : "none", layers: "none", stage: null, t0: Date.now(), url: "", job: null, regen: false, fallback: false };
   window.DonutArt = art;   /* QA: the live generation state */
+  window.DonutNormalize = function (st) { return normalize(st); };   /* QA: map any backend answer to the page's shape */
   var S = ZH ? {
     layersFailed: "卡片已生成，立体效果暂未就绪。", retryLayers: "重试立体效果", layersRetrying: "正在处理立体效果…",
     llmFailedAvatar: "已先使用你的头像制作卡片。", llmFailedDefault: "已使用该类型的 Donut 默认图制作卡片。", regenBtn: "重新生成卡面",
@@ -454,41 +455,76 @@
   var DEFAULT_ART = new URL("../identity/img/archetypes/" + C[type].slug + ".jpg", location.href).href;
   function avatarData() { return fetch(AVATAR).then(function (r) { return r.blob(); }).then(function (b) { return new Promise(function (res) { var fr = new FileReader(); fr.onload = function () { res(fr.result); }; fr.readAsDataURL(b); }); }); }
   var pollT = null, netFails = 0, posting = false;
-  /* QA switches (BACKEND.md §4): ?fault=llm | layers ride on the first POST only (the backend simulates that verdict);
-     ?fault=net makes the first two requests go nowhere, so the reconnect note and "Check progress" can be seen */
-  var FAULT = new URLSearchParams(location.search).get("fault") || "", faultSent = false, netSim = 0;
+  /* QA switches (page-side only, work against any backend): ?fault=layers — the first answer's layers read as failed
+     (so the flat card, the note and "Retry 3D effect" show; the retry then gets the real layers); ?fault=llm — the first
+     answer reads as an LLM failure (fallback card + "Regenerate card"); ?fault=net — the first two requests go nowhere
+     (reconnect note + "Check progress"). */
+  var FAULT = new URLSearchParams(location.search).get("fault") || "", faultUsed = false, netSim = 0;
   function apiNow() { return FAULT === "net" && netSim++ < 2 ? "http://127.0.0.1:9" : API; }
+  function simulate(n) {
+    if (faultUsed || n.status !== "done") return n;
+    if (FAULT === "layers") { faultUsed = true; return Object.assign({}, n, { layers: "failed", cut: "", plate: "" }); }
+    if (FAULT === "llm") { faultUsed = true; return { status: "failed", error: "provider_error" }; }
+    return n;
+  }
+  /* one shape for three backends: the real service's receipt (per-asset states, retry tokens), the mock's
+     layers {status, cutout_url, plate_url}, and the legacy flat fields (cutout_url / cutout: pending|none) */
+  var RESULT_CONTRACT = "DONUT_CARD_PARTIAL_LAYERS_V1", requestKey = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
+  var receipt = null;   /* the real service's last receipt (attempt, sha256, expiry, worker contract) for retries */
+  function normalize(st) {
+    var n = { status: st.status, stage: st.stage || null, error: st.error || null, image: st.image_url || "", cut: "", plate: "", layers: "none" };
+    if (st.status === "expired") { n.status = "failed"; n.error = "expired"; return n; }
+    if (st.main && st.layers && st.layers.cutout) {   /* the real service: main / cutout / plate each carry a state */
+      receipt = { attempt: st.attempt, sha: st.main.sha256, expiresAt: st.expiresAt || st.expires_at, contract: st.workerContract };
+      var m = st.main.state, c = st.layers.cutout.state, pl = st.layers.plate.state;
+      if (m === "ready") {
+        n.status = "done"; n.image = st.image_url || st.main.url || "";
+        if (c === "ready" && pl === "ready") { n.layers = "ready"; n.cut = st.cutout_url || st.layers.cutout.url; n.plate = st.plate_url || st.layers.plate.url; }
+        else if (["pending", "running", "unknown"].indexOf(c) >= 0 || ["pending", "running", "unknown"].indexOf(pl) >= 0) { n.layers = "pending"; n.stage = "cutout"; }
+        else n.layers = "failed";
+      } else if (m === "pending" || m === "running" || m === "unknown") { n.status = st.status === "failed" ? "failed" : "running"; }
+      else { n.status = "failed"; n.error = st.error || (m === "timed_out" ? "timeout" : "provider_error"); }
+      return n;
+    }
+    if (st.status !== "done") return n;
+    var L = st.layers && st.layers.status ? st.layers : null;   /* the mock */
+    if (L) { n.layers = L.status; n.cut = L.cutout_url || ""; n.plate = L.plate_url || ""; if (L.status === "pending") n.stage = "cutout"; return n; }
+    if (st.cutout_url && st.plate_url) { n.layers = "ready"; n.cut = st.cutout_url; n.plate = st.plate_url; }   /* legacy flat */
+    else if (st.cutout === "pending") { n.layers = "pending"; n.stage = "cutout"; }
+    else if (st.cutout === "none") n.layers = "failed";
+    return n;
+  }
   function startJob() {   /* the first attempt, or "Regenerate card" (a new task, counted by the backend) */
     if (posting) return; posting = true;
-    var q = (FAULT === "llm" || FAULT === "layers") && !faultSent ? "?fault=" + FAULT : ""; faultSent = true;
-    avatarData().then(function (data) { return fetch(apiNow() + "/v1/identity/card-art" + q, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ avatar_data: data, handle: HANDLE, type: typeId }) }); })
+    var body = { avatar_data: null, handle: HANDLE, type: typeId, requestKey: requestKey, expectedContract: RESULT_CONTRACT };
+    avatarData().then(function (data) { body.avatar_data = data; return fetch(apiNow() + "/v1/identity/card-art", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); })
       .then(function (r) { return r.json(); }).then(function (j) {
         posting = false; netOk();
         if (!j.job_id) { onFailed(j.error || "provider_error"); return; }
-        art.job = j.job_id; handle(j);
+        art.job = j.job_id; handle(simulate(normalize(j)));
       }).catch(function () { posting = false; netFail(); setTimeout(function () { if (!art.job) startJob(); }, 3000); });   /* keep trying to reach the server; the note appears after two misses */
   }
   function startPolling() { if (!pollT) pollT = setInterval(pollOnce, 3000); }
   function stopPolling() { clearInterval(pollT); pollT = null; }
   function pollOnce() {   /* only ever asks about the same job */
     if (!art.job) { startJob(); return; }
-    fetch(apiNow() + "/v1/identity/card-art/" + art.job).then(function (r) { return r.json(); }).then(function (st) { netOk(); handle(st); }).catch(netFail);
+    fetch(apiNow() + "/v1/identity/card-art/" + art.job).then(function (r) { return r.json(); }).then(function (st) { netOk(); handle(simulate(normalize(st))); }).catch(netFail);
   }
-  function handle(st) {
-    if (st.status === "queued" || st.status === "running") { art.stage = st.stage || art.stage; startPolling(); return; }
-    if (st.status === "done") {
-      var L = st.layers || { status: "failed" };
-      if (L.status === "pending") { art.stage = "cutout"; art.layers = "pending"; startPolling(); return; }
+  function handle(n) {   /* n = normalize(answer) */
+    if (n.status === "queued" || n.status === "running") { art.stage = n.stage || art.stage; startPolling(); return; }
+    if (n.status === "done") {
+      if (n.layers === "pending") { art.stage = "cutout"; art.layers = "pending"; startPolling(); return; }
       stopPolling();
-      var abs = toAbs(st.image_url);
-      if (L.status === "ready") {
+      var abs = toAbs(n.image);
+      if (n.layers === "ready") {
         art.layers = "ready";
-        if (art.url === abs) { attachLayers(L.cutout_url, L.plate_url); return; }   /* the flat card is already up: just add the depth */
-        showCard(abs, L.cutout_url, L.plate_url);
-      } else { art.layers = "failed"; if (art.url === abs) { afterShow(); return; } showCard(abs); }
+        if (art.url === abs) { attachLayers(n.cut, n.plate); return; }   /* the flat card is already up: just add the depth */
+        showCard(abs, n.cut, n.plate);
+      } else if (n.layers === "failed") { art.layers = "failed"; if (art.url === abs) { afterShow(); return; } showCard(abs); }
+      else { art.layers = "none"; if (art.url === abs) { afterShow(); return; } showCard(abs); }   /* a backend without layers */
       return;
     }
-    if (st.status === "failed") { stopPolling(); onFailed(st.error || "provider_error"); }
+    if (n.status === "failed") { stopPolling(); onFailed(n.error || "provider_error"); }
   }
   function showCard(abs, cutUrl, plateUrl) { artDone(abs, cutUrl, plateUrl, afterShow); }
   function afterShow() {
@@ -502,10 +538,15 @@
     var a = new Image(); a.onload = one; a.src = cutAbs; var b = new Image(); b.onload = one; b.src = plateAbs;
   }
   function retryLayers() {   /* re-processes the failed layers of the same card; the LLM is not called, no quota is used */
-    fetch(API + "/v1/identity/card-art/" + art.job + "/layers", { method: "POST" }).then(function (r) { return r.json(); }).then(function (j) {
-      netOk(); var L = j.layers || { status: "failed" };
-      if (L.status === "ready") attachLayers(L.cutout_url, L.plate_url);
-      else if (L.status === "pending") { art.layers = "pending"; setNote(S.layersRetrying, "", null, "layers"); startPolling(); }
+    var req;
+    if (FAULT === "layers" && faultUsed && !receipt) req = fetch(API + "/v1/identity/card-art/" + art.job);   /* simulated failure: the real answer already has the layers */
+    else if (receipt) req = fetch(API + "/v1/identity/card-art/" + art.job + "/retry-layers", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requestKey: requestKey, expiresAt: receipt.expiresAt, expectedContract: receipt.contract, retryToken: crypto.randomUUID(), expectedAttempt: receipt.attempt, mainSha256: receipt.sha }) });
+    else req = fetch(API + "/v1/identity/card-art/" + art.job + "/layers", { method: "POST" });
+    req.then(function (r) { return r.json(); }).then(function (j) {
+      netOk(); var n = normalize(j);
+      if (n.layers === "ready") attachLayers(n.cut, n.plate);
+      else if (n.layers === "pending") { art.layers = "pending"; setNote(S.layersRetrying, "", null, "layers"); startPolling(); }
       else { art.layers = "failed"; setNote(S.layersFailed, S.retryLayers, retryLayers, "layers"); }
     }).catch(netFail);
   }
