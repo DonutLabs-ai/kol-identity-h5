@@ -106,6 +106,7 @@ async function fixture(t, options = {}) {
         },
         cutout,
         validateMain: options.validateMain || (async () => {}),
+        validateLayer: async () => {},
         makePlate: async (_main, _cut, target) => {
           f.advance(30);
           if (options.plateError) throw options.plateError;
@@ -281,16 +282,12 @@ test("cutout and plate failures keep successful LLM sample and independent safe 
   }
 });
 
-test("genuine LLM throttle, rejection and timeout each confirm one request with unknown cost, never derivative attempts", async (t) => {
-  for (const kind of ["throttle", "reject", "timeout"]) {
+test("genuine LLM HTTP failures confirm request receipts without derivative attempts", async (t) => {
+  for (const kind of ["throttle", "reject", "server_error"]) {
     const f = await fixture(t, {
         fetcher: async () => {
-          if (kind === "timeout")
-            throw Object.assign(new Error("SECRET timeout body"), {
-              name: "TimeoutError",
-            });
           return new Response("SECRET rejection body", {
-            status: kind === "throttle" ? 429 : 403,
+            status: kind === "throttle" ? 429 : kind === "server_error" ? 504 : 403,
           });
         },
       }),
@@ -302,20 +299,69 @@ test("genuine LLM throttle, rejection and timeout each confirm one request with 
     assert.equal(stages.llm.newProviderRequests, 1);
     assert.equal(stages.llm.dispatchState, "confirmed");
     assert.equal(stages.llm.costUSD, null);
-    assert.equal(stages.llm.outcome, kind === "timeout" ? "timeout" : "error");
+    assert.equal(stages.llm.outcome, "error");
     assert.equal(
       stages.llm.reason,
-      kind === "timeout"
-        ? "provider_timeout"
-        : kind === "throttle"
-          ? "provider_throttled"
-          : "provider_error",
+      kind === "throttle" ? "provider_throttled" : "provider_error",
     );
     assert.equal(stages.cutout.attempts, 0);
     assert.equal(stages.plate.attempts, 0);
     assert.equal(f.requests, 1);
     assert.ok(!JSON.stringify(await f.journal(id)).includes("SECRET"));
   }
+});
+
+test("ambiguous LLM transport keeps unknown provenance and only observed request receipts", async (t) => {
+  for (const kind of ["TimeoutError", "AbortError", "TypeError", "body_disconnect"]) {
+    const f = await fixture(t, {
+      fetcher: async () => {
+        if (kind === "body_disconnect") {
+          return new Response(new ReadableStream({
+            start(controller) {
+              controller.error(new TypeError("SECRET response disconnected"));
+            },
+          }));
+        }
+        throw Object.assign(new Error("SECRET transport disconnected"), { name: kind });
+      },
+    });
+    const s = await f.start(), id = (await f.post(s)).body.job_id;
+    const failed = await f.terminal(s, id);
+    assert.equal(failed.error, "provider_result_unknown", kind);
+    assert.equal(failed.failure_stage, "unknown", kind);
+    const original = await f.journal(id), { llm, cutout, plate } = original.stageSamples.stages;
+    assert.equal(original.failure_stage, "unknown", kind);
+    assert.equal(llm.outcome, "unknown", kind);
+    assert.equal(llm.reason, "unknown", kind);
+    assert.equal(llm.attempts, 1);
+    assert.equal(llm.newProviderRequests, kind === "body_disconnect" ? 1 : 0);
+    assert.equal(llm.dispatchState, kind === "body_disconnect" ? "confirmed" : "reserved");
+    assert.equal(llm.costUSD, null);
+    assert.equal(cutout.attempts, 0); assert.equal(plate.attempts, 0);
+    assert.equal((await f.post(s)).body.job_id, id);
+    await f.stop(s);
+    const restarted = await f.start();
+    assert.equal((await f.terminal(restarted, id)).failure_stage, "unknown");
+    assert.deepEqual((await f.journal(id)).stageSamples, original.stageSamples);
+    assert.equal(f.requests, 1);
+    assert.ok(!JSON.stringify(failed).includes("SECRET"));
+  }
+});
+
+test("legacy ambiguous LLM receipt stays unknown on GET and admission replay", async (t) => {
+  const f = await fixture(t), s = await f.start();
+  const id = (await f.post(s)).body.job_id;
+  const done = await f.terminal(s, id); await f.stop(s);
+  const original = await f.journal(id);
+  original.status = "failed"; original.error = "provider_result_unknown";
+  original.failure_stage = "llm";
+  await writeFile(join(f.cache, "jobs", id + ".json"), JSON.stringify(original));
+  const restarted = await f.start();
+  assert.equal((await f.terminal(restarted, id)).failure_stage, "unknown");
+  const replay = (await f.post(restarted)).body;
+  assert.equal(replay.job_id, id); assert.equal(replay.failure_stage, "unknown");
+  assert.equal(replay.expiresAt, done.expiresAt);
+  assert.equal(f.requests, 1);
 });
 
 test("unknown usage remains null, invalid PNG and quality refusal retain the actual LLM charge", async (t) => {

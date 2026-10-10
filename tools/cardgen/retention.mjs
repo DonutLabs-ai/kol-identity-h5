@@ -69,7 +69,7 @@ export class JobExpiredError extends Error {
 const HASH = /^[a-f0-9]{24}$/;
 const UUID = "[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}";
 const PERSONAL = new RegExp(
-  "^([a-f0-9]{24})(\\.png|\\.cut\\.png|\\.plate\\.jpg|\\.avatar\\.(?:png|jpg|webp|gif)|\\.stage1\\.png|\\.raw\\.json)(?:\\.(?:" +
+  "^([a-f0-9]{24})(\\.png|\\.cut\\.png(?:\\.tmp)?|\\.plate\\.jpg(?:\\.tmp)?|\\.avatar\\.(?:png|jpg|webp|gif)|\\.stage1\\.png|\\.raw\\.json)(?:\\.(?:" +
     UUID +
     "\\.tmp|isnet\\.tmp|tmp))?$",
 );
@@ -84,6 +84,8 @@ const PERSONAL_SUFFIXES = [
   ".avatar.gif",
   ".stage1.png",
   ".raw.json",
+  ".cut.png.tmp", ".cut.png.tmp.isnet.tmp", ".cut.png.isnet.tmp",
+  ".plate.jpg.tmp", ".plate.jpg.tmp.tmp",
 ];
 async function unlinkOwned(file) {
   try {

@@ -1,4 +1,4 @@
-import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
+import { BedrockRuntimeClient, InvokeModelCommand, BedrockRuntimeServiceException } from "@aws-sdk/client-bedrock-runtime";
 import { fromTokenFile } from "@aws-sdk/credential-provider-web-identity";
 import { readFile, open, rename } from "node:fs/promises";
 import { dirname } from "node:path";
@@ -110,12 +110,16 @@ export function createBedrockCutout({ region, model, minIntervalMs, timeoutMs, s
     try {
       response = await client.send(command, { abortSignal: AbortSignal.timeout(timeoutMs) });
     } catch (cause) {
-      if (observation.onReceipt !== undefined) await observation.onReceipt({ newProviderRequests: 1, costUSD: null, reportedSeconds: (now() - started) / 1000 });
-      lastStarted = now(); // A receipt is a conservative bound on actual network dispatch.
-      const code = cause.name === "ThrottlingException" ? "bedrock_throttled" :
-        cause.name === "AbortError" || cause.name === "TimeoutError" ? "bedrock_result_unknown" : "bedrock_call_failed";
+      const responseStatus = cause instanceof BedrockRuntimeServiceException
+        && cause.$metadata !== undefined && cause.$metadata !== null ? cause.$metadata.httpStatusCode : undefined;
+      const authoritative = Number.isInteger(responseStatus) && responseStatus >= 400 && responseStatus <= 599;
+      if (authoritative && observation.onReceipt !== undefined)
+        await observation.onReceipt({ newProviderRequests: 1, costUSD: null, reportedSeconds: (now() - started) / 1000 });
+      lastStarted = now(); // Preserve spacing after both confirmed and uncertain attempts.
+      const code = !authoritative ? "bedrock_result_unknown" : cause.name === "ThrottlingException" ? "bedrock_throttled" :
+        cause.name === "ModelTimeoutException" ? "bedrock_stage_timeout" : "bedrock_call_failed";
       const category = code === "bedrock_throttled" ? "provider_throttled" :
-        code === "bedrock_result_unknown" ? "provider_result_unknown" : "provider_error";
+        code === "bedrock_result_unknown" ? "provider_result_unknown" : code === "bedrock_stage_timeout" ? "provider_timeout" : "provider_error";
       await persist(false);
       throw providerError(code, category, cause);
     }
