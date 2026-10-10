@@ -8,7 +8,7 @@
 <link rel="icon" href="../identity/favicon.ico">
 <link rel="stylesheet" href="./landing.css?v=5">
 <link rel="stylesheet" href="./flow.css?v=2">
-<link rel="stylesheet" href="./v2-overrides.css?v=16">
+<link rel="stylesheet" href="./v2-overrides.css?v=17">
 </head>
 <body>
 
@@ -97,6 +97,7 @@
       </div>
 
       <div class="q-actions">
+        <a class="notice-link" href="#" data-notice>How we use your data</a>
         <a class="btn primary" href="#" id="details-next">Next</a>
       </div>
 
@@ -180,6 +181,7 @@
       </div>
 
       <div class="q-actions">
+        <a class="notice-link" href="#" data-notice>How we use your data</a>
         <a class="btn" href="#" id="quiz-back">Back</a>
         <a class="btn primary" href="./analysis.html" id="quiz-next">Next</a>
       </div>
@@ -191,6 +193,18 @@
 </main>
 
 <!-- wallet sheet: same shell as the X login sheet -->
+<!-- data-use notice (product copy, 2026-10-10): what we collect and how it is used; no D0 login, no email code, no marketing sends -->
+<div class="login-backdrop notice-backdrop" id="notice-sheet" hidden>
+  <div class="login-modal notice-modal" role="dialog" aria-modal="true" aria-label="How we use your data">
+    <button class="login-close" type="button" aria-label="Close" data-notice-close>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+    <h2 data-lang-en>How We Use Your Data</h2>
+    <h2 data-lang-zh hidden>我们如何使用你的资料</h2>
+    <p class="notice-text" data-lang-en>We use your authorized X profile and avatar, together with your questionnaire answers, to create your trader-style card. Your avatar is processed by an image-generation service. Your email, Discord handle, wallet address, questionnaire responses, and bio are not displayed on the public card. Anyone with the result link can view the generated artwork and card. We retain your details and results for six months. Your email is an unverified contact address, not proof of D0 account ownership. GTM will specify any marketing use and the related notice separately.</p>
+    <p class="notice-text" data-lang-zh hidden>我们会使用你授权的 X 资料和头像，结合问卷生成交易风格卡片；头像会交由图像生成服务处理。邮箱、Discord、钱包地址、问卷原文和自述不会展示在公开卡片中。生成图和卡片结果可由持有链接的人访问。资料与结果保存六个月。邮箱仅作未验证联系方式，不用于确认 D0 账号归属；如用于营销，GTM 将另行明确用途及告知。</p>
+  </div>
+</div>
 <div class="login-backdrop" id="wallet-sheet" hidden>
   <div class="login-modal" role="dialog" aria-modal="true" aria-label="Connect wallet">
     <button class="login-close" type="button" aria-label="Close">
@@ -293,6 +307,16 @@
     scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  /* ── data-use notice sheet ── */
+  (function () {
+    var nb = document.getElementById("notice-sheet"); if (!nb) return;
+    var zh = (document.documentElement.lang || "").toLowerCase().indexOf("zh") === 0;
+    nb.querySelectorAll("[data-lang-en]").forEach(function (e) { e.hidden = zh; });
+    nb.querySelectorAll("[data-lang-zh]").forEach(function (e) { e.hidden = !zh; });
+    document.querySelectorAll("[data-notice]").forEach(function (a) { if (zh) a.textContent = "我们如何使用你的资料"; a.addEventListener("click", function (e) { e.preventDefault(); nb.hidden = false; }); });
+    nb.addEventListener("click", function (e) { if (e.target === nb || e.target.closest("[data-notice-close]")) nb.hidden = true; });
+    addEventListener("keydown", function (e) { if (e.key === "Escape" && !nb.hidden) nb.hidden = true; });
+  })();
   /* ── part 1: wallet sheet + required fields (demo two-press) ── */
   var sheet = document.getElementById("wallet-sheet");
   var openBtn = document.getElementById("wallet-open");

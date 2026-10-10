@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="./landing.css?v=5">
 <link rel="stylesheet" href="./flow.css?v=1">
 <link rel="stylesheet" href="./summon.css?v=5">
-<link rel="stylesheet" href="./v2-overrides.css?v=16">
+<link rel="stylesheet" href="./v2-overrides.css?v=17">
 <style>
 @font-face { font-family: "Timeless Serif"; font-weight: 350; font-style: italic; font-display: swap; src: url(./fonts/TimelessSerif-BookItalic.woff2) format("woff2"); }
 .reveal-main {
@@ -229,6 +229,7 @@
 
 <div class="analyze" id="analyze" aria-live="polite">
   <div class="az-foot">
+    <div class="gen-note" id="az-note" hidden><span></span><button type="button" class="note-btn" hidden></button></div>
     <div class="az-status" id="az-status">Reading your answers</div>
     <div class="az-bar" id="az-bar"></div>
   </div>
@@ -257,6 +258,7 @@
   </div>
 
   <section class="reveal-info">
+    <div class="gen-note reveal-note" id="r-note" hidden><span></span><button type="button" class="note-btn" hidden></button></div>
     <div class="reveal-eyebrow">Meet your trading self</div>
     <h1 id="r-name"></h1>
     <div class="reveal-quote"><span id="r-quote-line"></span><span id="r-quote-by"></span></div>
@@ -288,55 +290,70 @@
 <script>
 (function () {
   /* per-archetype conclusions, in the campaign's roast voice */
+  /* green / red flags: fixed bilingual copy from product (2026-10-10) — style traits and watch-outs, never model text,
+     no invented history, returns or ability claims */
+  var ZH = (document.documentElement.lang || "").toLowerCase().indexOf("zh") === 0;
   var C = {
     "Diamond Hands": { slug: "01-diamond-hands",
       quote: "“ Zoom out.”", by: "— you, every single red day",
       desc: "Your bag is down 40% and you're calmly posting the 5-year chart. You haven't opened the sell tab since 2021, and you're weirdly proud of it.",
-      green: "Never panic-sells the bottom", red: "Also never takes profit" },
+      green: "Keeps a long-term perspective", red: "Watch for changes to the original thesis",
+      green_zh: "保持长期视角", red_zh: "留意最初逻辑是否改变" },
     "DCA Believer": { slug: "02-dca-believer",
       quote: "“ Time in the market beats timing the market.”", by: "— you, every other Monday",
       desc: "Same amount, same day, rain or crash. Your average entry is a mystery even to you, and you sleep better than anyone else on this list.",
-      green: "Immune to FOMO at the top", red: "Would DCA into a rug for the discipline" },
+      green: "Values consistency", red: "Check whether the plan still fits",
+      green_zh: "重视持续投入", red_zh: "留意计划是否仍适合自己" },
     "Risk Explorer": { slug: "03-risk-explorer",
       quote: "“ What's the worst that can happen?”", by: "— you, right before finding out",
       desc: "You've been early to three narratives and rugged by four, and you still read contract addresses like bedtime stories.",
-      green: "First into what everyone buys next month", red: "First into what no one buys, ever" },
+      green: "Open to new opportunities", red: "Watch for concentrated risk",
+      green_zh: "愿意探索新机会", red_zh: "留意风险过度集中" },
     "Day Trader": { slug: "04-day-trader",
       quote: "“ I'm flat by dinner.”", by: "— you, at 3am, not flat",
       desc: "Six charts, four coffees, one thumb hovering over close-all. You've made and refunded the same $500 to the market eleven times this week.",
-      green: "Never holds a loser overnight", red: "Never holds a winner overnight either" },
+      green: "Attentive to market changes", red: "Watch for overtrading",
+      green_zh: "关注当下市场变化", red_zh: "留意过度交易" },
     "Sniper": { slug: "05-sniper",
       quote: "“ Not yet.”", by: "— you, for six weeks straight",
       desc: "You watch one setup like it owes you money, pass on everything else, then fire once. The entry is usually beautiful. The waiting drives everyone else insane.",
-      green: "Doesn't chase, ever", red: "Missed half the bull market waiting for the retest" },
+      green: "Waits for clear setups", red: "Watch for overly rigid criteria",
+      green_zh: "耐心等待明确条件", red_zh: "留意条件是否过于苛刻" },
     "Grid Executor": { slug: "06-grid-executor",
       quote: "“ The bot's handling it.”", by: "— you, on a beach, allegedly",
       desc: "You turned your opinions into parameters and your parameters into orders. The market chops, your grid hums, and you check in like a landlord.",
-      green: "Emotions removed from execution", red: "Will grid straight through a trend reversal" },
+      green: "Values rule-based execution", red: "Watch for moves beyond the range",
+      green_zh: "重视规则化执行", red_zh: "留意市场偏离原区间" },
     "Swing Hunter": { slug: "07-swing-hunter",
       quote: "“ This is the local bottom.”", by: "— you, at three different bottoms",
       desc: "You live between the four-hour and the daily, hunting the meat of the move and skipping the chop. Sometimes the market swings. Sometimes you do.",
-      green: "Takes profit on the way up", red: "Re-enters the trade they just exited, higher" },
+      green: "Gives market moves time to develop", red: "Watch for an invalidated thesis",
+      green_zh: "给行情留出发展空间", red_zh: "留意持仓逻辑是否失效" },
     "Momentum Rider": { slug: "08-momentum-rider",
       quote: "“ Strength begets strength.”", by: "— you, buying the third green candle",
       desc: "You don't predict, you confirm. When it moves, you're on it. When it stalls, you're gone, usually one candle after you should be.",
-      green: "Rides winners longer than most", red: "The top is simply where your last buy sits" },
+      green: "Looks for trend confirmation", red: "Watch for chasing and reversals",
+      green_zh: "等待趋势确认", red_zh: "留意追高和趋势反转" },
     "Arb Researcher": { slug: "09-arb-researcher",
       quote: "“ There's a spread for that.”", by: "— you, about literally anything",
       desc: "Funding rates, listing gaps, bridge delays. You see basis points where others see noise, and your PnL is boring on purpose.",
-      green: "Profits without caring which way the market goes", red: "Once changed exchanges for 0.4%" },
+      green: "Values cross-checking information", red: "Watch execution costs and assumptions",
+      green_zh: "善于交叉核对信息", red_zh: "留意执行成本与假设偏差" },
     "Narrative Trader": { slug: "10-narrative-trader",
       quote: "“ It's not a coin, it's a story.”", by: "— you, mid-thesis, pre-chart",
       desc: "You trade attention before it becomes price. Your watchlist reads like next quarter's headlines, and sometimes the market even agrees.",
-      green: "Early to the narrative, receipts on the timeline", red: "Still holding when the story gets a sequel nobody asked for" },
+      green: "Attentive to emerging themes", red: "Watch for narratives drifting from facts",
+      green_zh: "关注新主题和变化", red_zh: "留意叙事与事实脱节" },
     "Risk-First": { slug: "11-risk-first",
       quote: "“ Define the downside first.”", by: "— you, before saying hello",
       desc: "Position size before thesis, invalidation before entry. Your drawdowns are shallow, your sleep is deep, and your friends call you boring until the crash.",
-      green: "Survives every cycle", red: "So hedged that winning feels theoretical" },
+      green: "Defines risk boundaries first", red: "Review whether the rules need updating",
+      green_zh: "先明确风险边界", red_zh: "留意规则是否需要调整" },
     "Contrarian": { slug: "12-contrarian",
       quote: "“ Everyone's bullish? Interesting.”", by: "— you, opening a short",
       desc: "When the crowd leans one way, you check the other side of the boat. Being early feels identical to being wrong, and you've budgeted for both.",
-      green: "Buys when the timeline is a funeral", red: "Fights trends that had no intention of stopping" }
+      green: "Values independent thinking", red: "Watch for entering against the trend too early",
+      green_zh: "保持独立判断", red_zh: "留意过早逆势入场" }
   };
 
   /* the type the quiz earned (claim.html → sessionStorage); random only when opened directly (demo) */
@@ -356,8 +373,8 @@
   document.getElementById("r-quote-line").textContent = T.quote;
   document.getElementById("r-quote-by").textContent = T.by;   /* handle is set once HANDLE is known, below */
   document.getElementById("r-desc").textContent = T.desc;
-  document.getElementById("r-green").textContent = T.green;
-  document.getElementById("r-red").textContent = T.red;
+  document.getElementById("r-green").textContent = ZH && T.green_zh || T.green;
+  document.getElementById("r-red").textContent = ZH && T.red_zh || T.red;
 
   /* other trader types gallery: all 12, the claimed one unlocked in colour */
   var LOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
@@ -398,42 +415,128 @@
      everywhere else the deployed backend from config.js */
   var LOCAL = /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
   var API = new URLSearchParams(location.search).get("api") || (LOCAL ? "http://127.0.0.1:3022" : window.DONUT_CARD_API || "");
-  var art = { status: API ? "pending" : "none", t0: Date.now(), url: "" };
-  /* the avatar goes as bytes (avatar_data) — the mock server must not depend on reaching this page's origin */
-  function avatarData() { return fetch(AVATAR).then(function (r) { return r.blob(); }).then(function (b) { return new Promise(function (res) { var fr = new FileReader(); fr.onload = function () { res(fr.result); }; fr.readAsDataURL(b); }); }); }
-  if (API && typeId) {
-    avatarData().then(function (data) { return fetch(API + "/v1/identity/card-art", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ avatar_data: data, handle: HANDLE, type: typeId }) }); })
-      .then(function (r) { return r.json(); }).then(function (j) {
-        if (j.status === "done") { artDone(j.image_url, j.cutout_url, j.plate_url); if (!j.cutout_url && j.cutout === "pending") lateLayers(j.job_id); return; }
-        if (!j.job_id) { art.status = "failed"; return; }
-        var poll = setInterval(function () {
-          fetch(API + "/v1/identity/card-art/" + j.job_id).then(function (r) { return r.json(); }).then(function (st) {
-            if (st.status === "done") { clearInterval(poll); artDone(st.image_url, st.cutout_url, st.plate_url); if (!st.cutout_url && st.cutout === "pending") lateLayers(j.job_id); }
-            else if (st.status === "failed") { clearInterval(poll); art.status = "failed"; }
-            else art.stage = st.stage;
-          }).catch(function () {});
-        }, 3000);
-      }).catch(function () { art.status = "failed"; });
-  } else if (D && D.avatar) {
-    /* no backend on this host (a static deploy): the profile's own avatar fills the card window instead of the sample photo */
-    artDone(new URL(D.avatar, location.href).href);
-  } else art.status = "none";
-  /* the backend reports the art before its 2.5D layers exist (the segmenter can take minutes on a small server):
-     keep asking for up to 2.5 min and attach the layers when they arrive — the figure lifts off the plate in one frame */
-  function lateLayers(jobId) {
-    var toAbs = function (u) { return /^https?:/.test(u) ? u : API + u; }, tries = 0;
-    var t = setInterval(function () {
-      if (++tries > 50) { clearInterval(t); return; }
-      fetch(API + "/v1/identity/card-art/" + jobId).then(function (r) { return r.json(); }).then(function (st) {
-        if (st.cutout === "none" || st.status === "failed") { clearInterval(t); return; }
-        if (!st.cutout_url || !st.plate_url) return;
-        clearInterval(t);
-        var cutAbs = toAbs(st.cutout_url), plateAbs = toAbs(st.plate_url), left = 2;
-        function one() { if (--left) return; mid.src = plateAbs; cut.src = cutAbs; cutWin.hidden = false; }
-        var a = new Image(); a.onload = one; a.src = cutAbs; var b = new Image(); b.onload = one; b.src = plateAbs;
-      }).catch(function () {});
-    }, 3000);
+  /* ── generation, degrade and retry, by server state (product, 2026-10-10) ──
+     The card (status) and its 2.5D layers (layers.status) are two states. The reveal waits for both to be settled:
+     layers ready → full 2.5D card; layers failed (server verdict) → the flat card plus "Retry 3D effect", which re-runs
+     only the layers; LLM failed (server verdict) → a fallback card from the avatar (or the type's Donut art without
+     one) plus "Regenerate card", a new task the user starts on purpose; a poll that cannot reach the server shows
+     "reconnecting" and "Check progress", which only re-asks about the same job. The browser never declares a failure
+     from waiting, and every button says exactly what it does. */
+  var art = { status: API ? "pending" : "none", layers: "none", stage: null, t0: Date.now(), url: "", job: null, regen: false, fallback: false };
+  window.DonutArt = art;   /* QA: the live generation state */
+  var S = ZH ? {
+    layersFailed: "卡片已生成，立体效果暂未就绪。", retryLayers: "重试立体效果", layersRetrying: "正在处理立体效果…",
+    llmFailedAvatar: "已先使用你的头像制作卡片。", llmFailedDefault: "已使用该类型的 Donut 默认图制作卡片。", regenBtn: "重新生成卡面",
+    regenerating: "正在重新生成卡面… {n}%", regenFailed: "这次没能重新生成，已保留当前卡片。", budget: "暂时不能重新生成，已保留当前卡片。",
+    reconnect: "暂时无法确认生成进度，正在重新连接。", checkProgress: "查看进度",
+    stageGemini: "正在绘制卡面", stageCutout: "正在处理立体图层"
+  } : {
+    layersFailed: "Your card is ready. The 3D effect isn’t available yet.", retryLayers: "Retry 3D effect", layersRetrying: "Rendering the 3D effect…",
+    llmFailedAvatar: "Your card is ready using your original profile picture.", llmFailedDefault: "Your card uses the Donut artwork for your type.", regenBtn: "Regenerate card",
+    regenerating: "Regenerating your card… {n}%", regenFailed: "Couldn’t regenerate this time. Your current card is kept.", budget: "Regeneration isn’t available right now. Your current card is kept.",
+    reconnect: "Can’t confirm generation progress right now. Reconnecting…", checkProgress: "Check progress",
+    stageGemini: "Painting your card", stageCutout: "Rendering the 3D layers"
+  };
+  var noteEls = { az: document.getElementById("az-note"), r: document.getElementById("r-note") }, curNote = null;
+  /* one note at a time, on whichever surface is live (waiting screen before the reveal, under the type name after) */
+  function setNote(text, btnLabel, onClick, kind) { curNote = text ? { text: text, btn: btnLabel, fn: onClick, kind: kind || "info" } : null; renderNote(); }
+  function clearNote(kind) { if (!curNote || (kind && curNote.kind !== kind)) return; curNote = null; renderNote(); }
+  function renderNote() {
+    var live = document.body.classList.contains("revealed") ? noteEls.r : noteEls.az, other = live === noteEls.r ? noteEls.az : noteEls.r;
+    other.hidden = true;
+    if (!curNote) { live.hidden = true; return; }
+    live.hidden = false; live.querySelector("span").textContent = curNote.text;
+    var b = live.querySelector("button"); b.hidden = !curNote.btn; b.textContent = curNote.btn || ""; b.disabled = false;
+    b.onclick = curNote.fn ? function () { b.disabled = true; curNote.fn(b); } : null;   /* disabled until the request answers: no double submits */
   }
+  var toAbs = function (u) { return /^https?:/.test(u) ? u : API + u; };
+  var AVATAR_ABS = AVATAR ? new URL(AVATAR, location.href).href : "";
+  var DEFAULT_ART = new URL("../identity/img/archetypes/" + C[type].slug + ".jpg", location.href).href;
+  function avatarData() { return fetch(AVATAR).then(function (r) { return r.blob(); }).then(function (b) { return new Promise(function (res) { var fr = new FileReader(); fr.onload = function () { res(fr.result); }; fr.readAsDataURL(b); }); }); }
+  var pollT = null, netFails = 0, posting = false;
+  /* QA switches (BACKEND.md §4): ?fault=llm | layers ride on the first POST only (the backend simulates that verdict);
+     ?fault=net makes the first two requests go nowhere, so the reconnect note and "Check progress" can be seen */
+  var FAULT = new URLSearchParams(location.search).get("fault") || "", faultSent = false, netSim = 0;
+  function apiNow() { return FAULT === "net" && netSim++ < 2 ? "http://127.0.0.1:9" : API; }
+  function startJob() {   /* the first attempt, or "Regenerate card" (a new task, counted by the backend) */
+    if (posting) return; posting = true;
+    var q = (FAULT === "llm" || FAULT === "layers") && !faultSent ? "?fault=" + FAULT : ""; faultSent = true;
+    avatarData().then(function (data) { return fetch(apiNow() + "/v1/identity/card-art" + q, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ avatar_data: data, handle: HANDLE, type: typeId }) }); })
+      .then(function (r) { return r.json(); }).then(function (j) {
+        posting = false; netOk();
+        if (!j.job_id) { onFailed(j.error || "provider_error"); return; }
+        art.job = j.job_id; handle(j);
+      }).catch(function () { posting = false; netFail(); setTimeout(function () { if (!art.job) startJob(); }, 3000); });   /* keep trying to reach the server; the note appears after two misses */
+  }
+  function startPolling() { if (!pollT) pollT = setInterval(pollOnce, 3000); }
+  function stopPolling() { clearInterval(pollT); pollT = null; }
+  function pollOnce() {   /* only ever asks about the same job */
+    if (!art.job) { startJob(); return; }
+    fetch(apiNow() + "/v1/identity/card-art/" + art.job).then(function (r) { return r.json(); }).then(function (st) { netOk(); handle(st); }).catch(netFail);
+  }
+  function handle(st) {
+    if (st.status === "queued" || st.status === "running") { art.stage = st.stage || art.stage; startPolling(); return; }
+    if (st.status === "done") {
+      var L = st.layers || { status: "failed" };
+      if (L.status === "pending") { art.stage = "cutout"; art.layers = "pending"; startPolling(); return; }
+      stopPolling();
+      var abs = toAbs(st.image_url);
+      if (L.status === "ready") {
+        art.layers = "ready";
+        if (art.url === abs) { attachLayers(L.cutout_url, L.plate_url); return; }   /* the flat card is already up: just add the depth */
+        showCard(abs, L.cutout_url, L.plate_url);
+      } else { art.layers = "failed"; if (art.url === abs) { afterShow(); return; } showCard(abs); }
+      return;
+    }
+    if (st.status === "failed") { stopPolling(); onFailed(st.error || "provider_error"); }
+  }
+  function showCard(abs, cutUrl, plateUrl) { artDone(abs, cutUrl, plateUrl, afterShow); }
+  function afterShow() {
+    art.regen = false; art.status = "done";
+    if (art.layers === "failed") setNote(S.layersFailed, S.retryLayers, retryLayers, "layers");
+    else clearNote();
+  }
+  function attachLayers(cutUrl, plateUrl) {   /* the figure lifts off the plate in one frame; nothing else changes */
+    var cutAbs = toAbs(cutUrl), plateAbs = toAbs(plateUrl), left = 2;
+    function one() { if (--left) return; mid.src = plateAbs; cut.src = cutAbs; cutWin.hidden = false; art.layers = "ready"; clearNote(); }
+    var a = new Image(); a.onload = one; a.src = cutAbs; var b = new Image(); b.onload = one; b.src = plateAbs;
+  }
+  function retryLayers() {   /* re-processes the failed layers of the same card; the LLM is not called, no quota is used */
+    fetch(API + "/v1/identity/card-art/" + art.job + "/layers", { method: "POST" }).then(function (r) { return r.json(); }).then(function (j) {
+      netOk(); var L = j.layers || { status: "failed" };
+      if (L.status === "ready") attachLayers(L.cutout_url, L.plate_url);
+      else if (L.status === "pending") { art.layers = "pending"; setNote(S.layersRetrying, "", null, "layers"); startPolling(); }
+      else { art.layers = "failed"; setNote(S.layersFailed, S.retryLayers, retryLayers, "layers"); }
+    }).catch(netFail);
+  }
+  function onFailed(code) {   /* the server's verdict on the LLM stage */
+    if (art.regen) { art.regen = false; if (code === "budget") setNote(S.budget, "", null, "llm"); else setNote(S.regenFailed, S.regenBtn, regenerate, "llm"); return; }
+    if (art.status === "done") return;   /* a verdict for a card that is already up: keep it */
+    art.fallback = true; art.layers = "none";   /* no generated art: the avatar as the card, or the type's Donut art without one */
+    artDone(AVATAR_ABS || DEFAULT_ART, "", "", function () {
+      art.status = "done";
+      if (code === "budget") setNote(S.budget, "", null, "llm");
+      else setNote(AVATAR_ABS ? S.llmFailedAvatar : S.llmFailedDefault, S.regenBtn, regenerate, "llm");
+    });
+  }
+  function regenerate() {   /* a new generation task the user chose; the current card stays until the new one is in */
+    art.regen = true; art.layers = "none"; art.stage = null; art.regenT0 = Date.now();
+    setNote(S.regenerating.replace("{n}", "0"), "", null, "regen");
+    startJob();
+  }
+  setInterval(function () {   /* progress in the regenerate note */
+    if (!art.regen || !curNote || curNote.kind !== "regen") return;
+    var t = Date.now() - art.regenT0, pct = Math.min(96, 100 * (1 - Math.exp(-(t / 30000) * 2.2))); if (art.stage === "cutout") pct = Math.max(pct, 78);
+    setNote(S.regenerating.replace("{n}", String(Math.round(pct))), "", null, "regen");
+  }, 500);
+  function netFail() {   /* the request did not get an answer: the state is unknown, not failed */
+    if (++netFails < 2) return;
+    setNote(S.reconnect, S.checkProgress, function () { netFails = 0; pollOnce(); }, "net");
+  }
+  function netOk() { netFails = 0; clearNote("net"); }
+  if (API && typeId) startJob();
+  else if (D && D.avatar) artDone(new URL(D.avatar, location.href).href, "", "", function () { art.status = "done"; });   /* no backend on this host: the avatar fills the card window */
+  else art.status = "none";
   /* the demo avatar isn't on this host (they stay out of git): back to the sample persona so card and copy agree */
   function demoFallback() {
     D = null; HANDLE = "@RU7CRYPTOLONG"; f.src = cardSrc("");
@@ -445,13 +548,12 @@
      nearer), and the card's own photo (the full art) stays the ground under both, so the flip never shows a hole.
      Without a cut-out the art itself fills the window plane and keeps a little depth. The reveal waits for the images
      (the art is mandatory; the cut-out and plate get 8 s, then the card goes without them). */
-  function artDone(url, cutUrl, plateUrl) {
-    var toAbs = function (u) { return /^https?:/.test(u) ? u : API + u; };
+  function artDone(url, cutUrl, plateUrl, then) {
     var abs = toAbs(url), extra = { cut: cutUrl ? toAbs(cutUrl) : "", plate: plateUrl ? toAbs(plateUrl) : "" };
     var pending = { art: true, cut: !!extra.cut, plate: !!extra.plate }, ok = { cut: false, plate: false }, finished = false;
     function settle(k, good) {
       if (!pending[k]) return; pending[k] = false; ok[k] = good;
-      if (k === "art" && !good) { finished = true; if (!API && D) { demoFallback(); art.status = "none"; } else art.status = "failed"; return; }
+      if (k === "art" && !good) { finished = true; if (!API && D) { demoFallback(); art.status = "none"; } else netFail(); return; }
       if (finished || pending.art || pending.cut || pending.plate) return; finished = true;
       art.url = abs; document.body.classList.add("has-art");
       /* swap the art into the loaded card rather than reloading the iframe — the reload left a dark card for a few
@@ -459,8 +561,8 @@
       var doc = f.contentDocument, ph = doc && doc.querySelector(".kol-photo img"), stx = doc && doc.getElementById("v2x");
       if (ph && stx) { stx.textContent = cardStyleText(); ph.src = abs; } else f.src = cardSrc(abs);
       mid.src = ok.cut && ok.plate ? extra.plate : abs;
-      if (ok.cut) { cut.src = extra.cut; cutWin.hidden = false; }
-      art.status = "done";
+      if (ok.cut) { cut.src = extra.cut; cutWin.hidden = false; } else cutWin.hidden = true;
+      if (then) then(); else art.status = "done";
     }
     var im = new Image(); im.onload = function () { settle("art", true); }; im.onerror = function () { settle("art", false); }; im.src = abs;
     ["cut", "plate"].forEach(function (k) {
@@ -530,11 +632,13 @@
   }
   var azTick = setInterval(function () {
     azI = (azI + 1) % AZ.length;
-    azEl.textContent = AZ[azI];
+    /* once the server names a stage, show it (product: real stage, not a guess) */
+    azEl.textContent = art.stage === "cutout" ? S.stageCutout : (art.stage === "gemini" || art.stage === "gpt") ? S.stageGemini : AZ[azI];
   }, 950);
-  /* the reveal waits for the card art (min 3.8 s so the loader reads; max 6 min, then default art). A percentage
-     appears after 8 s so a long wait is legible. */
-  var ART_EXPECT = 30000, MIN_SHOW = 3800, MAX_WAIT = 360000, azPct = document.getElementById("az-pct");
+  /* the reveal waits for the card AND a settled verdict on its layers (min 3.8 s so the loader reads). There is no
+     browser-side deadline: a slow job keeps the waiting screen with its real stage; only the server declares failures.
+     A percentage appears after 8 s so a long wait is legible. */
+  var ART_EXPECT = 30000, MIN_SHOW = 3800, azPct = document.getElementById("az-pct");
   var revealing = false;
   function reveal() {
     if (revealing) return; revealing = true;
@@ -547,12 +651,13 @@
     ov.classList.add("done");
     setTimeout(function () { ov.remove(); }, 500);
     document.body.classList.add("revealed");
+    renderNote();   /* a note that was on the waiting screen moves under the type name */
     /* no auto-flip (Cory): the card turns only when the user taps it */
   }
   var waitTick = setInterval(function () {
     var t = Date.now() - art.t0;
-    if (art.status === "done" || art.status === "none" || art.status === "failed" || t > MAX_WAIT) { if (t >= MIN_SHOW) reveal(); return; }
-    if (t > 8000 && azPct) { var f = t / ART_EXPECT, pct = Math.min(96, 100 * (1 - Math.exp(-f * 2.2))); if (art.stage === "gemini") pct = Math.max(pct, 78); azPct.hidden = false; azPct.querySelector("b").textContent = String(Math.round(pct)); }
+    if ((art.status === "done" && art.layers !== "pending") || art.status === "none") { if (t >= MIN_SHOW) reveal(); return; }
+    if (t > 8000 && azPct) { var f = t / ART_EXPECT, pct = Math.min(art.stage === "cutout" ? 96 : 78, 100 * (1 - Math.exp(-f * 2.2))); if (art.stage === "cutout") pct = Math.max(pct, 78); azPct.hidden = false; azPct.querySelector("b").textContent = String(Math.round(pct)); }
   }, 250);
   
   /* Yi's 2.5D portrait blurs the in-card photo as its ground plane (the sharp cut-out lives on .reveal-pop); with
