@@ -66,9 +66,11 @@
 7. **前端切换**：把你的地址写进 `v2/config.js`，push `dev` 再 `git push origin dev:prod`，Vercel 自动上线。其它前端代码不用改。
 8. **不用做**：胶片颗粒、卡片 UI、分享图 —— 都在前端。
 
-接口契约（照 `BACKEND.md` §3 实现，前端已按这个写死）：
-- `POST /v1/identity/card-art` → `200 {status:"done", image_url, cutout_url?, plate_url?}` 或 `202 {status:"running", job_id}`
-- `GET /v1/identity/card-art/{job_id}` → `running`（带 `stage: "gemini" | "cutout"`）/ `done`（同上，抠图没好时 `cutout:"pending"`，抠不出来 `cutout:"none"`）/ `failed`（带 `error`，可带 `fallback_url`）
+接口契约（照 `BACKEND.md` §3 实现，前端已按这个写死；2026-10-10 按产品口径定稿）：
+- `POST /v1/identity/card-art` → `200 {status:"done", image_url, layers:{status, cutout_url?, plate_url?}}` 或 `202 {status:"running", stage, job_id}`；失败任务之后再 POST 算一次新任务（计额度）
+- `GET /v1/identity/card-art/{job_id}` → `running`（带真实 `stage`）/ `done`（`layers.status` = `pending` | `ready` | `failed`，三层是独立状态）/ `failed`（`error` = `timeout` | `provider_error` | `moderation_blocked` | `budget` | `no_avatar`）
+- `POST /v1/identity/card-art/{job_id}/layers` → 只重做抠图和底图（"重试立体效果"），不调 LLM、不计额度
+- 规则：`failed`/`timeout` 必须是服务端判定（LLM 540 s、抠图 180 s 各自有上限），前端不会因为等久了就宣告失败；LLM 和图层的成功/失败/超时/耗时分开记（mock 写 `jobs.jsonl`，`/healthz` 有计数）
 - `GET /healthz` → `{ok:true, pipeline, spent_usd, prompt_version}`
 - 前端行为：每 3 s 轮询，最长等 6 分钟，8 s 后显示百分比（按 30 s 预期），拿到 `done` 才进结果页。
 
@@ -113,7 +115,16 @@ cd kol-identity-h5 && OPENROUTER_API_KEY=你的key node tools/cardgen/server.mjs
 
 打开 http://127.0.0.1:3025/v2/ ，页面在 localhost 会自动用 3022。macOS 上抠图走系统 Vision，不用装 rembg；Linux 装了 rembg 才有抠图，没有也能出卡。
 
-**D. 失败怎么看**
+**D. 各种状态怎么看（产品 2026-10-10 口径，前端已实现）**
+
+在结果页 URL 加一个参数就能演示（只对 mock 有效，正式服务没有）：
+- `?fault=layers`：主图成功、立体图层失败 → 平面卡 + "Your card is ready. The 3D effect isn't available yet." + **Retry 3D effect**（只重做图层）
+- `?fault=llm`：LLM 失败 → 用 X 头像原图做卡 + "Your card is ready using your original profile picture." + **Regenerate card**（新任务，保留当前卡）
+- `?fault=net`：前两次请求连不上 → "Can't confirm generation progress right now. Reconnecting…" + **Check progress**（只查原任务）
+- 正常：三层齐了才揭晓；等待页显示真实阶段（Painting your card → Rendering the 3D layers）。
+例：https://kol-identity-h5.vercel.app/v2/analysis.html?kol=cz_binance&fault=layers
+
+**E. 失败怎么看**
 - 轮询返回 `failed`：看服务日志（Fly：`fly logs -a donut-card-art`），常见是 OpenRouter 拒绝（真人名人头像偶尔会）、超时、额度上限。
 - `cutout:"none"`：抠图没抠出主体（画面覆盖 < 3 % 或 > 90 %），卡照常显示，只是没有立体层。
 - 想重跑某张：删缓存目录里对应的 `<key>.*` 文件。

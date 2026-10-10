@@ -39,21 +39,43 @@ never takes an avatar URL or handle from the client.
 ```
 | Response | When |
 |---|---|
-| `200 { "status": "done", "job_id": "…", "image_url": "https://cdn…/card-art/<hash>.webp", "cutout_url": "https://cdn…/card-art/<hash>.cut.png", "plate_url": "https://cdn…/card-art/<hash>.plate.jpg", "prompt_version": "2026-09-29.7" }` | cache hit |
-| `202 { "status": "queued", "job_id": "…" }` | new job |
+| `200 { "status": "done", "job_id": "…", "image_url": "https://cdn…/card-art/<hash>.webp", "layers": { … }, "prompt_version": "2026-09-30.10" }` | cache hit |
+| `202 { "status": "queued" \| "running", "stage": "gemini" \| "cutout" \| null, "job_id": "…", "attempt": 1 }` | new job (a POST after a `failed` job is a new attempt and counts against quota) |
 | `400 { "error": "unknown_type" }` | type isn't one of §5 |
 | `429 { "error": "rate_limited", "retry_after": 3600 }` | per-account limit |
 
 ### `GET /v1/identity/card-art/{job_id}`
 ```json
 { "status": "queued" | "running" | "done" | "failed",
-  "image_url": "…",                 // when done
-  "cutout_url": "…",                // when done and a subject could be lifted (step 5b) — optional, the H5 copes without it
-  "plate_url": "…",                 // with cutout_url: the art with the subject blurred away (step 5b)
-  "fallback_url": "…/img/archetypes/04-day-trader.jpg",   // when failed
-  "error": "moderation_blocked" | "provider_error" | "timeout" | "no_avatar" }
+  "stage": "gemini" | "gpt" | "cutout" | null,           // the real stage while running (the page shows it)
+  "image_url": "…",                                      // when done
+  "layers": {                                            // when done — the 2.5D pair, its own state
+    "status": "pending" | "ready" | "failed",
+    "cutout_url": "…", "plate_url": "…",                 // when ready
+    "error": "timeout" | "no_subject" | "no_segmenter" | "provider_error" },   // when failed (server verdict)
+  "error": "timeout" | "provider_error" | "moderation_blocked" | "budget" | "no_avatar" | "output_missing",   // when failed
+  "fallback_url": "…/img/archetypes/04-day-trader.jpg",  // optional when failed; the page falls back to the avatar first
+  "elapsed_s": 31, "attempt": 1 }
 ```
-The front end polls every 3 s for up to 4 min, then keeps the fallback.
+
+### `POST /v1/identity/card-art/{job_id}/layers`
+"Retry 3D effect": re-run only the cut-out and plate of a finished card. Never calls the LLM, never counts against quota.
+Answers `200` with `layers.status: "ready"` (urls) or `202` with `"pending"`; idempotent (a run in flight is shared).
+
+**State rules (product, 2026-10-10).** `status` is the card, `layers.status` is the 2.5D pair; the page waits for both to be
+settled before the reveal. Every `failed` — and every `timeout` — is the server's verdict: a provider error, a budget stop,
+or a stage past its own limit (LLM 540 s, segmenter 180 s). The browser never infers failure from waiting; when it cannot
+reach the server it shows "reconnecting" and re-asks about the same job. The page then: layers failed → flat card +
+"Retry 3D effect" (this endpoint); LLM failed → the avatar as the card (the type's Donut art if X has none) +
+"Regenerate card" (a new POST, user-initiated, counted); `budget` → the current card stays, no regenerate button.
+Count LLM attempts and layer attempts separately (the mock writes `out/server-cache/jobs.jsonl` and exposes
+`/healthz.metrics`); never one merged failure rate. Timeout thresholds come from the samples, not from promises.
+
+**QA switches (mock only, never in production):** `POST …?fault=llm` fails the LLM stage after 2 s with `provider_error`;
+`POST …?fault=layers` makes the layers verdict `failed: simulated` until a layers retry. The pages pass `?fault=llm|layers|net`
+from their own URL (`net` is client-side: the first two requests go nowhere, so the reconnect state shows).
+
+The front end polls every 3 s with no deadline of its own.
 
 ## 4. Generation pipeline (server)
 
