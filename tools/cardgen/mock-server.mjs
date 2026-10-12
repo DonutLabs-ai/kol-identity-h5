@@ -33,12 +33,17 @@ const exec = promisify(execFile), require = createRequire(import.meta.url);
 const args = Object.fromEntries(process.argv.slice(2).reduce((a, v, i, all) => (v.startsWith("--") ? a.concat([[v.slice(2), all[i + 1] && !all[i + 1].startsWith("--") ? all[i + 1] : true]]) : a), []));
 const PORT = Number(args.port || process.env.PORT || 3022), HOST = String(args.host || process.env.HOST || "127.0.0.1");
 const PIPELINE = String(args.pipeline || process.env.CARD_PIPELINE || "fast");
-/* the fast path's model, its time budget and a one-shot fallback (2026-10-12 bake-off: 3-pro ≈ 22 s but up to 48 s;
-   3.1-flash ≈ 11 s with rare stalls; 2.5-flash ≈ 9 s, stable). Past CARD_LLM_TIMEOUT_MS the call is abandoned and the
-   fallback model is tried once, so a card still lands inside the 40 s target instead of waiting on a stalled provider. */
-const MODEL = String(args.model || process.env.CARD_MODEL || "google/gemini-3.1-flash-image");
-const FALLBACK_MODEL = String(process.env.CARD_FALLBACK_MODEL || "google/gemini-2.5-flash-image");
-const LLM_TIMEOUT = Number(process.env.CARD_LLM_TIMEOUT_MS || 25000);
+/* quality AND the 40 s target (Cory, 2026-10-12: "flash 普遍效果不好"): the primary model (3 Pro, the look we want,
+   ≈22 s but seen at 48 s) races a faster model (3.1 Flash, ≈12 s). The primary's card is used whenever it lands within
+   CARD_PRIMARY_DEADLINE_MS; past that the racer's card, already waiting, is used instead. Both calls are paid
+   (≈$0.21 a card). CARD_RACE_MODE=hedge starts the racer only at the deadline (cheaper, ~12 s slower in the bad case). */
+const MODEL = String(args.model || process.env.CARD_MODEL || "google/gemini-3-pro-image");
+const RACE_MODEL = String(process.env.CARD_RACE_MODEL || "google/gemini-3.1-flash-image");
+const RACE_MODE = String(process.env.CARD_RACE_MODE || "parallel");
+const PRIMARY_DEADLINE = Number(process.env.CARD_PRIMARY_DEADLINE_MS || 28000);
+const LLM_TIMEOUT = Number(process.env.CARD_LLM_TIMEOUT_MS || 60000);
+/* first settled-ok result of the given promises (each resolves {g, model} or null), or null when all are null */
+function firstOk(list) { return new Promise((resolve) => { let left = list.length; if (!left) resolve(null); list.forEach((p) => p.then((v) => { if (v) resolve(v); else if (--left === 0) resolve(null); })); }); }
 const CACHE = join(CARDGEN, "out/server-cache"); await mkdir(CACHE, { recursive: true });
 const METRICS_LOG = join(CACHE, "jobs.jsonl");          /* one line per stage attempt: llm / layers, ok, ms, error, cost */
 const LAYERS_TIMEOUT = 180000;                           /* the segmenter's own limit; past it the layers are "failed: timeout" (server verdict) */
@@ -143,14 +148,19 @@ async function pipeline(job) {
       /* one Gemini call: the avatar and the type's gear + action, style named in the text (harness/fast.mjs) */
       job.stage = "gemini";
       const action = prompts.types[type].replace(/\s+/g, " ").trim(), prompt = fastPrompt(action);
-      let g;
-      try { g = await generateImage({ key, model: MODEL, prompt, avatarPath, refs: [], budget, timeoutMs: LLM_TIMEOUT }); job.model = MODEL; }
-      catch (e) {
-        const code = classify(e); if (code === "budget" || code === "moderation_blocked" || !FALLBACK_MODEL || FALLBACK_MODEL === MODEL) throw e;
-        console.error("job", job.key, MODEL, code, "→ fallback", FALLBACK_MODEL);
-        await record("llm", job.key, type, false, Date.now() - t0, code + ":" + MODEL.split("/")[1]);
-        g = await generateImage({ key, model: FALLBACK_MODEL, prompt, avatarPath, refs: [], budget, timeoutMs: LLM_TIMEOUT }); job.model = FALLBACK_MODEL;
+      const errors = {};
+      const call = (model) => generateImage({ key, model, prompt, avatarPath, refs: [], budget, timeoutMs: LLM_TIMEOUT })
+        .then((g) => ({ g, model }), (e) => { errors[model] = e; console.error("job", job.key, model, classify(e)); return null; });
+      const primary = call(MODEL);
+      const racing = RACE_MODEL && RACE_MODEL !== MODEL;
+      let racer = racing && RACE_MODE === "parallel" ? call(RACE_MODEL) : null;
+      let pick = await Promise.race([primary, new Promise((r) => setTimeout(() => r("deadline"), PRIMARY_DEADLINE))]);
+      if (pick === "deadline" || pick === null) {
+        const fatal = pick === null && ["budget", "moderation_blocked"].includes(classify(errors[MODEL]));
+        if (fatal || !racing) { pick = pick === "deadline" ? await primary : null; if (!pick) throw errors[MODEL] || new Error("no image"); }
+        else { if (!racer) racer = call(RACE_MODEL); pick = await firstOk([racer, primary]); if (!pick) throw errors[MODEL] || errors[RACE_MODEL] || new Error("no image"); }
       }
+      const g = pick.g; job.model = pick.model; job.raced = pick.model !== MODEL;
       await writeFile(join(CACHE, job.key + ".png"), g.png); job.cost = g.cost;
     } else {
       job.stage = "gpt";
@@ -179,7 +189,7 @@ http.createServer(async (req, res) => {
   try {
     const u = new URL(req.url, "http://x");
     if (req.method === "OPTIONS") return json(res, 204, {});
-    if (u.pathname === "/healthz") return json(res, 200, { ok: true, pipeline: PIPELINE, model: MODEL, fallback_model: FALLBACK_MODEL, llm_timeout_ms: LLM_TIMEOUT, spent_usd: Number(budget.spent.toFixed(3)), prompt_version: prompts.version, metrics });
+    if (u.pathname === "/healthz") return json(res, 200, { ok: true, pipeline: PIPELINE, model: MODEL, race_model: RACE_MODEL, race_mode: RACE_MODE, primary_deadline_ms: PRIMARY_DEADLINE, llm_timeout_ms: LLM_TIMEOUT, spent_usd: Number(budget.spent.toFixed(3)), prompt_version: prompts.version, metrics });
     if (u.pathname.startsWith("/art/")) {
       const name = u.pathname.slice(5); if (!/^[a-f0-9]+(\.png|\.cut\.png|\.plate\.jpg)$/.test(name)) return json(res, 404, { error: "not_found" });
       const f = join(CACHE, name); if (!existsSync(f)) return json(res, 404, { error: "not_found" });
@@ -216,10 +226,10 @@ http.createServer(async (req, res) => {
       }
       if (req.method !== "GET") return json(res, 405, { error: "method_not_allowed" });
       /* a QA-faulted job reports its own verdict even though a cached card exists for the key */
-      if (existsSync(join(CACHE, k + ".png")) && !(job && job.fault === "llm" && job.status !== "done")) return json(res, 200, doneAnswer(k, type, job ? { elapsed_s: Math.round((Date.now() - job.started) / 1000), llm_ms: job.llm_ms } : {}));
+      if (existsSync(join(CACHE, k + ".png")) && !(job && job.fault === "llm" && job.status !== "done")) return json(res, 200, doneAnswer(k, type, job ? { elapsed_s: Math.round((Date.now() - job.started) / 1000), llm_ms: job.llm_ms, model: job.model, raced: job.raced } : {}));
       if (!job) return json(res, 404, { error: "not_found" });
       if (job.status === "done") { jobs.delete(k); return json(res, 200, { status: "failed", error: "output_missing", job_id: k }); }   /* done but the PNG is gone */
-      return json(res, 200, { status: job.status, stage: job.stage || null, error: job.error, job_id: k, attempt: job.attempt, elapsed_s: Math.round((Date.now() - job.started) / 1000) });
+      return json(res, 200, { status: job.status, stage: job.stage || null, error: job.error, job_id: k, attempt: job.attempt, elapsed_s: Math.round((Date.now() - job.started) / 1000) });   /* model/raced are in the done answer below */
     }
     json(res, 404, { error: "not_found" });
   } catch (e) { json(res, 500, { error: "server_error", message: e.message }); }

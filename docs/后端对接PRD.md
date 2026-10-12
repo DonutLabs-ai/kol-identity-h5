@@ -23,13 +23,13 @@
 
 ## 2. 图是怎么生成的，现在跑得怎么样
 
-**一句话**：拿用户的 X 头像 + 他测出来的交易人格，调一次 Gemini（3.1 Flash Image）出一张 1024×1024 的卡面；再把人物从画面里抠出来，前端用它做卡内的 2.5D 视差。
+**一句话**：拿用户的 X 头像 + 他测出来的交易人格，让 Gemini 3 Pro 和 3.1 Flash 同时画一张 1024×1024 的卡面，28 s 内 Pro 回来用 Pro、否则用 Flash；再把人物从画面里抠出来，前端用它做卡内的 2.5D 视差。
 
 **流程（server.mjs 里就这几步）**
 
 1. 收到 `POST /v1/identity/card-art`，body 里是头像（base64 `avatar_data` 或 `avatar_url`）、handle、人格 id（12 个之一，见 BACKEND.md §5）。
 2. 算缓存 key = `sha256(头像字节) : 人格 : prompt_version`。命中就直接返回 `done`，不花钱。
-3. 没命中：通过 OpenRouter 调 `google/gemini-3.1-flash-image`（25 s 内没回来就换 `gemini-2.5-flash-image` 再试一次）（chat completions 接口，`modalities: ["image","text"]`），输入 = 头像图 + 一段文本（`prompts.md` 里该人格的装备/动作 + 风格描述，逐字见 PROMPT-EXPORT.md §3）。返回 base64 PNG，存成 `<key>.png`。到这里就对外报 `done`。
+3. 没命中：通过 OpenRouter 同时调 `google/gemini-3-pro-image` 和 `google/gemini-3.1-flash-image`；Pro 在 28 s 内回来就用 Pro，否则用 Flash（见 BACKEND.md §13）（chat completions 接口，`modalities: ["image","text"]`），输入 = 头像图 + 一段文本（`prompts.md` 里该人格的装备/动作 + 风格描述，逐字见 PROMPT-EXPORT.md §3）。返回 base64 PNG，存成 `<key>.png`。到这里就对外报 `done`。
 4. 后台跑抠图：`rembg`（isnet-general-use 模型）把人物抠成带 alpha 的 `<key>.cut.png`，再生成一张"干净底图" `<key>.plate.jpg`（人物区域用模糊填掉）。前端把底图放在窗口层、人物放在前一层，鼠标/手机一动就有立体感。
 5. 轮询接口在抠图没好之前最多等 15 秒；超过就先把 `done` + 卡面给出去，`cutout: "pending"`，前端自己再追 2.5 分钟把图层补上。
 
@@ -37,8 +37,8 @@
 
 | 项目 | 数字 |
 |---|---|
-| 新卡从 POST 到 `done`（含抠图） | 2026-10-12 起：模型换成 `google/gemini-3.1-flash-image`（≈ 12 s，25 s 超时自动换 `gemini-2.5-flash-image` ≈ 9 s），抠图 ≈ 7–15 s，整体 ≈ 20–30 s；之前的 3 Pro 实测 25–48 s 不稳 |
-| 单张成本 | ≈ $0.07（兜底模型 ≈ $0.04；OpenRouter 计费） |
+| 新卡从 POST 到 `done`（含抠图） | 2026-10-12 起「赛跑」：`gemini-3-pro-image`（画质最好，通常 22 s，实测会到 48 s）和 `gemini-3.1-flash-image`（≈ 12 s）同时发；28 s 内 Pro 回来就用 Pro，否则用已经等着的 Flash。抠图 ≈ 7–15 s。整体通常 30–37 s，坏情况 ≈ 35–43 s |
+| 单张成本 | ≈ $0.21（两路都计费；`CARD_RACE_MODE=hedge` 只在超时才发 Flash，≈ $0.14） |
 | 缓存命中 | < 1 s |
 | 卡面文件 | PNG 1.8 MB；抠图 PNG ≈ 1 MB；底图 JPG ≈ 0.2 MB（正式服务请转 WebP 并走 CDN） |
 | 进程花费上限 | 环境变量 `CARD_BUDGET`（线上 50 美元），到了只返回缓存 |
