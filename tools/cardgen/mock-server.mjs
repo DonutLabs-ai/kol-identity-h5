@@ -243,5 +243,15 @@ if (args.warm) {
   else console.log(`warm: ${who}/${type} already cached (key ${k})`);
 }
 
-/* layers for art cached before this step existed (sequential, ~0.3 s each on macOS) */
-(async () => { for (const f of await readdir(CACHE)) { const m = /^([a-f0-9]+)\.png$/.exec(f); if (m) await cutoutFor(m[1], "unresolved"); } })().catch((e) => console.error("cutout sweep:", e.message));
+/* layers for art cached before this step existed (sequential, ~0.3 s each on macOS); then a warm-up run on Linux: the
+   first segmenter start after boot took 70 s on Fly (model + import caches cold) while the next took 5 s — paying that
+   once at boot keeps it off the first user's card */
+(async () => {
+  const pngs = (await readdir(CACHE)).filter((f) => /^[a-f0-9]+\.png$/.test(f));
+  for (const f of pngs) await cutoutFor(f.slice(0, 24), "unresolved");
+  if (!MAC && pngs.length && (await ensureCutout())) {
+    const t0 = Date.now();
+    try { await exec("python3", [CUTOUT_PY, join(CACHE, pngs[0]), "/tmp/warm.cut.png", "/tmp/warm.plate.jpg"], { maxBuffer: 1 << 20, timeout: LAYERS_TIMEOUT }); console.log("segmenter warm-up", Date.now() - t0, "ms"); }
+    catch (e) { console.error("segmenter warm-up failed:", String(e.message).split("\n")[0]); }
+  }
+})().catch((e) => console.error("cutout sweep:", e.message));
