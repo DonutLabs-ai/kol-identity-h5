@@ -243,3 +243,22 @@ scheme; add the variant name to the key.
 Verdict: Gemini one-shot is the live default (5× faster, cheaper, same likeness/type reliability); GPT one-shot is a
 fair "premium" alternative but not worth the wait on its own — the §11 two-model pipeline is the premium path.
 Sheet: `out/fast/gemini-vs-gpt.png`.
+
+## 13. Speed bake-off — the 40 s target (2026-10-12)
+
+Live numbers before the change (Fly, `gemini-3-pro-image`): the LLM stage alone took 25.6 s and 48.4 s on two consecutive
+cards, plus 7–15 s for the layers — not reliably inside 40 s. Same fast prompt, one human avatar and one non-human
+(the rocket), run through OpenRouter's image models in parallel:
+
+| model | seconds | $/card | look |
+|---|---|---|---|
+| `google/gemini-3.1-flash-image` | 10.9 / 11.3 / 12.4 / 13.0 (one 308 s stall) | 0.07 | closest to 3 Pro: sparkle, trails, likeness; owl stays an owl |
+| `google/gemini-2.5-flash-image` | 9.0 / 9.0 / 9.3 / 9.4 / 9.8 | 0.04 | a notch flatter, stable |
+| `google/gemini-3-pro-image` (old) | 21.9 / 22.5 (live: 25.6, 48.4) | 0.14 | best, slowest |
+| `openai/gpt-5-image-mini` | 39.9 / 41.9 | 0.05 | likeness lost (new face) |
+| `google/gemini-nano-banana-2.1` | 429 from the provider (not available to us yet) | — | — |
+
+Decision: primary `gemini-3.1-flash-image`, `CARD_LLM_TIMEOUT_MS=25000`, one fallback call on `gemini-2.5-flash-image`
+when the primary times out or errors (never on moderation or budget). Expected card: ~12 s + layers ~7–15 s ≈ 20–30 s;
+worst case with the fallback ≈ 25 + 9 + 15 ≈ 50 s. The real service's `openrouter-image.mjs` should take the same model,
+timeout and fallback. Prompt v11 (2026-10-12): a non-human avatar is never humanised (product feedback).

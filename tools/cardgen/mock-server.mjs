@@ -33,6 +33,12 @@ const exec = promisify(execFile), require = createRequire(import.meta.url);
 const args = Object.fromEntries(process.argv.slice(2).reduce((a, v, i, all) => (v.startsWith("--") ? a.concat([[v.slice(2), all[i + 1] && !all[i + 1].startsWith("--") ? all[i + 1] : true]]) : a), []));
 const PORT = Number(args.port || process.env.PORT || 3022), HOST = String(args.host || process.env.HOST || "127.0.0.1");
 const PIPELINE = String(args.pipeline || process.env.CARD_PIPELINE || "fast");
+/* the fast path's model, its time budget and a one-shot fallback (2026-10-12 bake-off: 3-pro ≈ 22 s but up to 48 s;
+   3.1-flash ≈ 11 s with rare stalls; 2.5-flash ≈ 9 s, stable). Past CARD_LLM_TIMEOUT_MS the call is abandoned and the
+   fallback model is tried once, so a card still lands inside the 40 s target instead of waiting on a stalled provider. */
+const MODEL = String(args.model || process.env.CARD_MODEL || "google/gemini-3.1-flash-image");
+const FALLBACK_MODEL = String(process.env.CARD_FALLBACK_MODEL || "google/gemini-2.5-flash-image");
+const LLM_TIMEOUT = Number(process.env.CARD_LLM_TIMEOUT_MS || 25000);
 const CACHE = join(CARDGEN, "out/server-cache"); await mkdir(CACHE, { recursive: true });
 const METRICS_LOG = join(CACHE, "jobs.jsonl");          /* one line per stage attempt: llm / layers, ok, ms, error, cost */
 const LAYERS_TIMEOUT = 180000;                           /* the segmenter's own limit; past it the layers are "failed: timeout" (server verdict) */
@@ -51,9 +57,9 @@ const cacheKey = (avatarBytes, type) => createHash("sha256").update(avatarBytes)
 
 /* ── per-stage bookkeeping: LLM and layers are counted apart (never one merged failure rate) ── */
 const metrics = { llm: { ok: 0, failed: 0, timeout: 0 }, layers: { ok: 0, failed: 0, timeout: 0 } };
-async function record(stage, key, type, ok, ms, error, cost) {
-  metrics[stage][ok ? "ok" : error === "timeout" ? "timeout" : "failed"]++;
-  await appendFile(METRICS_LOG, JSON.stringify({ t: new Date().toISOString(), key, type, stage, ok, ms, error: error || undefined, cost: cost || undefined }) + "\n").catch(() => {});
+async function record(stage, key, type, ok, ms, error, cost, model) {
+  metrics[stage][ok ? "ok" : /^timeout/.test(String(error)) ? "timeout" : "failed"]++;
+  await appendFile(METRICS_LOG, JSON.stringify({ t: new Date().toISOString(), key, type, stage, ok, ms, error: error || undefined, cost: cost || undefined, model: model || undefined }) + "\n").catch(() => {});
 }
 /* an error from the provider or the runner, reduced to the codes BACKEND.md names */
 function classify(e) {
@@ -136,8 +142,15 @@ async function pipeline(job) {
     if (PIPELINE === "fast") {
       /* one Gemini call: the avatar and the type's gear + action, style named in the text (harness/fast.mjs) */
       job.stage = "gemini";
-      const action = prompts.types[type].replace(/\s+/g, " ").trim();
-      const g = await generateImage({ key, model: "google/gemini-3-pro-image", prompt: fastPrompt(action), avatarPath, refs: [], budget });
+      const action = prompts.types[type].replace(/\s+/g, " ").trim(), prompt = fastPrompt(action);
+      let g;
+      try { g = await generateImage({ key, model: MODEL, prompt, avatarPath, refs: [], budget, timeoutMs: LLM_TIMEOUT }); job.model = MODEL; }
+      catch (e) {
+        const code = classify(e); if (code === "budget" || code === "moderation_blocked" || !FALLBACK_MODEL || FALLBACK_MODEL === MODEL) throw e;
+        console.error("job", job.key, MODEL, code, "→ fallback", FALLBACK_MODEL);
+        await record("llm", job.key, type, false, Date.now() - t0, code + ":" + MODEL.split("/")[1]);
+        g = await generateImage({ key, model: FALLBACK_MODEL, prompt, avatarPath, refs: [], budget, timeoutMs: LLM_TIMEOUT }); job.model = FALLBACK_MODEL;
+      }
       await writeFile(join(CACHE, job.key + ".png"), g.png); job.cost = g.cost;
     } else {
       job.stage = "gpt";
@@ -154,7 +167,7 @@ async function pipeline(job) {
     await record("llm", job.key, type, false, Date.now() - t0, job.error);
     console.error("job", job.key, "failed:", job.error, job.detail); return;
   }
-  job.llm_ms = Date.now() - t0; await record("llm", job.key, type, true, job.llm_ms, null, job.cost);
+  job.llm_ms = Date.now() - t0; await record("llm", job.key, type, true, job.llm_ms, null, job.cost, job.model);
   job.status = "done"; job.image_url = `/art/${job.key}.png`;
   /* the 2.5D layers follow on their own (0.3 s on macOS Vision, ~10 s on Fly): answers carry layers.status */
   job.stage = "cutout"; cutoutFor(job.key, type).catch(() => {});
@@ -166,7 +179,7 @@ http.createServer(async (req, res) => {
   try {
     const u = new URL(req.url, "http://x");
     if (req.method === "OPTIONS") return json(res, 204, {});
-    if (u.pathname === "/healthz") return json(res, 200, { ok: true, pipeline: PIPELINE, spent_usd: Number(budget.spent.toFixed(3)), prompt_version: prompts.version, metrics });
+    if (u.pathname === "/healthz") return json(res, 200, { ok: true, pipeline: PIPELINE, model: MODEL, fallback_model: FALLBACK_MODEL, llm_timeout_ms: LLM_TIMEOUT, spent_usd: Number(budget.spent.toFixed(3)), prompt_version: prompts.version, metrics });
     if (u.pathname.startsWith("/art/")) {
       const name = u.pathname.slice(5); if (!/^[a-f0-9]+(\.png|\.cut\.png|\.plate\.jpg)$/.test(name)) return json(res, 404, { error: "not_found" });
       const f = join(CACHE, name); if (!existsSync(f)) return json(res, 404, { error: "not_found" });

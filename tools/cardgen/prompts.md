@@ -11,8 +11,9 @@ History: v3 spy poster → v4 airbrush → v5 avatar edit (types lost) → v6 ge
 → v8 Donut brand backdrop (violet with flowing amber / cream / periwinkle light ribbons, `refs/donut-ribbons.webp`)
 → v9 art direction rewritten from the reverse-prompted 98-tile Figma moodboard (`style-refs/figma/moodboard-dna.md`): 80s airbrushed gouache poster, not photography; face lit like the board lights its subjects.
 → v10 Cory's keyword vocabulary: sparkle-figure vintage film still (silhouette outlined in light, star-filter flares, psychedelic saturated colour); style comes from the glare-set reference images, text only names it.
+→ v11 (2026-10-12, product feedback): a non-human avatar is never humanised — no body, limbs, hands or face added; gear and action staged around it.
 
-prompt_version: 2026-09-30.10
+prompt_version: 2026-10-12.11
 
 ## Base
 
@@ -27,9 +28,11 @@ its own design — do not turn it into a realistic human.
 
 ACT (equally important): the subject performs the TRADING TYPE's signature action with its signature gear, exactly as
 described below — this is what makes the card theirs. Re-pose the body and hands as needed; keep the face and head
-recognisable. A creature holds or uses the gear with its own limbs; an object (a rocket, a logo-like shape) carries the
-gear and action as part of the scene in a playful, natural way. Frame from the knees or waist up — full body only when
-the action needs it — with the face large enough to recognise and the gear fully visible.
+recognisable. If the avatar is not a person — an animal, a creature, an object, a logo, a symbol, a mascot — never
+humanise it: no human body, limbs, hands or face are added; a creature keeps its own anatomy and only does what that
+body could do, and an object, logo or symbol stays what it is while the gear and the action are staged around it as a
+scene. Frame from the knees or waist up — full body only when the action needs it — with the face (or the subject)
+large enough to recognise and the gear fully visible.
 
 ART DIRECTION (Cory's vocabulary, 2026-09-30 — the images attached as STYLE REFERENCES define the look; this text only
 names it): a vintage film still, 1950s–60s Hollywood glamour meets vintage luxury, surreal and dreamlike. The figure is

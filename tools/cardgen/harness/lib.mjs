@@ -76,7 +76,7 @@ export const REF_WORDING = {
   /* "style" = a real style transfer: the reference defines the whole rendering; only identity comes from the avatar */
   style: (k) => `STYLE REFERENCE ${k + 1} — render the final image EXACTLY in this visual style: the same medium and rendering technique, the same light, surface texture, grain, colour treatment and finish, as if the same artist made both. Take the STYLE from this image and only the person's identity from the avatar:`,
 };
-export async function generateImage({ key, model, prompt, avatarPath, refs = [], brandPath, budget, refMode = "look", refsFirst = false, bgRef = null }) {
+export async function generateImage({ key, model, prompt, avatarPath, refs = [], brandPath, budget, refMode = "look", refsFirst = false, bgRef = null, timeoutMs = 540000 }) {
   budget.check(0.30);
   const avatarPart = [{ type: "text", text: refsFirst ? "Now the profile picture to edit INTO that style (identity only comes from here):" : "The profile picture to edit:" }, { type: "image_url", image_url: { url: await dataUrl(avatarPath) } }];
   const refParts = [];
@@ -88,7 +88,7 @@ export async function generateImage({ key, model, prompt, avatarPath, refs = [],
   if (brandPath) content.push({ type: "text", text: "DONUT BRAND BACKGROUND REFERENCE — use exactly this palette and these soft flowing light ribbons for the background and the colour of the light. Its colours win over every other reference:" }, { type: "image_url", image_url: { url: await dataUrl(brandPath) } });
   content.push({ type: "text", text: prompt });
   const t0 = Date.now();
-  const json = await openrouter(key, { model, modalities: ["image", "text"], messages: [{ role: "user", content }] }, 540000);   /* ~200 s solo; parallel runs can double that */
+  const json = await openrouter(key, { model, modalities: ["image", "text"], messages: [{ role: "user", content }] }, timeoutMs);   /* ~200 s solo; parallel runs can double that */
   const url = json.choices?.[0]?.message?.images?.[0]?.image_url?.url;
   if (!url) throw new Error("no image: " + JSON.stringify(json.choices?.[0]?.message).slice(0, 300));
   const m = /^data:image\/\w+;base64,(.+)$/.exec(url);
@@ -138,7 +138,7 @@ export const RESTYLE_CAPTIONS = {
 };
 /* fast path (harness/fast.mjs — one Gemini call, avatar only): `action` is the type's section from prompts.md */
 export function fastPrompt(action) {
-  return `Turn this profile picture into a collectible trading-card portrait, square. Keep the subject exactly recognisable (same face, hair, glasses, expression; if it is not a person, keep the same creature or object). ${action}
+  return `Turn this profile picture into a collectible trading-card portrait, square. Keep the subject exactly recognisable (same face, hair, glasses, expression; if it is not a person, keep the same creature or object). If the profile picture is not a person — an animal, a creature, an object, a logo, a symbol, a mascot — keep it exactly that: do not give it a human body, limbs, hands or a face; stage the trading gear and the action around it as a scene instead. ${action}
 Style: 1980s retro-futurist album-cover art shot on film — the figure rim-lit with liquid chrome and glitter on the clothing edges and props (face stays clean), a few big four-point star flares, prismatic light streaks, deep violet background (#3c0996 → near-black) with flowing amber-orange, cream and periwinkle light ribbons, film grain and halation. Not a clean modern illustration. No text, no logo, no border. No cigarettes, cigars, alcohol or drugs.`;
 }
 export const BRAND_CAPTION = "DONUT BRAND BACKGROUND REFERENCE — use exactly this palette and these soft flowing light ribbons for the background and the colour of the light. Its colours win over every other reference:";

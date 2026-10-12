@@ -1,6 +1,6 @@
-# KOL 卡面生图 Prompt 导出 — 2026-10-09
+# KOL 卡面生图 Prompt 导出 — 2026-10-12
 
-来源：`tools/cardgen/prompts.md`（prompt_version **2026-09-30.10**）+ `harness/lib.mjs`。本文件由 `harness/export-prompt.mjs` 生成，改 prompt 请改源文件再重新导出，不要手改这里。
+来源：`tools/cardgen/prompts.md`（prompt_version **2026-10-12.11**）+ `harness/lib.mjs`。本文件由 `harness/export-prompt.mjs` 生成，改 prompt 请改源文件再重新导出，不要手改这里。
 
 ## 0. 现在线上（mock 后端 `server.mjs`）怎么调
 
@@ -40,9 +40,11 @@ its own design — do not turn it into a realistic human.
 
 ACT (equally important): the subject performs the TRADING TYPE's signature action with its signature gear, exactly as
 described below — this is what makes the card theirs. Re-pose the body and hands as needed; keep the face and head
-recognisable. A creature holds or uses the gear with its own limbs; an object (a rocket, a logo-like shape) carries the
-gear and action as part of the scene in a playful, natural way. Frame from the knees or waist up — full body only when
-the action needs it — with the face large enough to recognise and the gear fully visible.
+recognisable. If the avatar is not a person — an animal, a creature, an object, a logo, a symbol, a mascot — never
+humanise it: no human body, limbs, hands or face are added; a creature keeps its own anatomy and only does what that
+body could do, and an object, logo or symbol stays what it is while the gear and the action are staged around it as a
+scene. Frame from the knees or waist up — full body only when the action needs it — with the face (or the subject)
+large enough to recognise and the gear fully visible.
 
 ART DIRECTION (Cory's vocabulary, 2026-09-30 — the images attached as STYLE REFERENCES define the look; this text only
 names it): a vintage film still, 1950s–60s Hollywood glamour meets vintage luxury, surreal and dreamlike. The figure is
@@ -178,9 +180,11 @@ its own design — do not turn it into a realistic human.
 
 ACT (equally important): the subject performs the TRADING TYPE's signature action with its signature gear, exactly as
 described below — this is what makes the card theirs. Re-pose the body and hands as needed; keep the face and head
-recognisable. A creature holds or uses the gear with its own limbs; an object (a rocket, a logo-like shape) carries the
-gear and action as part of the scene in a playful, natural way. Frame from the knees or waist up — full body only when
-the action needs it — with the face large enough to recognise and the gear fully visible.
+recognisable. If the avatar is not a person — an animal, a creature, an object, a logo, a symbol, a mascot — never
+humanise it: no human body, limbs, hands or face are added; a creature keeps its own anatomy and only does what that
+body could do, and an object, logo or symbol stays what it is while the gear and the action are staged around it as a
+scene. Frame from the knees or waist up — full body only when the action needs it — with the face (or the subject)
+large enough to recognise and the gear fully visible.
 
 ART DIRECTION (Cory's vocabulary, 2026-09-30 — the images attached as STYLE REFERENCES define the look; this text only
 names it): a vintage film still, 1950s–60s Hollywood glamour meets vintage luxury, surreal and dreamlike. The figure is
@@ -238,14 +242,14 @@ No text, letters or logos. Output one square image.
 content：`The profile picture:` + 头像图 → 正文。正文 = 下面模板，`${action}` 处填该人格小节（§1.2 原文）。
 
 ```text
-Turn this profile picture into a collectible trading-card portrait, square. Keep the subject exactly recognisable (same face, hair, glasses, expression; if it is not a person, keep the same creature or object). ${action}
+Turn this profile picture into a collectible trading-card portrait, square. Keep the subject exactly recognisable (same face, hair, glasses, expression; if it is not a person, keep the same creature or object). If the profile picture is not a person — an animal, a creature, an object, a logo, a symbol, a mascot — keep it exactly that: do not give it a human body, limbs, hands or a face; stage the trading gear and the action around it as a scene instead. ${action}
 Style: 1980s retro-futurist album-cover art shot on film — the figure rim-lit with liquid chrome and glitter on the clothing edges and props (face stays clean), a few big four-point star flares, prismatic light streaks, deep violet background (#3c0996 → near-black) with flowing amber-orange, cream and periwinkle light ribbons, film grain and halation. Not a clean modern illustration. No text, no logo, no border. No cigarettes, cigars, alcohol or drugs.
 ```
 
 示例（diamond_hands）：
 
 ```text
-Turn this profile picture into a collectible trading-card portrait, square. Keep the subject exactly recognisable (same face, hair, glasses, expression; if it is not a person, keep the same creature or object). Diamond Hands — calm, unwavering conviction. Gear: one large faceted AMETHYST diamond. Action: facing the viewer, shoulders square, holding the diamond securely at centre chest with both hands, direct steady gaze, serene resolute expression.
+Turn this profile picture into a collectible trading-card portrait, square. Keep the subject exactly recognisable (same face, hair, glasses, expression; if it is not a person, keep the same creature or object). If the profile picture is not a person — an animal, a creature, an object, a logo, a symbol, a mascot — keep it exactly that: do not give it a human body, limbs, hands or a face; stage the trading gear and the action around it as a scene instead. Diamond Hands — calm, unwavering conviction. Gear: one large faceted AMETHYST diamond. Action: facing the viewer, shoulders square, holding the diamond securely at centre chest with both hands, direct steady gaze, serene resolute expression.
 Style: 1980s retro-futurist album-cover art shot on film — the figure rim-lit with liquid chrome and glitter on the clothing edges and props (face stays clean), a few big four-point star flares, prismatic light streaks, deep violet background (#3c0996 → near-black) with flowing amber-orange, cream and periwinkle light ribbons, film grain and halation. Not a clean modern illustration. No text, no logo, no border. No cigarettes, cigars, alcohol or drugs.
 ```
 
