@@ -7,6 +7,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { createIsnetCutout } from "./isnet-cutout.mjs";
 import { readServerConfig } from "./server-config.mjs";
+import { ProcessingDeadlineError } from "./processing-deadline.mjs";
 
 const CUT = await readFile(new URL("./test-fixtures/cut.png", import.meta.url));
 
@@ -36,9 +37,10 @@ async function fixture(t, behavior = "success") {
       const request = JSON.parse(line);
       if (active) process.exit(42);
       active = true;
-      if (${JSON.stringify(behavior)} === 'exit') process.exit(7);
-      if (${JSON.stringify(behavior)} === 'hang') return;
-      if (${JSON.stringify(behavior)} === 'null') { console.log('null'); return; }
+      const behavior = ${JSON.stringify(behavior)};
+      if (behavior === 'exit') process.exit(7);
+      if (behavior === 'hang') return;
+      if (behavior === 'null') { console.log('null'); return; }
       setTimeout(() => {
         active = false;
         if (request.source === 'bad-input') {
@@ -46,7 +48,7 @@ async function fixture(t, behavior = "success") {
         }
         fs.writeFileSync(request.target, Buffer.from(${JSON.stringify(CUT.toString("base64"))}, 'base64'));
         console.log(JSON.stringify({ id: request.id, ok: true, seconds: 0.01 }));
-      }, 10);
+      }, behavior === 'hold' ? 500 : 10);
     });
   `;
   const cutout = createIsnetCutout({ modelPath: "test-model", threads: 2,
@@ -56,6 +58,55 @@ async function fixture(t, behavior = "success") {
   t.after(async () => { await cutout.close(); await rm(directory, { recursive: true, force: true }); });
   return { cutout, directory, processes: () => processes, child: () => child };
 }
+
+test("unexpected abort kills active inference and leaves a sticky component fault", async t => {
+  const f = await fixture(t, "hold"); await f.cutout.initialize();
+  const controller = new AbortController(); let dispatched;
+  const dispatch = new Promise(done => { dispatched = done; });
+  const pending = f.cutout(null, async () => {}, { signal: controller.signal,
+    source: "input", target: join(f.directory, "aborted.png"), onReceipt: async () => dispatched() });
+  await dispatch; await new Promise(done => setImmediate(done));
+  controller.abort(new Error("processing deadline"));
+  await assert.rejects(pending, /processing deadline/);
+  assert.equal(f.processes(), 1);
+  assert.equal(f.cutout.healthy(), false);
+});
+
+test("total processing deadline replaces one canceled resident without repeating its request", async t => {
+  const f = await fixture(t, "hold"); await f.cutout.initialize();
+  const old = f.child(), controller = new AbortController(); let dispatched;
+  const dispatch = new Promise(done => { dispatched = done; });
+  const pending = f.cutout(null, async () => {}, { signal: controller.signal,
+    source: "input", target: join(f.directory, "aborted.png"), onDispatch: async () => dispatched() });
+  await dispatch; await new Promise(done => setImmediate(done));
+  controller.abort(new ProcessingDeadlineError());
+  await assert.rejects(pending, error => error instanceof ProcessingDeadlineError);
+  assert.equal(f.processes(), 2); assert.equal(f.cutout.healthy(), true);
+  assert.notEqual(old, f.child()); assert.notEqual(old.signalCode, null);
+  old.stdout.emit("data", Buffer.from('{"id":1,"ok":true,"seconds":99}\n'));
+  old.emit("exit", 7, null);
+  const result = await f.cutout(null, async () => {}, { source: "input", target: join(f.directory, "explicit.png") });
+  assert.deepEqual(result.png, CUT); assert.equal(f.processes(), 2); assert.equal(f.cutout.healthy(), true);
+});
+
+test("canceled resident gets one bounded initialization; replacement failure stays fatal", async t => {
+  const directory = await mkdtemp(join(tmpdir(), "cardgen-isnet-replacement-")); let processes = 0;
+  const cutout = createIsnetCutout({ modelPath: "offline-model", threads: 2, timeoutMs: 2000, startupTimeoutMs: 2000,
+    spawnProcess() {
+      if (++processes > 1) throw new Error("replacement unavailable");
+      return spawn(process.execPath, ["-e", `console.log(JSON.stringify({event:'ready',model:'isnet-general-use'}));process.stdin.resume();`],
+        { stdio: ["pipe", "pipe", "pipe"] });
+    } });
+  t.after(async () => { await cutout.close(); await rm(directory, { recursive: true, force: true }); });
+  const controller = new AbortController(); let dispatched;
+  const dispatch = new Promise(done => { dispatched = done; });
+  const pending = cutout(null, async () => {}, { signal: controller.signal, source: "input", target: join(directory, "abort.png"),
+    onDispatch: async () => dispatched() });
+  await dispatch; await new Promise(done => setImmediate(done)); controller.abort(new ProcessingDeadlineError());
+  await assert.rejects(pending, error => error instanceof ProcessingDeadlineError);
+  assert.equal(processes, 2); assert.equal(cutout.healthy(), false);
+  await assert.rejects(cutout.initialize(), /isnet_spawn_failed/); assert.equal(processes, 2);
+});
 
 test("one warm process serializes concurrent inference and checkpoints before dispatch", async (t) => {
   const f = await fixture(t), checkpoints = [];

@@ -71,9 +71,9 @@ const UUID = "[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}";
 const PERSONAL = new RegExp(
   "^([a-f0-9]{24})(\\.png|\\.cut\\.png(?:\\.tmp)?|\\.plate\\.jpg(?:\\.tmp)?|\\.avatar\\.(?:png|jpg|webp|gif)|\\.stage1\\.png|\\.raw\\.json)(?:\\.(?:" +
     UUID +
-    "\\.tmp|isnet\\.tmp|tmp))?$",
+    "\\.tmp(?:\\.(?:" + UUID + "\\.tmp|isnet\\.tmp|tmp))?|isnet\\.tmp|tmp))?$",
 );
-const JOURNAL_TEMP = new RegExp("^\\.([a-f0-9]{24})\\." + UUID + "\\.tmp$");
+const JOURNAL_TEMP = new RegExp("^\\.([a-f0-9]{24})\\.(?:" + UUID + "\\.tmp|checkpoint|anchor|witness)$");
 const PERSONAL_SUFFIXES = [
   ".png",
   ".cut.png",

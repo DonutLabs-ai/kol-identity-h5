@@ -1,11 +1,15 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, open, opendir, rename, unlink, lstat } from "node:fs/promises";
+import { mkdir, open, opendir, rename, unlink, lstat, link } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { constants } from "node:fs";
 import { FAILURE_STAGES, JobExpiredError, jobExpired, jobExpiresAt, normalizeExpiry, InvalidExpiryError, ExpiryConflictError } from "./retention.mjs";
 import { requestKeyOf, normalizeRequestKey, RequestKeyConflictError } from "./pipeline-version.mjs";
 import { initializeSamples, initializeLayerSamples, settleSamples, validateSamples } from "./stage-samples.mjs";
 import { RESULT_CONTRACT, initializeResult, validateResult, settleResult, planRetry, LayerRetryError } from "./layer-result.mjs";
+import { processingAdmission, processingDeadlineAt, processingExpired, needsProcessingDeadline,
+  backfillProcessingDeadline, validateProcessingDeadline, completeProcessing, settleProcessingDeadline, ProcessingDeadlineError } from "./processing-deadline.mjs";
+
+import { MAX_WITNESS_BYTES, createCheckpointWitness, validateCheckpointWitness, validateWitnessTransition } from "./checkpoint-witness.mjs";
 
 const ID = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/;
 const STATUSES = new Set(["queued", "running", "done", "failed"]);
@@ -13,6 +17,7 @@ const MAX_RECORD_BYTES = 16 * 1024;
 const ERRORS = new Set([
   "provider_error", "provider_timeout", "provider_throttled", "provider_rejected",
   "provider_result_unknown", "invalid_output", "plate_error", "job_failed",
+  "budget_not_dispatched",
 ]);
 
 export class QueueFullError extends Error {
@@ -65,6 +70,7 @@ function validateRecord(job) {
     || !Number.isSafeInteger(job.sequence) || job.sequence < 1
     || typeof job.createdAt !== "string" || !Number.isFinite(Date.parse(job.createdAt))
     || typeof job.updatedAt !== "string" || !Number.isFinite(Date.parse(job.updatedAt))
+    || (Object.hasOwn(job, "checkpointProtocol") && job.checkpointProtocol !== 1)
     || (Object.hasOwn(job, "error") && !ERRORS.has(job.error))
     || (Object.hasOwn(job, "attemptStage") && !FAILURE_STAGES.has(job.attemptStage))
     || (Object.hasOwn(job, "failure_stage") && !FAILURE_STAGES.has(job.failure_stage))) {
@@ -74,6 +80,7 @@ function validateRecord(job) {
   requestKeyOf(job);
   validateResult(job);
   validateSamples(job);
+  validateProcessingDeadline(job);
   return jsonCopy(job);
 }
 
@@ -86,13 +93,13 @@ function encodedRecord(job) {
   return { snapshot, serialized };
 }
 
-async function readStoredRecord(path) {
+async function readStoredRecord(path, maximum = MAX_RECORD_BYTES) {
   const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
   try {
     const info = await handle.stat();
     if (!info.isFile()) throw new TypeError("Job record must be a regular file");
-    if (info.size > MAX_RECORD_BYTES) {
-      throw new TypeError(`Job record exceeds ${MAX_RECORD_BYTES}-byte metadata limit`);
+    if (info.size > maximum) {
+      throw new TypeError(`Job record exceeds ${maximum}-byte metadata limit`);
     }
     // One extra byte detects growth after stat without ever reading an unbounded file.
     const buffer = Buffer.alloc(info.size + 1);
@@ -105,6 +112,40 @@ async function readStoredRecord(path) {
     if (length !== info.size) throw new TypeError("Job record changed during recovery");
     return JSON.parse(buffer.subarray(0, length).toString("utf8"));
   } finally { await handle.close(); }
+}
+
+function validatePrecedingCheckpoint(previous, current) {
+  for (const field of ["id", "sequence", "createdAt", "expiresAt", "processingReceivedAt", "processingDeadlineAt"])
+    if (previous[field] !== current[field]) throw new TypeError("Checkpoint identity cannot change");
+  if (JSON.stringify(previous.payload) !== JSON.stringify(current.payload)
+    || JSON.stringify(previous.layerRetries) !== JSON.stringify(current.layerRetries)
+    || previous.result?.attempt !== current.result?.attempt)
+    throw new TypeError("Checkpoint admission cannot change");
+  if (previous.result !== undefined) {
+    for (const [name, asset] of [["main", previous.result.main], ...Object.entries(previous.result.layers)]) {
+      const next = name === "main" ? current.result.main : current.result.layers[name];
+      if (asset.state === "ready" && JSON.stringify(asset) !== JSON.stringify(next))
+        throw new TypeError("Checkpoint successful asset cannot change");
+    }
+  }
+}
+
+function validateCheckpointTransition(previous, current) {
+  for (const field of ["id", "sequence", "createdAt", "expiresAt", "processingReceivedAt", "processingDeadlineAt"])
+    if (previous[field] !== current[field]) throw new TypeError("Checkpoint identity cannot change");
+  if (JSON.stringify(previous.payload) !== JSON.stringify(current.payload))
+    throw new TypeError("Checkpoint admission cannot change");
+  const oldRetries = previous.layerRetries ?? [], nextRetries = current.layerRetries ?? [];
+  if (JSON.stringify(oldRetries) !== JSON.stringify(nextRetries.slice(0, oldRetries.length))
+    || nextRetries.length > oldRetries.length + 1)
+    throw new TypeError("Checkpoint retry admission cannot change");
+  if (previous.result !== undefined) {
+    for (const [name, asset] of [["main", previous.result.main], ...Object.entries(previous.result.layers)]) {
+      const next = name === "main" ? current.result.main : current.result.layers[name];
+      if (asset.state === "ready" && JSON.stringify(asset) !== JSON.stringify(next))
+        throw new TypeError("Checkpoint successful asset cannot change");
+    }
+  }
 }
 
 function errorCategory(error) {
@@ -135,6 +176,7 @@ export class PersistentJobQueue {
   #run;
   #jobs = new Map();
   #committed = new Map();
+  #witnesses = new Map();
   #requestKeys = new Map();
   #admissions = new Map();
   #retryAdmissions = new Map();
@@ -153,6 +195,9 @@ export class PersistentJobQueue {
   #orphanCleaning = new Map();
   #sweep;
   #cursor;
+  #deadlineTimers = new Map();
+  #expiring = new Map();
+  #controllers = new Map();
 
   constructor({ directory, maxActive, maxQueued, maxRetainedJobs = 20000, run, now = Date.now, cleanup = async () => {} }) {
     if (typeof directory !== "string" || directory.length === 0
@@ -198,14 +243,47 @@ export class PersistentJobQueue {
     }
     // Read and validate everything before dispatching or changing recovery records.
     const loaded = [];
+    const recoveringCheckpoint = new Set();
     const sequences = new Set();
     const requestKeys = new Set();
     for (const file of files) {
       try {
         if (!file.isFile()) throw new TypeError("Job record must be a regular file");
-        const { snapshot: job } = encodedRecord(await readStoredRecord(join(this.#directory, file.name)));
+        let { snapshot: job } = encodedRecord(await readStoredRecord(join(this.#directory, file.name)));
         if (file.name !== `${job.id}.json` || sequences.has(job.sequence)) {
           throw new TypeError("Job filename or sequence does not match its record");
+        }
+        let preceding;
+        try { preceding = await readStoredRecord(join(this.#directory, `.${job.id}.checkpoint`)); }
+        catch (error) { if (error.code !== "ENOENT") throw error; }
+        if (preceding !== undefined) {
+          const { snapshot } = encodedRecord(preceding);
+          validatePrecedingCheckpoint(snapshot, job);
+          if (job.checkpointProtocol === undefined) {
+            job = snapshot; recoveringCheckpoint.add(job.id);
+          }
+        }
+        if (job.checkpointProtocol === 1) {
+          // The anchor is replaced and synced BEFORE the canonical candidate.
+          // It carries its own prior qualification proof, independent of marker survival.
+          const anchor = await readStoredRecord(join(this.#directory, `.${job.id}.anchor`), MAX_RECORD_BYTES + MAX_WITNESS_BYTES + 64);
+          const prior = encodedRecord(anchor.record);
+          validateCheckpointWitness(anchor.witness, prior.snapshot, prior.serialized);
+          validateCheckpointTransition(prior.snapshot, job);
+          let witness;
+          try {
+            witness = await readStoredRecord(join(this.#directory, `.${job.id}.witness`), MAX_WITNESS_BYTES);
+            const current = encodedRecord(job);
+            validateCheckpointWitness(witness, current.snapshot, current.serialized);
+            validateWitnessTransition(anchor.witness, witness);
+          } catch (error) {
+            if (error.code !== "ENOENT" && !(error instanceof TypeError) && !(error instanceof SyntaxError)) throw error;
+            witness = undefined;
+          }
+          if (witness === undefined) {
+            job = prior.snapshot; witness = anchor.witness; recoveringCheckpoint.add(job.id);
+          }
+          this.#witnesses.set(job.id, witness);
         }
         sequences.add(job.sequence);
         const requestKey = requestKeyOf(job);
@@ -221,7 +299,15 @@ export class PersistentJobQueue {
     loaded.sort((a, b) => a.sequence - b.sequence);
     for (const job of loaded) {
       this.#sequence = Math.max(this.#sequence, job.sequence);
-      if (job.status === "running") {
+      const migrated = backfillProcessingDeadline(job);
+      if (!this.#witnesses.has(job.id)) {
+        const { serialized } = encodedRecord(job);
+        this.#witnesses.set(job.id, createCheckpointWitness(job, serialized, undefined, this.#now(), false, true));
+      }
+      this.#committed.set(job.id, jsonCopy(job));
+      if (job.status !== "done" && completeProcessing(job, this.#now())) {
+        await this.#persist(job);
+      } else if (job.status === "running") {
         job.status = "failed";
         job.error = "provider_result_unknown";
         job.failure_stage = "unknown";
@@ -229,20 +315,22 @@ export class PersistentJobQueue {
         settleSamples(job, this.#now(), true);
         job.updatedAt = new Date(this.#now()).toISOString();
         await this.#persist(job);
-      }
+      } else if (migrated || recoveringCheckpoint.has(job.id)) await this.#persist(job);
       this.#jobs.set(job.id, job);
       const requestKey = requestKeyOf(job);
       if (requestKey !== undefined) this.#requestKeys.set(requestKey, job.id);
       this.#committed.set(job.id, jsonCopy(job));
-      if (job.status === "queued") this.#waiting.push({ job, ready: true });
+      await this.expireProcessing(job.id);
+      if (this.#jobs.get(job.id).status === "queued") this.#waiting.push({ job, ready: true });
     }
     // No recovery dispatch until expired queued/crashed/terminal history is removed.
     await this.sweepExpired(this.#maxRetainedJobs);
     this.#initialized = true;
+    for (const job of this.#jobs.values()) this.#scheduleDeadline(job);
     this.#pump();
   }
 
-  async submit(id, payload, prepare, expiresAt) {
+  async submit(id, payload, prepare, expiresAt, processing = {}) {
     if (!this.#initialized) throw new Error("Initialize the job queue before submitting");
     if (typeof id !== "string" || !ID.test(id)) throw new TypeError("Invalid job ID");
     if (this.#retiring.has(id)) throw new JobExpiredError();
@@ -283,6 +371,7 @@ export class PersistentJobQueue {
       id, payload: jsonCopy(payload), status: "queued", stage: "queued",
       sequence: this.#sequence + 1, createdAt: now, updatedAt: now,
       ...(requestedExpiry === undefined ? {} : { expiresAt: requestedExpiry }),
+      ...processingAdmission(processing.processingDeadlineAt, processing.receivedAt === undefined ? this.#now() : processing.receivedAt),
     };
     initializeSamples(job); // Queued/expired-without-dispatch jobs also have explicit zero denominators.
     if (payload.resultContract === RESULT_CONTRACT) initializeResult(job);
@@ -315,6 +404,8 @@ export class PersistentJobQueue {
       throw error;
     }
     entry.ready = true;
+    await this.expireProcessing(entry.job.id);
+    this.#scheduleDeadline(this.#jobs.get(entry.job.id));
     this.#pump();
     return entry.job;
   }
@@ -329,9 +420,9 @@ export class PersistentJobQueue {
     return id === undefined ? undefined : this.get(id);
   }
 
-  async retryLayers(id, command, executionSourceRevision, prepare) {
+  async retryLayers(id, command, executionSourceRevision, prepare, receivedAt = this.#now()) {
     const pending = this.#retryAdmissions.get(id);
-    if (pending) { await pending; return this.retryLayers(id, command, executionSourceRevision, prepare); }
+    if (pending) { await pending; return this.retryLayers(id, command, executionSourceRevision, prepare, receivedAt); }
     const original = this.#jobs.get(id);
     if (original === undefined) throw new LayerRetryError("not_found", 404);
     if (this.#retiring.has(id) || jobExpired(original, this.#now())) throw new JobExpiredError();
@@ -345,6 +436,8 @@ export class PersistentJobQueue {
     if (this.#closed) throw new QueueClosedError();
     const next = jsonCopy(original);
     planRetry(next, command, executionSourceRevision);
+    Object.assign(next.layerRetries.at(-1), processingAdmission(command.processingDeadlineAt, receivedAt));
+    delete next.processingTimedOut;
     if (this.#admissions.has(id) || this.#active.has(id)) throw new LayerRetryError("retry_not_allowed");
     if (this.#active.size + this.#waiting.length >= this.#maxActive + this.#maxQueued) throw new QueueFullError();
     initializeLayerSamples(next, executionSourceRevision);
@@ -368,7 +461,9 @@ export class PersistentJobQueue {
         throw error;
       }
       this.#jobs.set(id, next);
-      entry.ready = true; this.#pump();
+      entry.ready = true;
+      await this.expireProcessing(id);
+      this.#scheduleDeadline(this.#jobs.get(id)); this.#pump();
       return { job: this.get(id), acceptedAttempt: next.result.attempt, replayed: false };
     });
     this.#retryAdmissions.set(id, admission);
@@ -405,18 +500,28 @@ export class PersistentJobQueue {
       if (next.done) { this.#cursor = undefined; break; }
       const job = next.value; scanned++;
       if (!jobExpired(job, this.#now()) || this.#active.has(job.id)
-        || this.#admissions.has(job.id) || this.#retryAdmissions.has(job.id) || this.#writes.has(job.id) || this.#retiring.has(job.id)) continue;
+        || this.#admissions.has(job.id) || this.#retryAdmissions.has(job.id) || this.#writes.has(job.id)
+        || this.#expiring.has(job.id) || this.#retiring.has(job.id)) continue;
       // Prevent the queue pump from starting an expired queued job during filesystem cleanup.
       this.#waiting = this.#waiting.filter(entry => entry.job.id !== job.id);
       const removing = Promise.resolve().then(async () => {
         const directory = await lstat(this.#directory);
         if (!directory.isDirectory() || directory.isSymbolicLink()) throw new TypeError("Job store must remain a real directory");
         await this.#cleanup(job.id);
+        // Recovery requires the anchor whenever a canonical journal exists. Retire
+        // that identity durably BEFORE purging its proof, including across power loss.
+        // A failed retirement sync keeps all recovery evidence and ownership intact.
         try { await unlink(join(this.#directory, job.id + ".json")); }
         catch (error) { if (error.code !== "ENOENT") throw error; }
+        const retired = await open(this.#directory, "r");
+        try { await retired.sync(); } finally { await retired.close(); }
+        for (const suffix of ["checkpoint", "anchor", "witness"]) {
+          try { await unlink(join(this.#directory, `.${job.id}.${suffix}`)); }
+          catch (error) { if (error.code !== "ENOENT") throw error; }
+        }
         const handle = await open(this.#directory, "r");
         try { await handle.sync(); } finally { await handle.close(); }
-        this.#jobs.delete(job.id); this.#committed.delete(job.id);
+        this.#jobs.delete(job.id); this.#committed.delete(job.id); this.#witnesses.delete(job.id);
         const requestKey = requestKeyOf(job);
         if (requestKey !== undefined) this.#requestKeys.delete(requestKey);
       });
@@ -445,6 +550,8 @@ export class PersistentJobQueue {
   }
 
   async checkpoint(job) {
+    if (jobExpired(job, this.#now())) throw new JobExpiredError();
+    if (processingExpired(job, this.#now())) throw new ProcessingDeadlineError();
     if (this.#jobs.get(job.id) !== job || !this.#active.has(job.id) || job.status !== "running") {
       throw new TypeError("Checkpoint requires the active running job record");
     }
@@ -453,6 +560,43 @@ export class PersistentJobQueue {
     job.updatedAt = new Date(this.#now()).toISOString();
     await this.#persist(job, true);
     if (jobExpired(job, this.#now())) throw new JobExpiredError();
+    if (processingExpired(job, this.#now())) throw new ProcessingDeadlineError();
+  }
+
+  #scheduleDeadline(job) {
+    const previous = this.#deadlineTimers.get(job.id);
+    if (previous !== undefined) clearTimeout(previous);
+    this.#deadlineTimers.delete(job.id);
+    if (this.#closed || !needsProcessingDeadline(job)) return;
+    const timer = setTimeout(() => {
+      this.#deadlineTimers.delete(job.id);
+      this.expireProcessing(job.id).then(() => {
+        const current = this.#jobs.get(job.id);
+        if (current !== undefined) this.#scheduleDeadline(current);
+      }, error => { this.#fatal = error; });
+    }, Math.max(0, processingDeadlineAt(job) - this.#now()));
+    timer.unref(); this.#deadlineTimers.set(job.id, timer);
+  }
+
+  async expireProcessing(id) {
+    const pending = this.#expiring.get(id);
+    if (pending !== undefined) return pending;
+    const job = this.get(id);
+    if (job === undefined || jobExpired(job, this.#now()) || !needsProcessingDeadline(job)
+      || !processingExpired(job, this.#now())) return;
+    clearTimeout(this.#deadlineTimers.get(id)); this.#deadlineTimers.delete(id);
+    this.#controllers.get(id)?.abort(new ProcessingDeadlineError());
+    this.#waiting = this.#waiting.filter(entry => entry.job.id !== id);
+    // The write chain owns the last committed checkpoint. In-flight/uncheckpointed
+    // ready assets and receipts must never enter the terminal decision.
+    const expiring = this.#write(id, () => {
+      const terminal = this.get(id);
+      settleProcessingDeadline(terminal, this.#now());
+      return encodedRecord(terminal);
+    }).then(() => { this.#jobs.set(id, this.get(id)); });
+    this.#expiring.set(id, expiring);
+    try { await expiring; }
+    finally { this.#expiring.delete(id); }
   }
 
   async recordCacheReplay(id) {
@@ -506,10 +650,22 @@ export class PersistentJobQueue {
     try {
       if (this.#fatal) throw this.#fatal;
       if (this.#closed) { this.#park(job); return; }
+      if (this.#jobs.get(job.id) !== job) return;
+      if (processingExpired(job, this.#now())) { await this.expireProcessing(job.id); return; }
+      const controller = new AbortController();
+      this.#controllers.set(job.id, controller);
       job.status = "running";
       job.stage = "running";
       job.updatedAt = new Date(this.#now()).toISOString();
-      await this.#persist(job);
+      try { await this.#persist(job, true); }
+      catch (error) {
+        if (error instanceof ProcessingDeadlineError) { await this.expireProcessing(job.id); return; }
+        if (!(error instanceof JobExpiredError)) throw error;
+        job.status = "failed"; job.error = "job_failed"; job.failure_stage = "unknown";
+        await this.#persist(job); return;
+      }
+      if (this.#expiring.has(job.id)) await this.#expiring.get(job.id);
+      if (this.#jobs.get(job.id) !== job) return;
       if (this.#closed) {
         job.status = "queued";
         job.stage = "queued";
@@ -518,6 +674,7 @@ export class PersistentJobQueue {
         this.#park(job);
         return;
       }
+      if (processingExpired(job, this.#now())) { await this.expireProcessing(job.id); return; }
       if (jobExpired(job, this.#now())) {
         // FIFO/journal I/O can cross the original deadline before render begins.
         job.status = "failed"; job.error = "job_failed"; job.failure_stage = "unknown";
@@ -526,7 +683,7 @@ export class PersistentJobQueue {
         return;
       }
       let outcome;
-      try { outcome = Promise.resolve(this.#run(job, (current = job) => this.checkpoint(current))); }
+      try { outcome = Promise.resolve(this.#run(job, (current = job) => this.checkpoint(current), controller.signal)); }
       catch (error) { outcome = Promise.reject(error); }
       release(); // Start FIFO, but let already started jobs execute concurrently.
       let failure;
@@ -547,6 +704,11 @@ export class PersistentJobQueue {
               ? "llm" : "unknown";
         } else job.failure_stage = FAILURE_STAGES.has(receipt) ? receipt : "unknown";
       }
+      if (this.#expiring.has(job.id)) await this.#expiring.get(job.id);
+      if (this.#jobs.get(job.id) !== job) return;
+      if (processingExpired(job, this.#now()) && !jobExpired(job, this.#now())) {
+        await this.expireProcessing(job.id); return;
+      }
       if (job.status !== "running" || this.#jobs.get(job.id) !== job) {
         throw new TypeError("run must leave job identity and status under queue control");
       }
@@ -560,14 +722,16 @@ export class PersistentJobQueue {
         job.error = failure;
       } else { delete job.error; delete job.failure_stage; }
       job.updatedAt = new Date(this.#now()).toISOString();
-      try { await this.#persist(job, !failed); }
+      try { await this.#persist(job, true); }
       catch (error) {
+        if (error instanceof ProcessingDeadlineError) { await this.expireProcessing(job.id); return; }
         if (!(error instanceof JobExpiredError)) throw error;
         job.status = "failed"; job.error = "job_failed"; job.failure_stage = "unknown";
         settleResult(job); settleSamples(job, this.#now(), true);
         await this.#persist(job);
       }
-    } finally { release(); }
+      this.#scheduleDeadline(job);
+    } finally { this.#controllers.delete(job.id); release(); }
   }
 
   #park(job) {
@@ -580,6 +744,8 @@ export class PersistentJobQueue {
     const original = this.#committed.get(job.id);
     if (original !== undefined && original.createdAt !== job.createdAt) throw new TypeError("Original job createdAt cannot change");
     if (original !== undefined && original.expiresAt !== job.expiresAt) throw new TypeError("Original job expiresAt cannot change");
+    if (original !== undefined && (original.processingDeadlineAt !== job.processingDeadlineAt
+      || original.processingReceivedAt !== job.processingReceivedAt)) throw new TypeError("Original processing deadline cannot change");
     if (original !== undefined && requestKeyOf(original) !== requestKeyOf(job)) throw new TypeError("Original job requestKey cannot change");
     if (original?.result !== undefined) {
       for (const [name, asset] of [["main", original.result.main], ...Object.entries(original.result.layers)]) {
@@ -605,16 +771,23 @@ export class PersistentJobQueue {
         }
       }
     }
+    job.checkpointProtocol = 1;
     const { snapshot, serialized } = encodedRecord(job);
     return this.#write(snapshot.id, () => ({ snapshot, serialized }), activeOnly);
   }
 
   #write(id, record, activeOnly = false) {
     const previous = this.#writes.get(id) || Promise.resolve();
-    const writing = previous.then(async () => {
-      const { snapshot, serialized } = record();
-      await this.#atomicWrite(snapshot.id, serialized, activeOnly ? snapshot : undefined);
-      this.#committed.set(snapshot.id, snapshot);
+    const ready = previous.catch(error => {
+      if (!(error instanceof ProcessingDeadlineError) && !(error instanceof JobExpiredError)) throw error;
+    });
+    const writing = ready.then(async () => {
+      const { snapshot } = record();
+      snapshot.checkpointProtocol = 1;
+      const encoded = encodedRecord(snapshot);
+      const witness = await this.#atomicWrite(encoded.snapshot, encoded.serialized, activeOnly);
+      this.#witnesses.set(snapshot.id, witness);
+      this.#committed.set(snapshot.id, encoded.snapshot);
     });
     this.#writes.set(id, writing);
     const cleanup = () => { if (this.#writes.get(id) === writing) this.#writes.delete(id); };
@@ -622,27 +795,72 @@ export class PersistentJobQueue {
     return writing;
   }
 
-  async #atomicWrite(id, serialized, activeJob) {
+  async #replaceAuxiliary(path, serialized, id) {
     const temporary = join(this.#directory, `.${id}.${randomUUID()}.tmp`);
     let handle;
     try {
       handle = await open(temporary, "wx", 0o600);
-      await handle.writeFile(serialized, "utf8");
-      await handle.sync();
-      await handle.close();
-      handle = undefined;
-      if (activeJob !== undefined && jobExpired(activeJob, this.#now())) throw new JobExpiredError();
-      await rename(temporary, join(this.#directory, `${id}.json`));
+      await handle.writeFile(serialized, "utf8"); await handle.sync();
+      await handle.close(); handle = undefined;
+      await rename(temporary, path);
       handle = await open(this.#directory, "r");
-      await handle.sync();
-      await handle.close();
-      handle = undefined;
-      if (activeJob !== undefined && jobExpired(activeJob, this.#now())) throw new JobExpiredError();
+      await handle.sync(); await handle.close(); handle = undefined;
+    } finally {
+      if (handle) await handle.close();
+      try { await unlink(temporary); } catch (error) { if (error.code !== "ENOENT") throw error; }
+    }
+  }
+
+  async #atomicWrite(snapshot, serialized, activeOnly) {
+    const id = snapshot.id;
+    const temporary = join(this.#directory, `.${id}.${randomUUID()}.tmp`);
+    const canonical = join(this.#directory, `${id}.json`);
+    const preceding = join(this.#directory, `.${id}.checkpoint`);
+    const original = this.#committed.get(id) ?? snapshot;
+    const prior = this.#witnesses.get(id) ?? createCheckpointWitness(original, encodedRecord(original).serialized,
+      undefined, this.#now(), false);
+    let handle;
+    try {
+      // An initial admission anchors the zero-dispatch queued identity. Every later
+      // replacement anchors the last witnessed record before touching the candidate.
+      await this.#replaceAuxiliary(join(this.#directory, `.${id}.anchor`),
+        JSON.stringify({ record: original, witness: prior }) + "\n", id);
+      handle = await open(temporary, "wx", 0o600);
+      await handle.writeFile(serialized, "utf8"); await handle.sync();
+      await handle.close(); handle = undefined;
+      if (activeOnly && jobExpired(snapshot, this.#now())) throw new JobExpiredError();
+      if (activeOnly && processingExpired(snapshot, this.#now())) throw new ProcessingDeadlineError();
+      if (activeOnly) {
+        await link(canonical, preceding);
+        handle = await open(this.#directory, "r");
+        await handle.sync(); await handle.close(); handle = undefined;
+        if (jobExpired(snapshot, this.#now())) throw new JobExpiredError();
+        if (processingExpired(snapshot, this.#now())) throw new ProcessingDeadlineError();
+      }
+      await rename(temporary, canonical);
+      handle = await open(this.#directory, "r");
+      await handle.sync(); await handle.close(); handle = undefined;
+      // Qualification attests THIS completed resource journal persistence, never
+      // the time at which a write started. Witness persistence is later bookkeeping.
+      const completedAt = this.#now();
+      if (activeOnly && jobExpired(snapshot, completedAt)) throw new JobExpiredError();
+      if (activeOnly && processingExpired(snapshot, completedAt)) throw new ProcessingDeadlineError();
+      const witness = createCheckpointWitness(snapshot, serialized, prior, completedAt, activeOnly);
+      await this.#replaceAuxiliary(join(this.#directory, `.${id}.witness`), JSON.stringify(witness) + "\n", id);
+      // A synced witness makes the candidate recoverable even if marker cleanup
+      // crosses D or crashes. The independently synced anchor remains available.
+      let removed = false;
+      try { await unlink(preceding); removed = true; }
+      catch (error) { if (error.code !== "ENOENT") throw error; }
+      if (removed) {
+        handle = await open(this.#directory, "r");
+        await handle.sync(); await handle.close(); handle = undefined;
+      }
+      return witness;
     } catch (error) {
-      if (error instanceof JobExpiredError) throw error;
+      if (error instanceof JobExpiredError || error instanceof ProcessingDeadlineError) throw error;
       const failure = new JobStoreError(`Cannot persist job ${id}; dispatch stopped`, error);
-      this.#fatal = failure;
-      throw failure;
+      this.#fatal = failure; throw failure;
     } finally {
       if (handle) await handle.close();
       try { await unlink(temporary); }
@@ -656,6 +874,9 @@ export class PersistentJobQueue {
     await Promise.allSettled([...this.#admissions.values()]);
     await Promise.allSettled([...this.#retryAdmissions.values()]);
     await Promise.allSettled([...this.#active.values()]);
+    for (const timer of this.#deadlineTimers.values()) clearTimeout(timer);
+    this.#deadlineTimers.clear();
+    await Promise.allSettled([...this.#expiring.values()]);
     await Promise.allSettled([...this.#writes.values()]);
     if (this.#sweep) await this.#sweep;
     await Promise.allSettled([...this.#orphanCleaning.values()]);

@@ -8,6 +8,11 @@
   "scripts": {
     "start": "node worker.mjs",
     "test": "node --test --test-concurrency=1 --test-timeout=30000 *.test.mjs",
+    "test:deadline": "node --test --test-concurrency=1 --test-timeout=30000 processing-deadline.test.mjs",
+    "test:review": "node --test --test-concurrency=1 --test-timeout=30000 --test-name-pattern='S13 (real worker budget|all-ready)' processing-deadline.test.mjs",
+    "test:recovery": "node --test --test-concurrency=1 --test-timeout=30000 --test-name-pattern='S13 IS-Net|total processing deadline replaces|canceled resident gets' processing-deadline.test.mjs isnet-cutout.test.mjs",
+    "test:qualification": "node --test --test-concurrency=1 --test-timeout=30000 --test-name-pattern='S13 completion witness' processing-deadline.test.mjs",
+    "test:witness-review": "node --test --test-concurrency=1 --test-timeout=30000 --test-name-pattern='S13 W3 witness' processing-deadline.test.mjs",
     "test:retention": "node --test --test-timeout=30000 retention.test.mjs",
     "test:metrics": "node --test --test-timeout=30000 stage-samples.test.mjs",
     "test:boundaries": "node --test --test-concurrency=1 --test-timeout=30000 layer-protocol.test.mjs bedrock-cutout.test.mjs",

@@ -355,6 +355,12 @@ test("legacy ambiguous LLM receipt stays unknown on GET and admission replay", a
   const original = await f.journal(id);
   original.status = "failed"; original.error = "provider_result_unknown";
   original.failure_stage = "llm";
+  // Legacy ambiguous receipts had no partial-result readiness or witness schema.
+  // Existing files alone must not turn their unresolved receipt into success.
+  delete original.checkpointProtocol; delete original.result; delete original.layerRetries;
+  delete original.payload.resultContract;
+  for (const suffix of ["anchor", "witness", "checkpoint"])
+    await rm(join(f.cache, "jobs", `.${id}.${suffix}`), { force: true });
   await writeFile(join(f.cache, "jobs", id + ".json"), JSON.stringify(original));
   const restarted = await f.start();
   assert.equal((await f.terminal(restarted, id)).failure_stage, "unknown");
@@ -465,6 +471,12 @@ test("restart closes an unfinished reservation as unknown without inventing a co
   const completedLlm = { ...record.stageSamples.stages.llm };
   record.status = "running";
   record.stage = "plate";
+  const confirmedMain = record.result.main, confirmedCutout = record.result.layers.cutout;
+  // The plate is genuinely unfinished; a three-ready manifest is already success.
+  record.result.layers.plate = { state: "running", attempt: 0 };
+  delete record.checkpointProtocol;
+  for (const suffix of ["anchor", "witness", "checkpoint"])
+    await rm(join(f.cache, "jobs", `.${id}.${suffix}`), { force: true });
   record.stageSamples.stages.plate = {
     attempts: 1,
     newProviderRequests: 0,
@@ -483,6 +495,8 @@ test("restart closes an unfinished reservation as unknown without inventing a co
   assert.equal((await f.terminal(restarted, id)).failure_stage, "unknown");
   const restored = await f.journal(id);
   assert.deepEqual(restored.stageSamples.stages.llm, completedLlm);
+  assert.deepEqual(restored.result.main, confirmedMain); assert.deepEqual(restored.result.layers.cutout, confirmedCutout);
+  assert.equal(restored.result.layers.plate.state, "unknown");
   assert.equal(restored.stageSamples.stages.plate.outcome, "unknown");
   assert.equal(restored.stageSamples.stages.plate.reason, "crash_unknown");
   assert.equal(restored.stageSamples.stages.plate.newProviderRequests, 0);

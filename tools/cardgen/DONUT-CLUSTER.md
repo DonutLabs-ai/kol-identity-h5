@@ -26,6 +26,12 @@ CARD_SOURCE_REVISION=<verified-source-identity>`. Pin the resulting digest in
 normal repository review. Source preparation and temporary QA do not establish
 that the permanent service is deployed.
 
+S13 processing uses a durable total 60-second deadline, separate from retention.
+See [S13-DEADLINE.md](S13-DEADLINE.md) for the receiver-first capability/echo gate,
+retry identity, publication fence and legacy journal migration review. Existing
+native load measurements below predate this deadline; long queued bursts can now
+time out before inference and do not establish S13 acceptance.
+
 Keep one Recreate replica and a 50 GiB RWO cache at `/app/out/server-cache`. The
 scheduler and journal are single-writer; HPA requires a separately reviewed shared
 queue/store contract. IS-Net runs in the Sydney worker and needs no Bedrock role,
@@ -71,9 +77,11 @@ worker does not silently respawn the model or call another provider. SIGTERM sto
 admission, drains started pipelines and closes the resident process. Termination
 grace remains 1200s; provider latency still prevents a universal drain guarantee.
 
-Only `done` exposes all three authenticated asset URLs. Main validation, RGBA
-alpha/dimension validation and a usable JPEG plate are required; no 15-second
-main-only success path exists in `worker.mjs`. Reserve at least 80 MiB per pending
+`done` exposes all three top-level authenticated asset URLs. Partial receipts
+also expose each validated, durably ready asset; an S13 layer timeout preserves
+the main and successful layers for a flat card. Main validation, RGBA
+alpha/dimension validation and a usable JPEG plate remain required for their
+respective ready states. Reserve at least 80 MiB per pending
 job before writing its avatar and retain known identities under disk/history
 pressure. A 50 GiB volume can refuse admissions before 1000 queued jobs. There is
 no automatic history eviction; this cache is not six-month object storage.
