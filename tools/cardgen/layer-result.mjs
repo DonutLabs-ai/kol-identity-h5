@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { normalizeRequestKey, expectedWorkerContract } from "./pipeline-version.mjs";
 import { normalizeExpiry } from "./retention.mjs";
+import { normalizeProcessingDeadline } from "./processing-deadline.mjs";
 
 export const RESULT_CONTRACT = "DONUT_CARD_PARTIAL_LAYERS_V1";
 const STATES = new Set(["pending", "running", "ready", "failed", "timed_out", "unknown", "blocked"]);
@@ -50,7 +51,8 @@ export function failAsset(job, name, error) {
   else job.result.layers[name] = { ...asset, attempt: job.result.attempt };
 }
 export function retryCommand(body, id) {
-  if (Object.keys(body).length !== 6 || !["requestKey", "expiresAt", "expectedContract", "retryToken", "expectedAttempt", "mainSha256"].every(field => Object.hasOwn(body, field)))
+  if (Object.keys(body).length !== (Object.hasOwn(body, "processingDeadlineAt") ? 7 : 6)
+    || !["requestKey", "expiresAt", "expectedContract", "retryToken", "expectedAttempt", "mainSha256"].every(field => Object.hasOwn(body, field)))
     throw new LayerRetryError("invalid_layer_retry", 400);
   if (typeof body.retryToken !== "string" || !UUID.test(body.retryToken.toLowerCase())
     || !Number.isSafeInteger(body.expectedAttempt) || body.expectedAttempt < 0 || body.expectedAttempt >= Number.MAX_SAFE_INTEGER
@@ -58,7 +60,8 @@ export function retryCommand(body, id) {
     throw new LayerRetryError("invalid_layer_retry", 400);
   const command = { requestKey: normalizeRequestKey(body.requestKey), expiresAt: normalizeExpiry(body.expiresAt),
     expectedContract: expectedWorkerContract(body.expectedContract), retryToken: body.retryToken.toLowerCase(),
-    expectedAttempt: body.expectedAttempt, mainSha256: body.mainSha256 };
+    expectedAttempt: body.expectedAttempt, mainSha256: body.mainSha256,
+    ...(Object.hasOwn(body, "processingDeadlineAt") ? { processingDeadlineAt: normalizeProcessingDeadline(body.processingDeadlineAt) } : {}) };
   const fingerprint = createHash("sha256").update(JSON.stringify({ id, ...command })).digest("hex");
   return { ...command, fingerprint };
 }

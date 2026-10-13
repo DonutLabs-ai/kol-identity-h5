@@ -22,6 +22,7 @@ import {
 import { RESULT_CONTRACT, resultReceipt, retryCommand, LayerRetryError } from "./layer-result.mjs";
 import { createLayerRenderer, requireRenderVersion } from "./layer-renderer.mjs";
 import { durableWrite, verifyAsset, verifyHandle, AssetUnavailableError } from "./asset-files.mjs";
+import { PROCESSING_DEADLINE_VERSION, processingAdmission, InvalidProcessingDeadlineError } from "./processing-deadline.mjs";
 
 const exec = promisify(execFile);
 const ALLOWED_TYPES = new Set(TYPES.filter((type) => type !== "unresolved"));
@@ -119,9 +120,9 @@ export async function createCardArtService({ config, cache, prompts, apiKey,
     await foreground.initialize();
   }
   const enqueuePlate = createSerialTaskQueue();
-  const localExec = async (path, args) => {
+  const localExec = async (path, args, signal) => {
     try { return await exec("python3", [new URL(path, import.meta.url).pathname, ...args],
-      { timeout: 30000, maxBuffer: 4096 }); }
+      { timeout: 30000, maxBuffer: 4096, signal }); }
     catch (cause) {
       throw Object.assign(new Error("local_stage_failed", { cause }), {
         category: cause.killed || cause.code === "ETIMEDOUT" ? "provider_timeout"
@@ -129,14 +130,14 @@ export async function createCardArtService({ config, cache, prompts, apiKey,
       });
     }
   };
-  const validate = validateMain || (async (source) => {
-    await localExec("./harness/validate-main.py", [source]);
+  const validate = validateMain || (async (source, { signal } = {}) => {
+    await localExec("./harness/validate-main.py", [source], signal);
   });
-  const validateDerivative = validateLayer || (async (name, source, target) => {
-    await localExec("./harness/validate-layer.py", [name, source, target]);
+  const validateDerivative = validateLayer || (async (name, source, target, { signal } = {}) => {
+    await localExec("./harness/validate-layer.py", [name, source, target], signal);
   });
-  const plate = makePlate || (async (source, cut, target) => {
-    const { stdout } = await localExec("./harness/plate.py", [source, cut, target]);
+  const plate = makePlate || (async (source, cut, target, { signal } = {}) => {
+    const { stdout } = await localExec("./harness/plate.py", [source, cut, target], signal);
     return JSON.parse(stdout);
   });
   let queue;
@@ -162,8 +163,18 @@ export async function createCardArtService({ config, cache, prompts, apiKey,
   try { await queue.initialize(); }
   catch (error) { if (foreground.close) await foreground.close(); throw error; }
   async function jobResponse(job) {
+    await queue.expireProcessing(job.id);
+    const current = queue.get(job.id);
+    if (current !== undefined) job = current;
+    const verifiedManifest = JSON.stringify(publicJob(job));
     const deadline = new Date(jobExpiresAt(job)).toISOString();
     const receipt = { expiresAt: deadline, expires_at: deadline, workerContract: workerContractOf(job.payload),
+      processingDeadlineAt: job.processingDeadlineAt,
+      ...(job.result?.attempt > 0 ? {
+        acceptedRetryToken: job.layerRetries.at(-1).retryToken,
+        acceptedAttempt: job.layerRetries.at(-1).attempt,
+        acceptedRetryProcessingDeadlineAt: job.layerRetries.at(-1).processingDeadlineAt,
+      } : {}),
       ...(config.authRequired && Object.hasOwn(job.payload, "requestKey") ? { requestKey: job.payload.requestKey } : {}) };
     if (jobExpired(job, now())) return { ...receipt, job_id: job.id, status: "expired", error: "expired" };
     if (typeof job.payload.promptVersion !== "string") return {
@@ -192,6 +203,13 @@ export async function createCardArtService({ config, cache, prompts, apiKey,
         };
       }
     }
+    if (jobExpired(job, now())) return { ...receipt, job_id: job.id, status: "expired", error: "expired" };
+    // Hash verification is asynchronous. A deadline or a new committed attempt
+    // can settle while it runs; verify and project that current manifest instead.
+    await queue.expireProcessing(job.id);
+    const latest = queue.get(job.id);
+    if (latest !== undefined && JSON.stringify(publicJob(latest)) !== verifiedManifest)
+      return jobResponse(latest);
     if (jobExpired(job, now())) return { ...receipt, job_id: job.id, status: "expired", error: "expired" };
     return { ...publicJob(job), ...receipt };
   }
@@ -225,10 +243,12 @@ export async function createCardArtService({ config, cache, prompts, apiKey,
   retentionTimer.unref();
   let httpActive = 0;
   const server = http.createServer(withAuthentication(async (req, res) => {
+    const receivedAt = now();
     if (req.method === "GET" && req.url.split("?")[0] === "/healthz") {
       const healthy = retentionError === undefined && queue.healthy && (foreground.healthy === undefined || foreground.healthy());
       return json(res, healthy ? 200 : 503, { ok: healthy, pipeline: "fast", spent_usd: Number(budget.spent.toFixed(3)),
         result_contract: RESULT_CONTRACT,
+        processing_deadline_version: PROCESSING_DEADLINE_VERSION,
         ...publicPipeline(version),
         unknown_gemini_cost_calls: budget.unknownCostCalls,
         retained_jobs: queue.retainedJobs, max_retained_jobs: config.maxRetainedJobs,
@@ -249,11 +269,13 @@ export async function createCardArtService({ config, cache, prompts, apiKey,
       if (req.method === "GET" && url.pathname.startsWith("/art/")) {
         const name = url.pathname.slice(5);
         if (!/^[a-f0-9]{24}(\.png|\.cut\.png|\.plate\.jpg)$/.test(name)) return json(res, 404, { error: "not_found" });
+        await queue.expireProcessing(name.slice(0, 24));
         const job = queue.get(name.slice(0, 24));
         if (!job) return json(res, 404, { error: "not_found" });
         if (jobExpired(job, now())) return json(res, 410, { status: "expired", error: "expired" });
         const layer = name.endsWith(".cut.png") ? "cutout" : name.endsWith(".plate.jpg") ? "plate" : "main";
         const asset = job.result === undefined ? undefined : layer === "main" ? job.result.main : job.result.layers[layer];
+        if (job.result === undefined && job.status !== "done") return json(res, 404, { error: "not_found" });
         if (asset !== undefined && asset.state !== "ready") return json(res, 404, { error: "not_found" });
         const file = join(cache, name);
         let handle;
@@ -271,6 +293,7 @@ export async function createCardArtService({ config, cache, prompts, apiKey,
       if (req.method === "POST" && url.pathname === "/v1/identity/card-art") {
         if (Number(req.headers["content-length"]) > config.maxRequestBytes) throw new RequestError(413, "request_too_large");
         const body = await readBody(req, config.maxRequestBytes);
+        const processing = processingAdmission(body.processingDeadlineAt, receivedAt);
         const requestKey = Object.hasOwn(body, "requestKey") ? normalizeRequestKey(body.requestKey) : undefined;
         if (requestKey !== undefined || Object.hasOwn(body, "expectedContract")) requireExpectedContract(body.expectedContract, actualContract);
         const requestedExpiry = Object.hasOwn(body, "expiresAt") ? normalizeExpiry(body.expiresAt) : undefined;
@@ -296,7 +319,7 @@ export async function createCardArtService({ config, cache, prompts, apiKey,
         }, async () => {
           await reserveDisk();
           await atomicWrite(avatarPath, bytes);
-        }, requestedExpiry); } catch (error) {
+        }, requestedExpiry, { receivedAt, processingDeadlineAt: processing.processingDeadlineAt }); } catch (error) {
           // Preparation can fail after raw bytes were written but before journal admission.
           await queue.removeOrphan(id, async () => {
             try { await unlink(avatarPath); }
@@ -324,6 +347,7 @@ export async function createCardArtService({ config, cache, prompts, apiKey,
       if (req.method === "POST" && retry) {
         if (!config.authRequired) return json(res, 401, { error: "unauthorized" });
         const command = retryCommand(await readBody(req, Math.min(config.maxRequestBytes, 4096)), retry[1]);
+        processingAdmission(command.processingDeadlineAt, receivedAt);
         const original = queue.get(retry[1]);
         if (!original) return json(res, 404, { error: "not_found" });
         if (jobExpired(original, now())) throw new JobExpiredError();
@@ -339,10 +363,12 @@ export async function createCardArtService({ config, cache, prompts, apiKey,
           }
           if (job.layerRetries.at(-1).plan.includes("cutout")) requireForeground();
           await reserveDisk();
-        });
+        }, receivedAt);
         const response = await jobResponse(accepted.job);
         return json(res, response.status === "expired" ? 410 : ["queued", "running"].includes(response.status) ? 202 : 200,
-          { ...response, acceptedRetryToken: command.retryToken, acceptedAttempt: accepted.acceptedAttempt, replayed: accepted.replayed });
+          { ...response, acceptedRetryToken: command.retryToken, acceptedAttempt: accepted.acceptedAttempt,
+            acceptedRetryProcessingDeadlineAt: accepted.job.layerRetries[accepted.acceptedAttempt - 1].processingDeadlineAt,
+            replayed: accepted.replayed });
       }
       const match = /^\/v1\/identity\/card-art\/([a-f0-9]{24})$/.exec(url.pathname);
       if (req.method === "GET" && match) {
@@ -361,6 +387,7 @@ export async function createCardArtService({ config, cache, prompts, apiKey,
       if (error instanceof LayerRetryError) return json(res, error.status, { error: error.message });
       if (error instanceof AssetUnavailableError) return json(res, 409, { error: "asset_integrity_conflict" });
       if (error instanceof InvalidExpiryError) return json(res, 400, { error: "invalid_expires_at" });
+      if (error instanceof InvalidProcessingDeadlineError) return json(res, 400, { error: "invalid_processing_deadline" });
       if (error instanceof InvalidWorkerContractError) return json(res, 400, { error: "invalid_expected_contract" });
       if (error instanceof WorkerContractChangedError) return json(res, 409, { error: "contract_changed" });
       if (error instanceof InvalidRequestKeyError) return json(res, 400, { error: "invalid_request_key" });

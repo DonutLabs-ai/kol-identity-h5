@@ -28,6 +28,13 @@ async function setup(t, send) {
   return { cutout: createBedrockCutout(options), options, waits, starts, commands };
 }
 
+test("processing abort after pacing/checkpoint prevents paid Bedrock dispatch", async t => {
+  const f = await setup(t); const controller = new AbortController();
+  await assert.rejects(f.cutout(original, async () => {}, { signal: controller.signal,
+    onDispatch: async () => controller.abort(new Error("processing deadline")) }), /processing deadline/);
+  assert.equal(f.starts.length, 0);
+});
+
 test("uses approved US profile, same source image, PNG output and returns actual foreground", async (t) => {
   const { cutout, commands } = await setup(t);
   let checkpoints = 0;

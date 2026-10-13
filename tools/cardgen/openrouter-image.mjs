@@ -5,7 +5,8 @@ import { Budget } from "./harness/lib.mjs";
 export class WorkerBudget extends Budget {
   unknownCostCalls = 0;
   check(estimate) {
-    if (this.spent + estimate > this.cap) throw Object.assign(new Error(`budget cap $${this.cap} reached (spent $${this.spent.toFixed(2)})`), { sampleReason: "budget_not_dispatched" });
+    if (this.spent + estimate > this.cap) throw Object.assign(new Error(`budget cap $${this.cap} reached (spent $${this.spent.toFixed(2)})`),
+      { category: "budget_not_dispatched", sampleReason: "budget_not_dispatched" });
   }
   add(usage) {
     this.calls++;
@@ -48,7 +49,7 @@ async function boundary(action, stage = "llm") {
 
 // Same one-call Gemini prompt/model as Cory's harness, with bounded network output.
 export function createImageGenerator({ fetcher = fetch } = {}) {
-  return async ({ key, model, prompt, avatarPath, refs, budget, beforeDispatch, onDispatch, onReceipt }) => {
+  return async ({ key, model, prompt, avatarPath, refs, budget, beforeDispatch, onDispatch, onReceipt, signal }) => {
     if (refs.length !== 0) throw new TypeError("The deployed fast path has no extra reference images");
     budget.check(0.30);
     let avatar;
@@ -57,16 +58,20 @@ export function createImageGenerator({ fetcher = fetch } = {}) {
     const mime = MIME[extname(avatarPath)];
     if (mime === undefined) throw failure("Unsupported prepared avatar extension", "invalid_output");
     if (beforeDispatch !== undefined) beforeDispatch();
+    signal?.throwIfAborted();
     if (onDispatch !== undefined) await onDispatch();
     // A dispatch journal write can wait; recheck foreground immediately before the provider call.
     if (beforeDispatch !== undefined) beforeDispatch();
+    signal?.throwIfAborted();
     const started = Date.now();
     let cost = null;
     const receipt = async () => {
+      signal?.throwIfAborted();
       if (onReceipt !== undefined) await onReceipt({ newProviderRequests: 1, costUSD: cost, reportedSeconds: (Date.now() - started) / 1000 });
     };
     const response = await boundary(() => fetcher("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST", signal: AbortSignal.timeout(540000), headers: {
+      method: "POST", signal: signal === undefined ? AbortSignal.timeout(540000)
+        : AbortSignal.any([signal, AbortSignal.timeout(540000)]), headers: {
         Authorization: "Bearer " + key, "Content-Type": "application/json",
         "X-Title": "Donut card-art harness",
       }, body: JSON.stringify({ model, modalities: ["image", "text"], messages: [{ role: "user", content: [
@@ -82,6 +87,7 @@ export function createImageGenerator({ fetcher = fetch } = {}) {
         response.status === 429 ? "provider_throttled" : "provider_error");
     }
     const raw = await boundary(() => bytes(response, 32 * 1024 * 1024), "llm");
+    signal?.throwIfAborted();
     let result;
     try { result = JSON.parse(raw.toString("utf8")); }
     catch (cause) { throw failure("invalid_provider_json", "invalid_output", cause); }
@@ -105,11 +111,13 @@ export function createImageGenerator({ fetcher = fetch } = {}) {
       if (asset.protocol !== "https:" || asset.username !== "" || asset.password !== "") {
         throw failure("invalid_provider_asset_url", "invalid_output");
       }
-      const download = await boundary(() => fetcher(asset, { redirect: "error", signal: AbortSignal.timeout(30000) }), "validation");
+      const download = await boundary(() => fetcher(asset, { redirect: "error", signal: signal === undefined
+        ? AbortSignal.timeout(30000) : AbortSignal.any([signal, AbortSignal.timeout(30000)]) }), "validation");
       if (!download.ok) { await download.body?.cancel(); throw Object.assign(failure("provider_image_download_failed", "provider_error", undefined, "validation"), { sampleOutcome: "asset_error", sampleReason: "asset_download_failed" }); }
       png = await boundary(() => bytes(download, 12 * 1024 * 1024), "validation");
     }
     const secs = (Date.now() - started) / 1000;
+    signal?.throwIfAborted();
     if (onReceipt !== undefined) await onReceipt({ newProviderRequests: 1, costUSD: cost, reportedSeconds: secs });
     return { png, cost, secs };
   };
