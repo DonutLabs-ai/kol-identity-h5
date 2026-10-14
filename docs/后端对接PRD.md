@@ -56,6 +56,7 @@
 - 复现：按 §4 B 走一遍并把任意一题改掉（避开缓存）；结果页控制台 `DonutArt.job` 是任务 id，拿它去打 GET 接口就能看到 `llm_ms` / `model` / `raced`（`raced: true` = Flash 接力）。
 
 **现状**：线上可用，前端已接通；六个 demo 账号（chriszhu / cz_binance / elonmusk / justinsuntron / VitalikButerin / ansem）的卡已预先放进缓存，秒出；其它组合现生成。
+非人物头像（logo、物体、动物）的规则（2026-10-14 定稿，prompt v12）：主体原样不动、不加道具和动作，logo 不加圆框，人格只以 2–4 个该类型道具漂在背景里，道具都比主体小；卡片文字说明类型。
 备选方案"两步 pipeline"（GPT 画卡 → Gemini 重绘，≈ 3.5 min / $0.39，更好看）只在本机能跑（需要不入库的 moodboard 参考图），线上默认快速路径。
 
 **已知的坑（都已处理，写出来省你踩一遍）**

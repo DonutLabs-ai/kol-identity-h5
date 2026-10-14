@@ -1,6 +1,6 @@
-# KOL 卡面生图 Prompt 导出 — 2026-10-12
+# KOL 卡面生图 Prompt 导出 — 2026-10-14
 
-来源：`tools/cardgen/prompts.md`（prompt_version **2026-10-12.11**）+ `harness/lib.mjs`。本文件由 `harness/export-prompt.mjs` 生成，改 prompt 请改源文件再重新导出，不要手改这里。
+来源：`tools/cardgen/prompts.md`（prompt_version **2026-10-14.12**）+ `harness/lib.mjs`。本文件由 `harness/export-prompt.mjs` 生成，改 prompt 请改源文件再重新导出，不要手改这里。
 
 ## 0. 现在线上（mock 后端 `server.mjs`）怎么调
 
@@ -41,9 +41,10 @@ its own design — do not turn it into a realistic human.
 ACT (equally important): the subject performs the TRADING TYPE's signature action with its signature gear, exactly as
 described below — this is what makes the card theirs. Re-pose the body and hands as needed; keep the face and head
 recognisable. If the avatar is not a person — an animal, a creature, an object, a logo, a symbol, a mascot — never
-humanise it: no human body, limbs, hands or face are added; a creature keeps its own anatomy and only does what that
-body could do, and an object, logo or symbol stays what it is while the gear and the action are staged around it as a
-scene. Frame from the knees or waist up — full body only when the action needs it — with the face (or the subject)
+humanise it and give it no gear, pose or action: it stays exactly as it is (a mark on a plain tile or disc loses that
+backdrop and is never framed by a disc, ring, coin, badge or frame), and the TRADING TYPE shows only in the background —
+two to four of its gear items floating behind and around the subject, each smaller than the subject, never attached to
+it, never held by it, never covering its silhouette; the action is ignored. Frame from the knees or waist up — full body only when the action needs it — with the face (or the subject)
 large enough to recognise and the gear fully visible.
 
 ART DIRECTION (Cory's vocabulary, 2026-09-30 — the images attached as STYLE REFERENCES define the look; this text only
@@ -58,7 +59,7 @@ Optional digital accents: floating code, ASCII overlays, a touch of pixelated gl
 NEVER: a clean modern digital illustration or 3D render, flat cel shading, an evenly-lit passport-style face, a pale
 field, large text.
 
-Clean edges, no border, no frame, no text, letters, numbers or logos anywhere. No cigarettes, cigars, alcohol or drugs.
+Clean edges, no border, no frame, no added text, letters, numbers or logos anywhere (a logo that is the avatar stays). No cigarettes, cigars, alcohol or drugs.
 ```
 
 ### 1.2 人格小节（接在 Base 后面，一次只发一个）
@@ -181,9 +182,10 @@ its own design — do not turn it into a realistic human.
 ACT (equally important): the subject performs the TRADING TYPE's signature action with its signature gear, exactly as
 described below — this is what makes the card theirs. Re-pose the body and hands as needed; keep the face and head
 recognisable. If the avatar is not a person — an animal, a creature, an object, a logo, a symbol, a mascot — never
-humanise it: no human body, limbs, hands or face are added; a creature keeps its own anatomy and only does what that
-body could do, and an object, logo or symbol stays what it is while the gear and the action are staged around it as a
-scene. Frame from the knees or waist up — full body only when the action needs it — with the face (or the subject)
+humanise it and give it no gear, pose or action: it stays exactly as it is (a mark on a plain tile or disc loses that
+backdrop and is never framed by a disc, ring, coin, badge or frame), and the TRADING TYPE shows only in the background —
+two to four of its gear items floating behind and around the subject, each smaller than the subject, never attached to
+it, never held by it, never covering its silhouette; the action is ignored. Frame from the knees or waist up — full body only when the action needs it — with the face (or the subject)
 large enough to recognise and the gear fully visible.
 
 ART DIRECTION (Cory's vocabulary, 2026-09-30 — the images attached as STYLE REFERENCES define the look; this text only
@@ -198,7 +200,7 @@ Optional digital accents: floating code, ASCII overlays, a touch of pixelated gl
 NEVER: a clean modern digital illustration or 3D render, flat cel shading, an evenly-lit passport-style face, a pale
 field, large text.
 
-Clean edges, no border, no frame, no text, letters, numbers or logos anywhere. No cigarettes, cigars, alcohol or drugs.
+Clean edges, no border, no frame, no added text, letters, numbers or logos anywhere (a logo that is the avatar stays). No cigarettes, cigars, alcohol or drugs.
 
 Diamond Hands — calm, unwavering conviction. Gear: one large faceted AMETHYST diamond. Action: facing the viewer,
 shoulders square, holding the diamond securely at centre chest with both hands, direct steady gaze, serene resolute
@@ -242,15 +244,15 @@ No text, letters or logos. Output one square image.
 content：`The profile picture:` + 头像图 → 正文。正文 = 下面模板，`${action}` 处填该人格小节（§1.2 原文）。
 
 ```text
-Turn this profile picture into a collectible trading-card portrait, square. Keep the subject exactly recognisable (same face, hair, glasses, expression; if it is not a person, keep the same creature or object). If the profile picture is not a person — an animal, a creature, an object, a logo, a symbol, a mascot — keep it exactly that: do not give it a human body, limbs, hands or a face; stage the trading gear and the action around it as a scene instead. ${action}
-Style: 1980s retro-futurist album-cover art shot on film — the figure rim-lit with liquid chrome and glitter on the clothing edges and props (face stays clean), a few big four-point star flares, prismatic light streaks, deep violet background (#3c0996 → near-black) with flowing amber-orange, cream and periwinkle light ribbons, film grain and halation. Not a clean modern illustration. No text, no logo, no border. No cigarettes, cigars, alcohol or drugs.
+Turn this profile picture into a collectible trading-card portrait, square. Keep the subject exactly recognisable (same face, hair, glasses, expression). If the profile picture is not a person — an animal, a creature, an object, a logo, a symbol, a mascot — keep it EXACTLY as it is — same shape, proportions, colours, marks and details — centred, large and untouched as the focal point; if the mark sits on a plain backdrop in the profile picture (a solid square, rounded tile, circle or disc), drop that backdrop and keep only the mark, and never put it inside a disc, ring, coin, badge, plate, medallion or frame of any kind. Do not add a body, limbs, hands, a face, clothing, gear or props to it, do not pose it and do not make it perform any action. The trading type shows ONLY in the background: two to four of the GEAR items named below float behind and around the subject, each clearly smaller than the subject, never attached to it, never held by it, never covering its silhouette; the action described for a person is ignored. ${action}
+Style: 1980s retro-futurist album-cover art shot on film — the subject rim-lit with liquid chrome and glitter on its edges — clothing edges and props for a person (the face stays clean), the mark's edges and the background motifs for a logo or object, a few big four-point star flares, prismatic light streaks, deep violet background (#3c0996 → near-black) with flowing amber-orange, cream and periwinkle light ribbons, film grain and halation. Not a clean modern illustration. No added text, no added logos, no border — a logo that is the avatar stays as it is. No cigarettes, cigars, alcohol or drugs.
 ```
 
 示例（diamond_hands）：
 
 ```text
-Turn this profile picture into a collectible trading-card portrait, square. Keep the subject exactly recognisable (same face, hair, glasses, expression; if it is not a person, keep the same creature or object). If the profile picture is not a person — an animal, a creature, an object, a logo, a symbol, a mascot — keep it exactly that: do not give it a human body, limbs, hands or a face; stage the trading gear and the action around it as a scene instead. Diamond Hands — calm, unwavering conviction. Gear: one large faceted AMETHYST diamond. Action: facing the viewer, shoulders square, holding the diamond securely at centre chest with both hands, direct steady gaze, serene resolute expression.
-Style: 1980s retro-futurist album-cover art shot on film — the figure rim-lit with liquid chrome and glitter on the clothing edges and props (face stays clean), a few big four-point star flares, prismatic light streaks, deep violet background (#3c0996 → near-black) with flowing amber-orange, cream and periwinkle light ribbons, film grain and halation. Not a clean modern illustration. No text, no logo, no border. No cigarettes, cigars, alcohol or drugs.
+Turn this profile picture into a collectible trading-card portrait, square. Keep the subject exactly recognisable (same face, hair, glasses, expression). If the profile picture is not a person — an animal, a creature, an object, a logo, a symbol, a mascot — keep it EXACTLY as it is — same shape, proportions, colours, marks and details — centred, large and untouched as the focal point; if the mark sits on a plain backdrop in the profile picture (a solid square, rounded tile, circle or disc), drop that backdrop and keep only the mark, and never put it inside a disc, ring, coin, badge, plate, medallion or frame of any kind. Do not add a body, limbs, hands, a face, clothing, gear or props to it, do not pose it and do not make it perform any action. The trading type shows ONLY in the background: two to four of the GEAR items named below float behind and around the subject, each clearly smaller than the subject, never attached to it, never held by it, never covering its silhouette; the action described for a person is ignored. Diamond Hands — calm, unwavering conviction. Gear: one large faceted AMETHYST diamond. Action: facing the viewer, shoulders square, holding the diamond securely at centre chest with both hands, direct steady gaze, serene resolute expression.
+Style: 1980s retro-futurist album-cover art shot on film — the subject rim-lit with liquid chrome and glitter on its edges — clothing edges and props for a person (the face stays clean), the mark's edges and the background motifs for a logo or object, a few big four-point star flares, prismatic light streaks, deep violet background (#3c0996 → near-black) with flowing amber-orange, cream and periwinkle light ribbons, film grain and halation. Not a clean modern illustration. No added text, no added logos, no border — a logo that is the avatar stays as it is. No cigarettes, cigars, alcohol or drugs.
 ```
 
 ## 4. 版本与修改

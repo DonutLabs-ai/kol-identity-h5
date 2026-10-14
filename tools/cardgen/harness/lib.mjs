@@ -137,19 +137,22 @@ export const RESTYLE_CAPTIONS = {
   brand: "COLOUR REFERENCE — use this palette for the background and the light: deep violet field with amber, cream and periwinkle ribbons. Not cobalt, not sky blue.",
 };
 /* fast path (harness/fast.mjs — one Gemini call, avatar only): `action` is the type's section from prompts.md */
+/* Non-human avatars (product rule, 2026-10-14 — Yi + Cory, after the rocket-on-a-surfboard card): a logo, object,
+   symbol, mascot or creature is composited as it is — nothing added to it, no gear, no pose, no action — and the trading
+   type shows only in the background, as a few of the type's gear items floating around it, so the viewer still sees why
+   the card looks the way it does (the card's text names the type). A mark on a plain tile or disc loses that backdrop
+   and is never framed. In production the model judges from these words; opts.subject = "object" forces the branch
+   (harness runs), opts.motifs === false is the plain composite kept for comparison (subject + brand background only). */
+const KEEP_RULE = "keep it EXACTLY as it is — same shape, proportions, colours, marks and details — centred, large and untouched as the focal point; if the mark sits on a plain backdrop in the profile picture (a solid square, rounded tile, circle or disc), drop that backdrop and keep only the mark, and never put it inside a disc, ring, coin, badge, plate, medallion or frame of any kind. Do not add a body, limbs, hands, a face, clothing, gear or props to it, do not pose it and do not make it perform any action.";
+const MOTIF_RULE = "The trading type shows ONLY in the background: two to four of the GEAR items named below float behind and around the subject, each clearly smaller than the subject, never attached to it, never held by it, never covering its silhouette; the action described for a person is ignored.";
+const PLAIN_RULE = "Nothing else is added: no gear, props, objects or persona elements of any kind — the subject alone on the Donut light background.";
 export function fastPrompt(action, opts = {}) {
-  /* Non-human avatars (Yi + Cory, 2026-10-14): a logo, object, symbol, mascot or creature is composited as it is — nothing
-     added to it, no gear, no pose, no action — and the persona lives only in the background, where the type's gear
-     floats as motifs; opts.motifs === false is the plain composite (subject + brand background only, the card text carries the persona). opts.subject = "object" selects that branch (harness experiments, 12 DonutAI cards 2026-10-14);
-     production (no opts) still uses the v11 wording until the rule is adopted — adopting it means a prompt_version bump
-     and re-keying the cached demo cards. */
-  const object = opts.subject === "object";
+  const object = opts.subject === "object", plain = object && opts.motifs === false;
   const subject = object
-    ? `The profile picture is not a person (a logo, an object, a symbol, a mascot or a creature): keep the mark itself EXACTLY as it is — same shape, proportions, colours and details — centred, large and untouched as the focal point. If the mark sits on a plain backdrop in the profile picture (a solid square, rounded tile, circle or disc), drop that backdrop and keep only the mark: never put the mark inside a disc, ring, coin, badge, plate, medallion or frame of any kind — it floats free in the scene. Do not add a body, limbs, hands, a face, clothing, gear or props to it, do not pose it and do not make it perform any action. ${opts.motifs === false ? "Nothing else is added: no gear, props, objects or persona elements of any kind — the subject alone on the Donut light background." : "The trading persona is expressed ONLY by the background and the light around it: take the GEAR named below and place it as floating motifs behind and around the subject (enlarged or repeated as the composition needs), never attached to the subject, never held by it, never covering its silhouette; ignore the action described for a person. " + action}`
-    : `Keep the subject exactly recognisable (same face, hair, glasses, expression; if it is not a person, keep the same creature or object). If the profile picture is not a person — an animal, a creature, an object, a logo, a symbol, a mascot — keep it exactly that: do not give it a human body, limbs, hands or a face; stage the trading gear and the action around it as a scene instead. ${action}`;   /* v11 production text, unchanged until the object rule is adopted (prompt_version bump + cache re-key) */
-  const lit = object ? "the subject rim-lit with liquid chrome and glitter on its edges and on the background motifs" : "the figure rim-lit with liquid chrome and glitter on the clothing edges and props (face stays clean)";
-  const clean = object ? "No added text, no added logos, no border — the subject itself stays exactly as it is." : "No text, no logo, no border.";
+    ? `The profile picture is not a person (a logo, an object, a symbol, a mascot or a creature): ${KEEP_RULE} ${plain ? PLAIN_RULE : MOTIF_RULE + " " + action}`
+    : `Keep the subject exactly recognisable (same face, hair, glasses, expression). If the profile picture is not a person — an animal, a creature, an object, a logo, a symbol, a mascot — ${KEEP_RULE} ${MOTIF_RULE} ${action}`;
+  const lit = object ? "the subject rim-lit with liquid chrome and glitter on its edges and on the background motifs" : "the subject rim-lit with liquid chrome and glitter on its edges — clothing edges and props for a person (the face stays clean), the mark's edges and the background motifs for a logo or object";
   return `Turn this profile picture into a collectible trading-card portrait, square. ${subject}
-Style: 1980s retro-futurist album-cover art shot on film — ${lit}, a few big four-point star flares, prismatic light streaks, deep violet background (#3c0996 → near-black) with flowing amber-orange, cream and periwinkle light ribbons, film grain and halation. Not a clean modern illustration. ${clean} No cigarettes, cigars, alcohol or drugs.`;
+Style: 1980s retro-futurist album-cover art shot on film — ${lit}, a few big four-point star flares, prismatic light streaks, deep violet background (#3c0996 → near-black) with flowing amber-orange, cream and periwinkle light ribbons, film grain and halation. Not a clean modern illustration. No added text, no added logos, no border — a logo that is the avatar stays as it is. No cigarettes, cigars, alcohol or drugs.`;
 }
 export const BRAND_CAPTION = "DONUT BRAND BACKGROUND REFERENCE — use exactly this palette and these soft flowing light ribbons for the background and the colour of the light. Its colours win over every other reference:";

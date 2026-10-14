@@ -1,8 +1,9 @@
 # Card-art prompts — KOL avatar → Donut Trader card
 
 An **image EDIT of the KOL's own X profile picture**: whatever the avatar shows (a person, an anime drawing, pixel art,
-an owl, a rocket) stays recognisable, while the subject performs their trading type's signature action with its gear,
-restyled to Cory's moodboard — coloured liquid chrome, a few big star flares, slow-shutter prismatic light trails,
+an owl, a rocket) stays recognisable. A person performs their trading type's signature action with its gear; a non-human
+avatar (a logo, object, symbol, mascot or creature) stays exactly as it is and the type shows only as a few of its gear
+items floating in the background (v12). Everything is restyled to Cory's moodboard — coloured liquid chrome, a few big star flares, slow-shutter prismatic light trails,
 cobalt-violet against molten gold, a minimal iconic poster composition, film grain.
 
 Only the avatar is attached. The backend (and `generate.mjs`) sends the **Base** section followed by the type's
@@ -12,8 +13,9 @@ History: v3 spy poster → v4 airbrush → v5 avatar edit (types lost) → v6 ge
 → v9 art direction rewritten from the reverse-prompted 98-tile Figma moodboard (`style-refs/figma/moodboard-dna.md`): 80s airbrushed gouache poster, not photography; face lit like the board lights its subjects.
 → v10 Cory's keyword vocabulary: sparkle-figure vintage film still (silhouette outlined in light, star-filter flares, psychedelic saturated colour); style comes from the glare-set reference images, text only names it.
 → v11 (2026-10-12, product feedback): a non-human avatar is never humanised — no body, limbs, hands or face added; gear and action staged around it.
+→ v12 (2026-10-14, Yi + Cory): a non-human avatar gets no gear, pose or action at all — it stays as it is (a mark loses its plain tile and is never framed by a disc or ring) and the type shows only as two to four gear items floating in the background, each smaller than the subject. "A rocket on a surfboard makes no sense to the user; the card's text names the type."
 
-prompt_version: 2026-10-12.11
+prompt_version: 2026-10-14.12
 
 ## Base
 
@@ -29,9 +31,10 @@ its own design — do not turn it into a realistic human.
 ACT (equally important): the subject performs the TRADING TYPE's signature action with its signature gear, exactly as
 described below — this is what makes the card theirs. Re-pose the body and hands as needed; keep the face and head
 recognisable. If the avatar is not a person — an animal, a creature, an object, a logo, a symbol, a mascot — never
-humanise it: no human body, limbs, hands or face are added; a creature keeps its own anatomy and only does what that
-body could do, and an object, logo or symbol stays what it is while the gear and the action are staged around it as a
-scene. Frame from the knees or waist up — full body only when the action needs it — with the face (or the subject)
+humanise it and give it no gear, pose or action: it stays exactly as it is (a mark on a plain tile or disc loses that
+backdrop and is never framed by a disc, ring, coin, badge or frame), and the TRADING TYPE shows only in the background —
+two to four of its gear items floating behind and around the subject, each smaller than the subject, never attached to
+it, never held by it, never covering its silhouette; the action is ignored. Frame from the knees or waist up — full body only when the action needs it — with the face (or the subject)
 large enough to recognise and the gear fully visible.
 
 ART DIRECTION (Cory's vocabulary, 2026-09-30 — the images attached as STYLE REFERENCES define the look; this text only
@@ -46,7 +49,7 @@ Optional digital accents: floating code, ASCII overlays, a touch of pixelated gl
 NEVER: a clean modern digital illustration or 3D render, flat cel shading, an evenly-lit passport-style face, a pale
 field, large text.
 
-Clean edges, no border, no frame, no text, letters, numbers or logos anywhere. No cigarettes, cigars, alcohol or drugs.
+Clean edges, no border, no frame, no added text, letters, numbers or logos anywhere (a logo that is the avatar stays). No cigarettes, cigars, alcohol or drugs.
 
 ## diamond_hands
 

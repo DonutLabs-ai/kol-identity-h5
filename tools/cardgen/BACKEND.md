@@ -296,4 +296,4 @@ cards, plus 7–15 s for the layers — not reliably inside 40 s. Same fast prom
 Decision: primary `gemini-3.1-flash-image`, `CARD_LLM_TIMEOUT_MS=25000`, one fallback call on `gemini-2.5-flash-image`
 when the primary times out or errors (never on moderation or budget). Expected card: ~12 s + layers ~7–15 s ≈ 20–30 s;
 worst case with the fallback ≈ 25 + 9 + 15 ≈ 50 s. The real service's `openrouter-image.mjs` should take the same model,
-timeout and fallback. Prompt v11 (2026-10-12): a non-human avatar is never humanised (product feedback).
+timeout and fallback. Prompt v11 (2026-10-12): a non-human avatar is never humanised (product feedback). Prompt v12 (2026-10-14, Yi + Cory): a non-human avatar gets no gear, pose or action — it stays as it is, a mark loses its plain tile and is never framed, and the type shows only as two to four gear items floating in the background; cache keys re-keyed on Fly and locally for the demo set.
