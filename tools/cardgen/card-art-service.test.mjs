@@ -595,7 +595,9 @@ test("disk reservation counts the held active job and refuses a second new admis
   assert.equal(duplicate.status, 202); assert.equal(duplicate.body.job_id, first.body.job_id); assert.equal(duplicate.body.cached, true);
   assert.equal(diskChecks, 2); assert.equal(f.counts.gemini, 1);
   assert.equal((await readdir(f.cache)).filter((name) => name.includes(".avatar.")).length, 1);
-  assert.equal((await readdir(join(f.cache, "jobs"))).length, 1);
+  // One identity plus its bounded prior anchor and current proof, no second admission.
+  const id = first.body.job_id;
+  assert.deepEqual((await readdir(join(f.cache, "jobs"))).sort(), [`.${id}.anchor`, `.${id}.witness`, `${id}.json`]);
   gate.resolve(); await f.plateFinished.promise; await service.queue.close();
   assert.equal((await poll(service, first.body.job_id)).body.status, "done");
 });

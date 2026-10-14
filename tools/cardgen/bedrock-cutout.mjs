@@ -91,24 +91,28 @@ export function createBedrockCutout({ region, model, minIntervalMs, timeoutMs, s
     } catch (cause) { throw new JobStoreError("Cannot persist Bedrock pacing; dispatch stopped", cause); }
   }
   const cutout = async (image, checkpoint = async () => {}, observation = {}) => enqueue(async () => {
+    observation.signal?.throwIfAborted();
     const input = pngInfo(image);
     if (image.length > 12 * 1024 * 1024) throw providerError("cutout_input_too_large", "invalid_output");
     await initialize();
     await checkpoint();
     const wait = lastStarted + minIntervalMs - now();
-    if (wait > 0) await sleep(wait);
+    if (wait > 0) await sleep(wait, undefined, { signal: observation.signal });
+    observation.signal?.throwIfAborted();
     await persist(true);
     const command = new InvokeModelCommand({
       modelId: model, contentType: "application/json", accept: "application/json",
       body: JSON.stringify({ image: image.toString("base64"), output_format: "png" }),
     });
     if (observation.onDispatch !== undefined) await observation.onDispatch();
+    observation.signal?.throwIfAborted();
     // No asynchronous work between this timestamp and SDK dispatch.
     lastStarted = now();
     const started = lastStarted;
     let response;
     try {
-      response = await client.send(command, { abortSignal: AbortSignal.timeout(timeoutMs) });
+      response = await client.send(command, { abortSignal: observation.signal === undefined
+        ? AbortSignal.timeout(timeoutMs) : AbortSignal.any([observation.signal, AbortSignal.timeout(timeoutMs)]) });
     } catch (cause) {
       const responseStatus = cause instanceof BedrockRuntimeServiceException
         && cause.$metadata !== undefined && cause.$metadata !== null ? cause.$metadata.httpStatusCode : undefined;

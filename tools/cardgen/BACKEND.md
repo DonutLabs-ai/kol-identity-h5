@@ -3,6 +3,12 @@
 **Owner:** Sean (product) → backend · **Prototype and prompts:** `tools/cardgen/` · **Updated:** 2026-09-29
 **Prompt version at time of writing:** `2026-09-29.8`
 
+**Formal receiver S13 update (2026-10-13):** [S13-DEADLINE.md](S13-DEADLINE.md)
+defines the total 60-second deadline, immutable initial echo, separate retry echo
+and receiver-first capability gate. It supersedes the historical mock's separate
+stage limits and reconnect/retry guidance below for the formal receiver. The
+historical mock and page still require their own S13 integration.
+
 ## 1. What we're building
 
 A KOL signs in with X, answers six questions and gets a Donut Trader type (one of 12). Today every result card shows

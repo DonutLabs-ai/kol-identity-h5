@@ -10,6 +10,22 @@ const output = { choices: [{ message: { images: [{ image_url: { url: "data:image
 const args = () => ({ key: "test-only", model: "google/gemini-3-pro-image", prompt: "Cory's unchanged fast prompt",
   avatarPath, refs: [], budget: new Budget(Infinity) });
 
+test("processing abort is rechecked after dispatch journal and propagates to provider plus asset download without retry", async () => {
+  const controller = new AbortController(); let calls = 0;
+  const blocked = createImageGenerator({ fetcher: async () => { calls++; return Response.json(output); } });
+  await assert.rejects(blocked({ ...args(), signal: controller.signal,
+    onDispatch: async () => controller.abort(new Error("processing deadline")) }), /processing deadline/);
+  assert.equal(calls, 0);
+  const ongoing = new AbortController(), signals = [];
+  const generate = createImageGenerator({ fetcher: async (_url, options) => {
+    signals.push(options.signal);
+    if (signals.length === 1) return Response.json({ ...output, choices: [{ message: { images: [{ image_url: { url: "https://example.com/image.png" } }] } }] });
+    ongoing.abort(new Error("processing deadline")); return new Response(image);
+  } });
+  await assert.rejects(generate({ ...args(), signal: ongoing.signal }), /processing deadline/);
+  assert.equal(signals.length, 2); assert.ok(signals.every(signal => signal.aborted));
+});
+
 test("one paid request preserves Cory's Gemini model, avatar, modalities and prompt", async () => {
   const calls = [];
   const generate = createImageGenerator({ fetcher: async (url, options) => {

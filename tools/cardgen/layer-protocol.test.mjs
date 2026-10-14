@@ -258,6 +258,10 @@ test(`queued ${legacy ? "legacy" : "current"} retry reboot records actual B exec
     const path = join(fork, "jobs", id + ".json"), old = JSON.parse(await readFile(path, "utf8"));
     delete old.layerAttemptSamples[0].acceptedSourceRevision;
     old.layerAttemptSamples[0].executionSourceRevision = "source-v1";
+    // Model an actual pre-witness journal, not an unqualified rewrite of a new one.
+    delete old.checkpointProtocol;
+    for (const suffix of ["anchor", "witness", "checkpoint"])
+      await rm(join(fork, "jobs", `.${id}.${suffix}`), { force: true });
     await writeFile(path, JSON.stringify(old));
   }
   f.cutHold = undefined; f.healthy = false;

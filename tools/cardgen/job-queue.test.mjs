@@ -177,7 +177,7 @@ test("checkpoints preserve metadata in order and publish complete JSON by rename
   } });
   await queue.initialize(); await queue.submit("checkpoint", {}); await checkpointed.promise;
   release.resolve(); await queue.close();
-  assert.deepEqual(await readdir(f.directory), ["checkpoint.json"]);
+  assert.deepEqual((await readdir(f.directory)).sort(), [".checkpoint.anchor", ".checkpoint.witness", "checkpoint.json"]);
   assert.equal((await f.disk("checkpoint")).status, "done");
   await assert.rejects(queue.checkpoint(queue.get("checkpoint")), TypeError);
 });
@@ -240,7 +240,7 @@ test("close immediately after durable admission parks work whose runner has not 
   assert.deepEqual(queue.stats(), { active: 0, queued: 1, max_active: 1, max_queued: 8 });
 });
 
-test("restart recovers FIFO queued jobs and terminals, and fails running work as unknown", async (t) => {
+test("restart before processing deadline recovers FIFO queued jobs and fails running work as unknown", async (t) => {
   const f = await fixture(t), firstStarted = f.gate(), releaseFirst = f.gate(), secondStarted = f.gate(), releaseSecond = f.gate();
   const terminal = record("done", 3, "done", { outputs: { image: "saved.png" } });
   const failed = record("failed", 4, "failed", { error: "provider_rejected" });
@@ -250,15 +250,16 @@ test("restart recovers FIFO queued jobs and terminals, and fails running work as
   await writeFile(join(f.directory, "known-but-not-reconciled.png"), "existing main image");
   await writeFile(join(f.directory, ".uncommitted.tmp"), "incomplete write");
   const runs = [];
-  const queue = f.queue({ async run(job) {
+  const queue = f.queue({ now: () => Date.parse(terminal.createdAt) + 1000, async run(job) {
     assert.equal((await f.disk("unknown")).error, "provider_result_unknown");
     runs.push(job.id);
     if (job.id === "z-first") { firstStarted.resolve(); await releaseFirst.promise; }
     else { secondStarted.resolve(); await releaseSecond.promise; }
   } });
   await Promise.all([queue.initialize(), queue.initialize()]); await firstStarted.promise;
-  assert.deepEqual(queue.get("done"), terminal);
-  assert.deepEqual(queue.get("failed"), failed);
+  const deadline = { checkpointProtocol: 1, processingReceivedAt: terminal.createdAt, processingDeadlineAt: "2026-10-09T00:01:00.000Z" };
+  assert.deepEqual(queue.get("done"), { ...terminal, ...deadline });
+  assert.deepEqual(queue.get("failed"), { ...failed, ...deadline });
   assert.equal(queue.get("unknown").status, "failed");
   assert.equal(queue.get("unknown").stage, "paid_call");
   assert.equal((await queue.submit("unknown", {})).created, false);
@@ -336,7 +337,7 @@ test("history capacity counts pending prepare, retains terminals and leaves dupl
   assert.equal((await restarted.submit("paid", { changed: true })).job.status, "done");
   assert.equal(prepares, 1); assert.equal(runs, 1); assert.equal(restarted.healthy, true);
   assert.equal(await readFile(join(f.directory, "paid.json"), "utf8"), terminal);
-  assert.deepEqual(await readdir(f.directory), ["paid.json"]);
+  assert.deepEqual((await readdir(f.directory)).sort(), [".paid.anchor", ".paid.witness", "paid.json"]);
 });
 
 test("failed prepare releases the history reservation without admitting or paying", async (t) => {
@@ -357,13 +358,15 @@ test("exact-cap restart preserves done and failed paid records without eviction"
   const f = await fixture(t), done = record("done", 1, "done"), failed = record("failed", 2, "failed", { error: "provider_result_unknown" });
   await writeFile(join(f.directory, "done.json"), JSON.stringify(done));
   await writeFile(join(f.directory, "failed.json"), JSON.stringify(failed));
-  const queue = f.queue({ maxRetainedJobs: 2, run() { assert.fail("Retained terminal replayed"); } });
+  const queue = f.queue({ maxRetainedJobs: 2, now: () => Date.parse(done.createdAt) + 1000,
+    run() { assert.fail("Retained terminal replayed"); } });
   await queue.initialize();
-  assert.deepEqual((await queue.submit("done", {})).job, done);
-  assert.deepEqual((await queue.submit("failed", {})).job, failed);
+  const deadline = { checkpointProtocol: 1, processingReceivedAt: done.createdAt, processingDeadlineAt: "2026-10-09T00:01:00.000Z" };
+  assert.deepEqual((await queue.submit("done", {})).job, { ...done, ...deadline });
+  assert.deepEqual((await queue.submit("failed", {})).job, { ...failed, ...deadline });
   await assert.rejects(queue.submit("new", {}, () => { assert.fail("Full history prepared avatar"); }), HistoryFullError);
   assert.equal(queue.retainedJobs, 2);
-  assert.deepEqual((await readdir(f.directory)).sort(), ["done.json", "failed.json"]);
+  assert.deepEqual((await readdir(f.directory)).sort(), [".done.anchor", ".done.witness", ".failed.anchor", ".failed.witness", "done.json", "failed.json"]);
 });
 
 test("overflow history fails the bounded startup scan before hydration or recovery writes", async (t) => {

@@ -3,6 +3,7 @@ import { constants } from "node:fs";
 import { open, rename, unlink } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { JobExpiredError } from "./retention.mjs";
+import { ProcessingDeadlineError } from "./processing-deadline.mjs";
 
 export const ASSET_SUFFIX = { main: ".png", cutout: ".cut.png", plate: ".plate.jpg" };
 const LIMIT = { main: 12 * 1024 ** 2, cutout: 24 * 1024 ** 2, plate: 32 * 1024 ** 2 };
@@ -67,7 +68,7 @@ export async function durableWrite(path, bytes, assertActive) {
     handle = await open(dirname(path), "r"); await handle.sync();
     if (assertActive !== undefined) assertActive();
   } catch (error) {
-    if (published && error instanceof JobExpiredError) await unlink(path);
+    if (published && (error instanceof JobExpiredError || error instanceof ProcessingDeadlineError)) await unlink(path);
     throw error;
   } finally {
     if (handle) await handle.close();
