@@ -137,8 +137,19 @@ export const RESTYLE_CAPTIONS = {
   brand: "COLOUR REFERENCE — use this palette for the background and the light: deep violet field with amber, cream and periwinkle ribbons. Not cobalt, not sky blue.",
 };
 /* fast path (harness/fast.mjs — one Gemini call, avatar only): `action` is the type's section from prompts.md */
-export function fastPrompt(action) {
-  return `Turn this profile picture into a collectible trading-card portrait, square. Keep the subject exactly recognisable (same face, hair, glasses, expression; if it is not a person, keep the same creature or object). If the profile picture is not a person — an animal, a creature, an object, a logo, a symbol, a mascot — keep it exactly that: do not give it a human body, limbs, hands or a face; stage the trading gear and the action around it as a scene instead. ${action}
-Style: 1980s retro-futurist album-cover art shot on film — the figure rim-lit with liquid chrome and glitter on the clothing edges and props (face stays clean), a few big four-point star flares, prismatic light streaks, deep violet background (#3c0996 → near-black) with flowing amber-orange, cream and periwinkle light ribbons, film grain and halation. Not a clean modern illustration. No text, no logo, no border. No cigarettes, cigars, alcohol or drugs.`;
+export function fastPrompt(action, opts = {}) {
+  /* Non-human avatars (Yi + Cory, 2026-10-14): a logo, object, symbol, mascot or creature is composited as it is — nothing
+     added to it, no gear, no pose, no action — and the persona lives only in the background, where the type's gear
+     floats as motifs. opts.subject = "object" selects that branch (harness experiments, 12 DonutAI cards 2026-10-14);
+     production (no opts) still uses the v11 wording until the rule is adopted — adopting it means a prompt_version bump
+     and re-keying the cached demo cards. */
+  const object = opts.subject === "object";
+  const subject = object
+    ? `The profile picture is not a person (a logo, an object, a symbol, a mascot or a creature): keep it EXACTLY as it is — same shape, proportions, colours, marks and details — centred, large and untouched as the focal point. Do not add a body, limbs, hands, a face, clothing, gear or props to it, do not pose it and do not make it perform any action. The trading persona is expressed ONLY by the background and the light around it: take the GEAR named below and place it as floating motifs behind and around the subject (enlarged or repeated as the composition needs), never attached to the subject, never held by it, never covering its silhouette; ignore the action described for a person. ${action}`
+    : `Keep the subject exactly recognisable (same face, hair, glasses, expression; if it is not a person, keep the same creature or object). If the profile picture is not a person — an animal, a creature, an object, a logo, a symbol, a mascot — keep it exactly that: do not give it a human body, limbs, hands or a face; stage the trading gear and the action around it as a scene instead. ${action}`;   /* v11 production text, unchanged until the object rule is adopted (prompt_version bump + cache re-key) */
+  const lit = object ? "the subject rim-lit with liquid chrome and glitter on its edges and on the background motifs" : "the figure rim-lit with liquid chrome and glitter on the clothing edges and props (face stays clean)";
+  const clean = object ? "No added text, no added logos, no border — the subject itself stays exactly as it is." : "No text, no logo, no border.";
+  return `Turn this profile picture into a collectible trading-card portrait, square. ${subject}
+Style: 1980s retro-futurist album-cover art shot on film — ${lit}, a few big four-point star flares, prismatic light streaks, deep violet background (#3c0996 → near-black) with flowing amber-orange, cream and periwinkle light ribbons, film grain and halation. Not a clean modern illustration. ${clean} No cigarettes, cigars, alcohol or drugs.`;
 }
 export const BRAND_CAPTION = "DONUT BRAND BACKGROUND REFERENCE — use exactly this palette and these soft flowing light ribbons for the background and the colour of the light. Its colours win over every other reference:";

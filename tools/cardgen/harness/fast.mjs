@@ -18,7 +18,7 @@ const out = join(CARDGEN, "out/fast", name); await mkdir(out, { recursive: true 
 
 /* the type's gear + action, one sentence, taken from prompts.md's section (first sentence after the dash) */
 const sec = p.types[type] || "", action = sec.replace(/\s+/g, " ").trim();
-const text = fastPrompt(action);
+const text = fastPrompt(action, { subject: args.subject });   /* --subject object: the non-human branch (logo / object / creature) */
 
 const content = [{ type: "text", text: "The profile picture:" }, { type: "image_url", image_url: { url: await dataUrl(avatar) } }];
 for (const r of refs) content.push({ type: "text", text: "Match this look (medium, light, chrome, glare, colour) exactly:" }, { type: "image_url", image_url: { url: await dataUrl(r) } });
