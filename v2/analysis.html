@@ -229,14 +229,13 @@
 
 <div class="analyze" id="analyze" aria-live="polite">
   <div class="az-foot">
-    <div class="gen-note" id="az-note" hidden><span></span><button type="button" class="note-btn" hidden></button></div>
     <div class="az-status" id="az-status">Reading your answers</div>
     <div class="az-bar" id="az-bar"></div>
   </div>
 </div>
 <script src="./score.js?v=2"></script>
 <script src="./config.js?v=1"></script>
-<script src="./demo-kols.js?v=1"></script>
+<script src="./demo-kols.js?v=2"></script>
 <script src="./summon-gl.js?v=1"></script>
 <script src="./summon.js?v=5"></script>
 
@@ -357,16 +356,27 @@
   };
 
   /* the type the quiz earned (claim.html → sessionStorage); random only when opened directly (demo) */
-  var names = Object.keys(C), saved = null;
+  var names = Object.keys(C), saved = null, Q = new URLSearchParams(location.search);
   try { saved = JSON.parse(sessionStorage.getItem("donut.result") || "null"); } catch (e) {}
-  var type = saved && C[saved.name] ? saved.name : names[Math.floor(Math.random() * names.length)];
-  var typeId = saved && saved.type ? saved.type : null;
+  /* demo X profiles (demo-kols.js): ?kol=<id>, else the id the claim page saved with the result, else the session's pick */
+  var KOLID = Q.get("kol") || (saved && saved.kol) || "";
+  var D = window.DonutDemo ? (DonutDemo.KOLS[KOLID] ? Object.assign({ id: KOLID }, DonutDemo.KOLS[KOLID]) : DonutDemo.current()) : null;
+  var WHO = D || { name: "Your Donut ID", handle: "@RU7CRYPTOLONG", avatar: "../flashcard/kol-pfp.jpg" };
+  var HANDLE = WHO.handle, AVATAR = WHO.avatar;
+  /* revisit (S13 rule 5): a user who already drew a card lands on it — no quiz, no transition, no new task — unless
+     ?reset=1 forgets it or a newer quiz result is waiting. The demo keeps cards per handle in this browser
+     (DonutCardStore, demo-kols.js); the real service keeps them per X account (BACKEND.md §3). */
+  if (Q.get("reset") === "1" && window.DonutCardStore) DonutCardStore.clear(HANDLE);
+  var STORED = window.DonutCardStore ? DonutCardStore.load(HANDLE) : null;
+  var REVISIT = !!(STORED && C[STORED.name] && STORED.image && (Q.get("revisit") === "1" || !saved || !(saved.at > STORED.at)));
+  var type = REVISIT ? STORED.name : saved && C[saved.name] ? saved.name : names[Math.floor(Math.random() * names.length)];
+  var typeId = REVISIT ? STORED.type : saved && saved.type ? saved.type : null;
   var T = C[type];
   var summonRoot = null;
-  try {
-    var S = window.DonutScore, ansIdx = saved && saved.answers ? ["market","horizon","strategy","risk","execution","information"].map(function (k) { var pool = S ? (S.OPTIONS[k] || S.SLIDER[k]) : null; return pool ? pool.indexOf(saved.answers[k]) : -1; }) : null;
-    var kolQ = new URLSearchParams(location.search).get("kol") || (saved && saved.kol) || "";
-    summonRoot = window.DonutSummon && DonutSummon.mount(document.getElementById("analyze"), { name: kolQ === "chriszhu" ? "Chris Zhu" : "YOUR DONUT ID", handle: kolQ === "chriszhu" ? "@chriszhu" : "", answers: ansIdx });
+  if (REVISIT) { var azOv = document.getElementById("analyze"); if (azOv) azOv.remove(); }   /* straight to the card */
+  else try {
+    var SC = window.DonutScore, ansIdx = saved && saved.answers ? ["market","horizon","strategy","risk","execution","information"].map(function (k) { var pool = SC ? (SC.OPTIONS[k] || SC.SLIDER[k]) : null; return pool ? pool.indexOf(saved.answers[k]) : -1; }) : null;
+    summonRoot = window.DonutSummon && DonutSummon.mount(document.getElementById("analyze"), { name: KOLID === "chriszhu" ? "Chris Zhu" : "YOUR DONUT ID", handle: KOLID === "chriszhu" ? "@chriszhu" : "", answers: ansIdx });
   } catch (e) {}
 
   document.getElementById("r-name").textContent = type;
@@ -400,11 +410,6 @@
   var cutWin = document.querySelector(".reveal-win-cut"), cut = document.getElementById("reveal-cut");
 
   var f = document.getElementById("result-card");
-  /* demo X profiles (demo-kols.js): ?kol=<id>, else the id the claim page saved with the result, else the session's pick */
-  var KOLID = new URLSearchParams(location.search).get("kol") || (saved && saved.kol) || "";
-  var D = window.DonutDemo ? (DonutDemo.KOLS[KOLID] ? Object.assign({ id: KOLID }, DonutDemo.KOLS[KOLID]) : DonutDemo.current()) : null;
-  var DEMO = D || { name: "Your Donut ID", handle: "@RU7CRYPTOLONG", avatar: "../flashcard/kol-pfp.jpg" };
-  var HANDLE = DEMO.handle, AVATAR = DEMO.avatar;
   function cardSrc(img) {
     return "../flashcard/kol-v0.html?code=DONUT2026&skin=amethyst" + "&user=" + encodeURIComponent(HANDLE.toUpperCase()) + "&type=" + encodeURIComponent(type) + (img ? "&img=" + encodeURIComponent(img) : "");
   }
@@ -415,39 +420,42 @@
      everywhere else the deployed backend from config.js */
   var LOCAL = /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
   var API = new URLSearchParams(location.search).get("api") || (LOCAL ? "http://127.0.0.1:3022" : window.DONUT_CARD_API || "");
-  /* ── generation, degrade and retry, by server state (product, 2026-10-10) ──
-     The card (status) and its 2.5D layers (layers.status) are two states. The reveal waits for both to be settled:
-     layers ready → full 2.5D card; layers failed (server verdict) → the flat card plus "Retry 3D effect", which re-runs
-     only the layers; LLM failed (server verdict) → a fallback card from the avatar (or the type's Donut art without
-     one) plus "Regenerate card", a new task the user starts on purpose; a poll that cannot reach the server shows
-     "reconnecting" and "Check progress", which only re-asks about the same job. The browser never declares a failure
-     from waiting, and every button says exactly what it does. */
-  var art = { status: API ? "pending" : "none", layers: "none", stage: null, t0: Date.now(), url: "", job: null, regen: false, fallback: false };
+  /* ── generation, degrade and retry, by server state (product S13, 2026-10-14; first cut 2026-10-10) ──
+     The card (status) and its 2.5D layers (layers.status) are two states, both settled by the server inside one 60 s
+     task (CARD_JOB_DEADLINE_MS on the backend); the browser never declares a failure from waiting. The reveal waits for
+     both. Only two cases offer a retry; both show their note and button after the transition, beside the card, and keep
+     the current card while the retry runs:
+       · card failed / timed out → the avatar as the card (the type's Donut art without one) + "Regenerate card"
+       · card ok, layers failed / timed out → the flat card + "Retry 3D effect" (layers only, its own 60 s)
+     A budget stop and "X has no avatar" fall back the same way but silently: no note, no button, share and save work.
+     A lost connection shows a passive line only — no retry, no "check progress", nothing re-sent; whoever comes back
+     re-enters the flow. A returning user with a card lands on it directly (REVISIT above), its retry kept if it applies. */
+  var art = { status: API ? "pending" : "none", layers: "none", stage: null, t0: Date.now(), url: "", cut: "", plate: "", job: null, regen: false, fallback: "", offline: false, revisit: REVISIT };
   window.DonutArt = art;   /* QA: the live generation state */
   window.DonutNormalize = function (st) { return normalize(st); };   /* QA: map any backend answer to the page's shape */
   var S = ZH ? {
     layersFailed: "卡片已生成，立体效果暂未就绪。", retryLayers: "重试立体效果", layersRetrying: "正在处理立体效果…",
     llmFailedAvatar: "已先使用你的头像制作卡片。", llmFailedDefault: "已使用该类型的 Donut 默认图制作卡片。", regenBtn: "重新生成卡面",
-    regenerating: "正在重新生成卡面… {n}%", regenFailed: "这次没能重新生成，已保留当前卡片。", budget: "暂时不能重新生成，已保留当前卡片。",
-    reconnect: "暂时无法确认生成进度，正在重新连接。", checkProgress: "查看进度",
+    regenerating: "正在重新生成卡面… {n}%", regenFailed: "这次没能重新生成，已保留当前卡片。",
+    offline: "网络连接中断。重新打开本页即可继续。", offlineCard: "网络连接中断，已保留当前卡片。",
+    welcome: "欢迎回来，你的卡片已就绪，分享给朋友吧。",
     stageGemini: "正在绘制卡面", stageCutout: "正在处理立体图层"
   } : {
     layersFailed: "Your card is ready. The 3D effect isn’t available yet.", retryLayers: "Retry 3D effect", layersRetrying: "Rendering the 3D effect…",
     llmFailedAvatar: "Your card is ready using your original profile picture.", llmFailedDefault: "Your card uses the Donut artwork for your type.", regenBtn: "Regenerate card",
-    regenerating: "Regenerating your card… {n}%", regenFailed: "Couldn’t regenerate this time. Your current card is kept.", budget: "Regeneration isn’t available right now. Your current card is kept.",
-    reconnect: "Can’t confirm generation progress right now. Reconnecting…", checkProgress: "Check progress",
+    regenerating: "Regenerating your card… {n}%", regenFailed: "Couldn’t regenerate this time. Your current card is kept.",
+    offline: "Connection lost. Reopen this page to continue.", offlineCard: "Connection lost. Your current card is kept.",
+    welcome: "Welcome back. Your card is ready to share.",
     stageGemini: "Painting your card", stageCutout: "Rendering the 3D layers"
   };
-  var noteEls = { az: document.getElementById("az-note"), r: document.getElementById("r-note") }, curNote = null;
-  /* one note at a time, on whichever surface is live (waiting screen before the reveal, under the type name after) */
+  /* one note, beside the card, shown only once the card is up (its surface sits inside .reveal-info) */
+  var noteEl = document.getElementById("r-note"), curNote = null;
   function setNote(text, btnLabel, onClick, kind) { curNote = text ? { text: text, btn: btnLabel, fn: onClick, kind: kind || "info" } : null; renderNote(); }
   function clearNote(kind) { if (!curNote || (kind && curNote.kind !== kind)) return; curNote = null; renderNote(); }
   function renderNote() {
-    var live = document.body.classList.contains("revealed") ? noteEls.r : noteEls.az, other = live === noteEls.r ? noteEls.az : noteEls.r;
-    other.hidden = true;
-    if (!curNote) { live.hidden = true; return; }
-    live.hidden = false; live.querySelector("span").textContent = curNote.text;
-    var b = live.querySelector("button"); b.hidden = !curNote.btn; b.textContent = curNote.btn || ""; b.disabled = false;
+    if (!curNote) { noteEl.hidden = true; return; }
+    noteEl.hidden = false; noteEl.querySelector("span").textContent = curNote.text;
+    var b = noteEl.querySelector("button"); b.hidden = !curNote.btn; b.textContent = curNote.btn || ""; b.disabled = false;
     b.onclick = curNote.fn ? function () { b.disabled = true; curNote.fn(b); } : null;   /* disabled until the request answers: no double submits */
   }
   var toAbs = function (u) { return /^https?:/.test(u) ? u : API + u; };
@@ -455,21 +463,41 @@
   var DEFAULT_ART = new URL("../identity/img/archetypes/" + C[type].slug + ".jpg", location.href).href;
   function avatarData() { return fetch(AVATAR).then(function (r) { return r.blob(); }).then(function (b) { return new Promise(function (res) { var fr = new FileReader(); fr.onload = function () { res(fr.result); }; fr.readAsDataURL(b); }); }); }
   var pollT = null, netFails = 0, posting = false;
-  /* QA switches (page-side only, work against any backend): ?fault=layers — the first answer's layers read as failed
-     (so the flat card, the note and "Retry 3D effect" show; the retry then gets the real layers); ?fault=llm — the first
-     answer reads as an LLM failure (fallback card + "Regenerate card"); ?fault=net — the first two requests go nowhere
-     (reconnect note + "Check progress"). */
-  var FAULT = new URLSearchParams(location.search).get("fault") || "", faultUsed = false, netSim = 0;
-  function apiNow() { return FAULT === "net" && netSim++ < 2 ? "http://127.0.0.1:9" : API; }
+  /* ── demo modes (page-side, against any backend — the "browser-simulated task" of S13): ?demo=<case>[&fast=1]
+       timeout           no card by the cap → the server's verdict → avatar card + "Regenerate card"
+       layers-timeout    the card lands, its layers never do → verdict at the cap → flat card + "Retry 3D effect"
+       layers | llm      the same two cases, verdict in the first answer
+       budget | noavatar the silent fallbacks (avatar / the type's art): no note, no button
+       net               the first two polls go nowhere: passive line, polling goes on, nothing re-sent
+       net-post          the POST goes nowhere: passive line, the user re-enters (rule 3)
+     The cap is the real 60 s; &fast=1 makes it 6 s for a quick walk-through. ?fault= is the older spelling. */
+  var DEMO = Q.get("demo") || Q.get("fault") || "", FAST = Q.get("fast") === "1", SIM_CAP = FAST ? 6000 : 60000;
+  var faultUsed = false, netSim = 0, simT0 = 0;
+  art.demo = DEMO; art.simCap = DEMO ? SIM_CAP : 0;
+  function apiNow(kind) {
+    if (DEMO === "net" && kind === "poll" && netSim++ < 2) return "http://127.0.0.1:9";
+    if (DEMO === "net-post" && kind === "post" && netSim++ < 1) return "http://127.0.0.1:9";
+    return API;
+  }
   function simulate(n) {
-    if (faultUsed || n.status !== "done") return n;
-    if (FAULT === "layers") { faultUsed = true; return Object.assign({}, n, { layers: "failed", cut: "", plate: "" }); }
-    if (FAULT === "llm") { faultUsed = true; return { status: "failed", error: "provider_error" }; }
+    if (!DEMO || faultUsed) return n;
+    if (!simT0) simT0 = Date.now();
+    var held = Date.now() - simT0 < SIM_CAP;
+    if (DEMO === "timeout") { if (held) return { status: "running", stage: "gemini" }; faultUsed = true; return { status: "failed", error: "timeout" }; }
+    if (DEMO === "net" && n.status === "done" && netSim === 0) return { status: "running", stage: "gemini" };   /* so polls follow; two of them miss */
+    if (n.status !== "done") return n;
+    if (DEMO === "layers-timeout") { if (held) return Object.assign({}, n, { layers: "pending", stage: "cutout", cut: "", plate: "" }); faultUsed = true; return Object.assign({}, n, { layers: "failed", cut: "", plate: "" }); }
+    if (DEMO === "layers") { faultUsed = true; return Object.assign({}, n, { layers: "failed", cut: "", plate: "" }); }
+    if (DEMO === "llm") { faultUsed = true; return { status: "failed", error: "provider_error" }; }
+    if (DEMO === "budget") { faultUsed = true; return { status: "failed", error: "budget" }; }
+    if (DEMO === "noavatar") { faultUsed = true; return { status: "failed", error: "no_avatar" }; }
     return n;
   }
   /* one shape for three backends: the real service's receipt (per-asset states, retry tokens), the mock's
      layers {status, cutout_url, plate_url}, and the legacy flat fields (cutout_url / cutout: pending|none) */
-  var RESULT_CONTRACT = "DONUT_CARD_PARTIAL_LAYERS_V1", requestKey = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
+  var RESULT_CONTRACT = "DONUT_CARD_PARTIAL_LAYERS_V1";
+  function newKey() { return crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2); }
+  var requestKey = newKey();   /* idempotency key of the task; a "Regenerate card" is a new task and gets a new one */
   var receipt = null;   /* the real service's last receipt (attempt, sha256, expiry, worker contract) for retries */
   function normalize(st) {
     var n = { status: st.status, stage: st.stage || null, error: st.error || null, image: st.image_url || "", cut: "", plate: "", layers: "none" };
@@ -494,21 +522,21 @@
     else if (st.cutout === "none") n.layers = "failed";
     return n;
   }
-  function startJob() {   /* the first attempt, or "Regenerate card" (a new task, counted by the backend) */
+  function startJob() {   /* the first attempt, or "Regenerate card" (a new task the user chose, counted by the backend) */
     if (posting) return; posting = true;
     var body = { avatar_data: null, handle: HANDLE, type: typeId, requestKey: requestKey, expectedContract: RESULT_CONTRACT };
-    avatarData().then(function (data) { body.avatar_data = data; return fetch(apiNow() + "/v1/identity/card-art", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); })
+    avatarData().then(function (data) { body.avatar_data = data; return fetch(apiNow("post") + "/v1/identity/card-art", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); })
       .then(function (r) { return r.json(); }).then(function (j) {
         posting = false; netOk();
         if (!j.job_id) { onFailed(j.error || "provider_error"); return; }
         art.job = j.job_id; handle(simulate(normalize(j)));
-      }).catch(function () { posting = false; netFail(); setTimeout(function () { if (!art.job) startJob(); }, 3000); });   /* keep trying to reach the server; the note appears after two misses */
+      }).catch(function () { posting = false; netFail(true); });   /* S13 rule 3: nothing is re-sent on its own; whoever comes back re-enters the flow */
   }
   function startPolling() { if (!pollT) pollT = setInterval(pollOnce, 3000); }
   function stopPolling() { clearInterval(pollT); pollT = null; }
-  function pollOnce() {   /* only ever asks about the same job */
-    if (!art.job) { startJob(); return; }
-    fetch(apiNow() + "/v1/identity/card-art/" + art.job).then(function (r) { return r.json(); }).then(function (st) { netOk(); handle(simulate(normalize(st))); }).catch(netFail);
+  function pollOnce() {   /* only ever asks about the same job; a miss changes nothing but the passive line */
+    if (!art.job) return;
+    fetch(apiNow("poll") + "/v1/identity/card-art/" + art.job).then(function (r) { return r.json(); }).then(function (st) { netOk(); handle(simulate(normalize(st))); }).catch(function () { netFail(false); });
   }
   function handle(n) {   /* n = normalize(answer) */
     if (n.status === "queued" || n.status === "running") { art.stage = n.stage || art.stage; startPolling(); return; }
@@ -528,40 +556,44 @@
   }
   function showCard(abs, cutUrl, plateUrl) { artDone(abs, cutUrl, plateUrl, afterShow); }
   function afterShow() {
-    art.regen = false; art.status = "done";
+    art.regen = false; art.status = "done"; art.fallback = "";
     if (art.layers === "failed") setNote(S.layersFailed, S.retryLayers, retryLayers, "layers");
     else clearNote();
+    persist();
   }
   function attachLayers(cutUrl, plateUrl) {   /* the figure lifts off the plate in one frame; nothing else changes */
     var cutAbs = toAbs(cutUrl), plateAbs = toAbs(plateUrl), left = 2;
-    function one() { if (--left) return; mid.src = plateAbs; cut.src = cutAbs; cutWin.hidden = false; art.layers = "ready"; clearNote(); }
+    function one() { if (--left) return; mid.src = plateAbs; cut.src = cutAbs; cutWin.hidden = false; art.layers = "ready"; art.cut = cutAbs; art.plate = plateAbs; clearNote(); persist(); }
     var a = new Image(); a.onload = one; a.src = cutAbs; var b = new Image(); b.onload = one; b.src = plateAbs;
   }
-  function retryLayers() {   /* re-processes the failed layers of the same card; the LLM is not called, no quota is used */
+  function retryLayers() {   /* re-processes the failed layers of the same card; the LLM is not called, no quota is used; the server gives it 60 s */
     var req;
-    if (FAULT === "layers" && faultUsed && !receipt) req = fetch(API + "/v1/identity/card-art/" + art.job);   /* simulated failure: the real answer already has the layers */
+    if (/^layers/.test(DEMO) && faultUsed && !receipt) req = fetch(API + "/v1/identity/card-art/" + art.job);   /* simulated failure: the real answer already has the layers */
     else if (receipt) req = fetch(API + "/v1/identity/card-art/" + art.job + "/retry-layers", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ requestKey: requestKey, expiresAt: receipt.expiresAt, expectedContract: receipt.contract, retryToken: crypto.randomUUID(), expectedAttempt: receipt.attempt, mainSha256: receipt.sha }) });
+      body: JSON.stringify({ requestKey: requestKey, expiresAt: receipt.expiresAt, expectedContract: receipt.contract, retryToken: newKey(), expectedAttempt: receipt.attempt, mainSha256: receipt.sha }) });
     else req = fetch(API + "/v1/identity/card-art/" + art.job + "/layers", { method: "POST" });
+    art.layers = "pending"; setNote(S.layersRetrying, "", null, "layers");
     req.then(function (r) { return r.json(); }).then(function (j) {
       netOk(); var n = normalize(j);
       if (n.layers === "ready") attachLayers(n.cut, n.plate);
-      else if (n.layers === "pending") { art.layers = "pending"; setNote(S.layersRetrying, "", null, "layers"); startPolling(); }
-      else { art.layers = "failed"; setNote(S.layersFailed, S.retryLayers, retryLayers, "layers"); }
-    }).catch(netFail);
+      else if (n.layers === "pending") startPolling();
+      else { art.layers = "failed"; setNote(S.layersFailed, S.retryLayers, retryLayers, "layers"); persist(); }
+    }).catch(function () { art.layers = "failed"; netFail(true); });
   }
-  function onFailed(code) {   /* the server's verdict on the LLM stage */
-    if (art.regen) { art.regen = false; if (code === "budget") setNote(S.budget, "", null, "llm"); else setNote(S.regenFailed, S.regenBtn, regenerate, "llm"); return; }
+  function onFailed(code) {   /* the server's verdict on the card: failed or timed out (S13 rule 2), or a silent case (rule 4) */
+    if (art.regen) { art.regen = false; if (code === "budget") setNote(S.regenFailed, "", null, "llm"); else setNote(S.regenFailed, S.regenBtn, regenerate, "llm"); return; }
     if (art.status === "done") return;   /* a verdict for a card that is already up: keep it */
-    art.fallback = true; art.layers = "none";   /* no generated art: the avatar as the card, or the type's Donut art without one */
-    artDone(AVATAR_ABS || DEFAULT_ART, "", "", function () {
+    var silent = code === "budget" || code === "no_avatar";   /* rule 4: no reason shown, no retry; share and save work */
+    var src = code === "no_avatar" ? DEFAULT_ART : (AVATAR_ABS || DEFAULT_ART);
+    art.layers = "none"; art.fallback = silent ? "silent" : "retry";
+    artDone(src, "", "", function () {
       art.status = "done";
-      if (code === "budget") setNote(S.budget, "", null, "llm");
-      else setNote(AVATAR_ABS ? S.llmFailedAvatar : S.llmFailedDefault, S.regenBtn, regenerate, "llm");
+      if (silent) clearNote(); else setNote(src === DEFAULT_ART ? S.llmFailedDefault : S.llmFailedAvatar, S.regenBtn, regenerate, "llm");
+      persist();
     });
   }
-  function regenerate() {   /* a new generation task the user chose; the current card stays until the new one is in */
-    art.regen = true; art.layers = "none"; art.stage = null; art.regenT0 = Date.now();
+  function regenerate() {   /* a new task the user chose (counted by the backend); the current card stays until the new one is in */
+    art.regen = true; art.layers = "none"; art.stage = null; art.regenT0 = Date.now(); requestKey = newKey();
     setNote(S.regenerating.replace("{n}", "0"), "", null, "regen");
     startJob();
   }
@@ -570,12 +602,32 @@
     var t = Date.now() - art.regenT0, pct = Math.min(96, 100 * (1 - Math.exp(-(t / 30000) * 2.2))); if (art.stage === "cutout") pct = Math.max(pct, 78);
     setNote(S.regenerating.replace("{n}", String(Math.round(pct))), "", null, "regen");
   }, 500);
-  function netFail() {   /* the request did not get an answer: the state is unknown, not failed */
-    if (++netFails < 2) return;
-    setNote(S.reconnect, S.checkProgress, function () { netFails = 0; pollOnce(); }, "net");
+  function netFail(immediate) {   /* a request got no answer: the state is unknown, not failed. S13 rule 3: a passive line, no button, nothing re-sent */
+    if (!immediate && ++netFails < 2) return;
+    art.offline = true; art.regen = false;
+    if (art.status === "done") setNote(S.offlineCard, "", null, "net");
+    else { var el = document.getElementById("az-status"); if (el) el.textContent = S.offline; }
   }
-  function netOk() { netFails = 0; clearNote("net"); }
-  if (API && typeId) startJob();
+  function netOk() { netFails = 0; art.offline = false; clearNote("net"); }
+  /* ── the card this user already drew (S13 rule 5): kept per handle by DonutCardStore (demo-kols.js; the real service
+     keeps it per X account), written at every settled point, read back by restore() on a revisit ── */
+  var store = window.DonutCardStore || null;
+  function persist() {
+    if (!store || !HANDLE || !art.url) return;
+    store.save({ handle: HANDLE, kol: KOLID, type: typeId, name: type, image: art.url, cut: art.cut, plate: art.plate, layers: art.layers, fallback: art.fallback, job: art.job, requestKey: requestKey, receipt: receipt, at: Date.now() });
+  }
+  function restore(card) {   /* the stored card as it was, with its retry if one applied; never a new task */
+    art.job = card.job || null; requestKey = card.requestKey || requestKey; receipt = card.receipt || null;
+    art.layers = card.layers || "none"; art.fallback = card.fallback || "";
+    artDone(card.image, art.layers === "ready" ? card.cut : "", art.layers === "ready" ? card.plate : "", function () {
+      art.status = "done";
+      if (art.fallback === "retry") setNote(card.image === DEFAULT_ART ? S.llmFailedDefault : S.llmFailedAvatar, S.regenBtn, regenerate, "llm");
+      else if (art.layers === "failed") setNote(S.layersFailed, S.retryLayers, retryLayers, "layers");
+      else setNote(S.welcome, "", null, "info");
+    });
+  }
+  if (REVISIT) restore(STORED);
+  else if (API && typeId) startJob();
   else if (D && D.avatar) artDone(new URL(D.avatar, location.href).href, "", "", function () { art.status = "done"; });   /* no backend on this host: the avatar fills the card window */
   else art.status = "none";
   /* the demo avatar isn't on this host (they stay out of git): back to the sample persona so card and copy agree */
@@ -594,9 +646,15 @@
     var pending = { art: true, cut: !!extra.cut, plate: !!extra.plate }, ok = { cut: false, plate: false }, finished = false;
     function settle(k, good) {
       if (!pending[k]) return; pending[k] = false; ok[k] = good;
-      if (k === "art" && !good) { finished = true; if (!API && D) { demoFallback(); art.status = "none"; } else netFail(); return; }
+      if (k === "art" && !good) {
+        finished = true; art.loadFails = (art.loadFails || 0) + 1;
+        if (!API && D) { demoFallback(); art.status = "none"; }
+        else if (art.status !== "done" && abs !== AVATAR_ABS && abs !== DEFAULT_ART && (REVISIT || art.loadFails >= 5)) onFailed("output_missing");   /* the card the server should hold isn't there: fallback + "Regenerate card" */
+        else { netFail(false); if (art.job) startPolling(); }   /* the art didn't load: the passive line; the same job is re-read and its next answer re-tries the image */
+        return;
+      }
       if (finished || pending.art || pending.cut || pending.plate) return; finished = true;
-      art.url = abs; document.body.classList.add("has-art");
+      art.url = abs; art.cut = ok.cut ? extra.cut : ""; art.plate = ok.plate ? extra.plate : ""; document.body.classList.add("has-art");
       /* swap the art into the loaded card rather than reloading the iframe — the reload left a dark card for a few
          seconds on a slow first load (Vercel + tunnel, 2026-10-09) */
       var doc = f.contentDocument, ph = doc && doc.querySelector(".kol-photo img"), stx = doc && doc.getElementById("v2x");
@@ -664,7 +722,7 @@
   var azEl = document.getElementById("az-status"), azI = 0;
   /* parallelogram cells: each snaps on at its moment, pink fading to gold */
   var azBar = document.getElementById("az-bar");
-  for (var ci = 0; ci < 14; ci++) {
+  for (var ci = 0; azBar && ci < 14; ci++) {
     var cell = document.createElement("i");
     var t = ci / 13;
     cell.style.setProperty("--c", "rgb(" + Math.round(255) + " " + Math.round(122 + t * 87) + " " + Math.round(194 - t * 76) + ")");
@@ -673,24 +731,25 @@
   }
   var azTick = setInterval(function () {
     azI = (azI + 1) % AZ.length;
+    if (!azEl) return;
+    if (art.offline) { azEl.textContent = S.offline; return; }   /* S13 rule 3: a passive line, no button */
     /* once the server names a stage, show it (product: real stage, not a guess) */
     azEl.textContent = art.stage === "cutout" ? S.stageCutout : (art.stage === "gemini" || art.stage === "gpt") ? S.stageGemini : AZ[azI];
   }, 950);
   /* the reveal waits for the card AND a settled verdict on its layers (min 3.8 s so the loader reads). There is no
-     browser-side deadline: a slow job keeps the waiting screen with its real stage; only the server declares failures.
-     A percentage appears after 8 s so a long wait is legible. */
-  var ART_EXPECT = 30000, MIN_SHOW = 3800, azPct = document.getElementById("az-pct");
+     browser-side deadline: a slow job keeps the waiting screen with its real stage; only the server declares failures
+     (S13: within its 60 s task cap). A percentage appears after 8 s so a long wait is legible. A revisit skips it all. */
+  var ART_EXPECT = 30000, MIN_SHOW = REVISIT ? 0 : 3800, azPct = document.getElementById("az-pct");
   var revealing = false;
   function reveal() {
     if (revealing) return; revealing = true;
     clearInterval(azTick); clearInterval(waitTick);
-    if (window.DonutSummon) DonutSummon.flare(summonRoot);
-    setTimeout(revealNow, 1100);
+    if (window.DonutSummon && summonRoot) DonutSummon.flare(summonRoot);
+    setTimeout(revealNow, summonRoot ? 1100 : 0);
   }
   function revealNow() {
     var ov = document.getElementById("analyze");
-    ov.classList.add("done");
-    setTimeout(function () { ov.remove(); }, 500);
+    if (ov) { ov.classList.add("done"); setTimeout(function () { ov.remove(); }, 500); }
     document.body.classList.add("revealed");
     renderNote();   /* a note that was on the waiting screen moves under the type name */
     /* no auto-flip (Cory): the card turns only when the user taps it */

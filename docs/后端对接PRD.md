@@ -1,7 +1,7 @@
 # Donut Trader 卡片 · 生图后端对接 PRD（人话版）
 
 写给后端的同学。目标：把现在跑在 Cory 账号上的 mock 生图后端，换成我们自己的正式服务，前端一行配置切过去，其它都不用动。
-更新：2026-10-12（加了线上产品端实测，修正 mock 文件名和图层状态写法）· 维护：Cory（设计）。接口字段的权威定义在 `tools/cardgen/BACKEND.md`，本文只讲"是什么、怎么跑、你要做什么、怎么测"。
+更新：2026-10-14（按产品 S13 口径：60 s 统一上限、只有两种 Retry、静默兜底、断网不重试、回访直达结果页；前端和 mock 已实现）· 维护：Cory（设计）。接口字段的权威定义在 `tools/cardgen/BACKEND.md`，本文只讲"是什么、怎么跑、你要做什么、怎么测"。
 
 ---
 
@@ -31,7 +31,7 @@
 2. 算缓存 key = `sha256(头像字节) : 人格 : prompt_version`。命中就直接返回 `done`，不花钱。
 3. 没命中：通过 OpenRouter 同时调 `google/gemini-3-pro-image` 和 `google/gemini-3.1-flash-image`；Pro 在 28 s 内回来就用 Pro，否则用 Flash（见 BACKEND.md §13）（chat completions 接口，`modalities: ["image","text"]`），输入 = 头像图 + 一段文本（`prompts.md` 里该人格的装备/动作 + 风格描述，逐字见 PROMPT-EXPORT.md §3）。返回 base64 PNG，存成 `<key>.png`。到这里就对外报 `done`。
 4. 后台跑抠图：`rembg`（isnet-general-use 模型）把人物抠成带 alpha 的 `<key>.cut.png`，再生成一张"干净底图" `<key>.plate.jpg`（人物区域用模糊填掉）。前端把底图放在窗口层、人物放在前一层，鼠标/手机一动就有立体感。
-5. 卡面一到就对外报 `done`，不等抠图；图层单独走 `layers.status`：`pending → ready | failed`（抠图自身上限 180 s，超过由服务端判 `failed: timeout`）。前端拿到 `done` 后继续轮询，三层齐了才揭晓；图层失败就先出平面卡 + "Retry 3D effect"（只重做图层，不调 LLM）。
+5. 卡面一到就对外报 `done`，不等抠图；图层单独走 `layers.status`：`pending → ready | failed`。整个任务（生图 + 图层）由服务端在 **60 s** 内判定：到点没有主图 → `failed: timeout`；有主图没图层 → `layers.status: failed, error: timeout`。单独重试图层另给 60 s。前端拿到 `done` 后继续轮询，三层齐了才揭晓；图层失败就先出平面卡 + "Retry 3D effect"（只重做图层，不调 LLM）。
 
 **接口实测（Fly 线上，2026-10-12 更新）**
 
@@ -71,7 +71,7 @@
 
 1. **身份与头像**：前端目前把头像 base64 传上来（mock 没有登录）。正式版应该是：X OAuth 登录 → 服务端从会话里拿 `profile_image_url`（把 `_normal` 换成 `_400x400`）自己下载 → 不信任客户端传的任何头像/handle。接口里 `avatar_data` 这个字段可以砍掉。详见 `docs/X接入说明.md`。
 2. **鉴权与限流**：两个接口都要求登录态；每账号每天限次（建议 3 次），防刷额度。
-3. **存储**：成品、抠图、底图上 CDN（WebP），接口返回绝对 URL；任务记录入库（user、type、prompt_version、cost、耗时），便于查账。
+3. **存储**：成品、抠图、底图上 CDN（WebP），接口返回绝对 URL；任务记录入库（user、type、prompt_version、cost、耗时），便于查账。另外按 X 账号存"最近一张卡"并提供 `GET /v1/identity/card-art/mine`（S13 第 5 条：回访直达结果页，不重新生成；demo 版暂存在浏览器 localStorage，见 `v2/demo-kols.js` 的 `DonutCardStore`）。
 4. **抠图依赖**：Linux 上 `pip install rembg onnxruntime pillow numpy`，模型 179 MB 建议打进镜像（`Dockerfile.mock` 有现成写法），内存给 2 GB。
 5. **Key 与模型**：用公司自己的 OpenRouter 账号；Cory 在聊天里贴过的 key 上线前必须换。模型固定 `google/gemini-3-pro-image`；`prompt_version` 变了缓存自动失效，这个机制要保留。
 6. **CORS**：只放行 `https://kol-identity-h5.vercel.app`（以及之后的正式域名）。
@@ -82,9 +82,13 @@
 - `POST /v1/identity/card-art` → `200 {status:"done", image_url, layers:{status, cutout_url?, plate_url?}}` 或 `202 {status:"running", stage, job_id}`；失败任务之后再 POST 算一次新任务（计额度）
 - `GET /v1/identity/card-art/{job_id}` → `running`（带真实 `stage`）/ `done`（`layers.status` = `pending` | `ready` | `failed`，三层是独立状态）/ `failed`（`error` = `timeout` | `provider_error` | `moderation_blocked` | `budget` | `no_avatar`）
 - `POST /v1/identity/card-art/{job_id}/layers` → 只重做抠图和底图（"重试立体效果"），不调 LLM、不计额度
-- 规则：`failed`/`timeout` 必须是服务端判定（LLM 540 s、抠图 180 s 各自有上限），前端不会因为等久了就宣告失败；LLM 和图层的成功/失败/超时/耗时分开记（mock 写 `jobs.jsonl`，`/healthz` 有计数）
+- 规则（S13，2026-10-14）：**一个任务 = 生图 + 图层，服务端 60 s 内判定**（mock 环境变量 `CARD_JOB_DEADLINE_MS`），单独重试图层另给 60 s（`CARD_LAYERS_RETRY_MS`）；`failed`/`timeout` 必须是服务端判定，前端不会因为等久了就宣告失败；LLM 和图层的成功/失败/超时/耗时分开记（mock 写 `jobs.jsonl`，`/healthz.metrics` 分 `ok`/`failed`/`timeout`）
+- 前端只在两种情况给 Retry：主图失败/超时 → 用头像（无头像用类型默认图）做卡 + **Regenerate card**（新任务、计额度、新 `requestKey`）；主图成功但图层失败/超时 → 平面卡 + **Retry 3D effect**（只重做图层）。提示和按钮都在过场结束、卡片出现后才显示，重试期间保留当前卡
+- `budget`（额度不足）和 `no_avatar` → 静默兜底：有头像用头像、没有用类型默认图，正常展示、可分享保存，不说原因、不给 Retry
+- 断网 → 页面只显示一句"Connection lost. Reopen this page to continue."，不给 Retry / 查看进度，也不会自己重发任务；用户重新进入会重走流程，所以**服务端要按缓存 key（头像 + 类型 + prompt_version）去重**，同一个人同一类型不能跑两次
+- 回访（已抽卡用户）→ 直接进结果页展示已有卡并引导分享，不重新生成；只有上一次结果属于上面两种失败/超时时才保留对应 Retry（见 BACKEND.md §3 "Revisit"，正式版需要 `GET /v1/identity/card-art/mine`）
 - `GET /healthz` → `{ok:true, pipeline, spent_usd, prompt_version}`（mock 现在还带 `model` / `race_model` / `race_mode` / `primary_deadline_ms` 和各阶段成功、失败计数）
-- 前端行为：每 3 s 轮询，没有浏览器侧超时（慢任务一直停在等待页并显示真实阶段，失败只认服务端判定），8 s 后显示百分比（按 30 s 预期），拿到 `done` 且 `layers.status` 落定（`ready` 或 `failed`）才进结果页。
+- 前端行为：每 3 s 轮询，没有浏览器侧超时（60 s 上限是服务端的；慢任务一直停在等待页并显示真实阶段），8 s 后显示百分比（按 30 s 预期），拿到 `done` 且 `layers.status` 落定（`ready` 或 `failed`）才进结果页。
 
 ---
 
@@ -127,14 +131,20 @@ cd kol-identity-h5 && OPENROUTER_API_KEY=你的key node tools/cardgen/mock-serve
 
 打开 http://127.0.0.1:3025/v2/ ，页面在 localhost 会自动用 3022。macOS 上抠图走系统 Vision，不用装 rembg；Linux 装了 rembg 才有抠图，没有也能出卡。
 
-**D. 各种状态怎么看（产品 2026-10-10 口径，前端已实现）**
+**D. 各种状态怎么看（产品 S13 口径，2026-10-14，前端已实现）**
 
-在结果页 URL 加一个参数就能演示（只对 mock 有效，正式服务没有）：
-- `?fault=layers`：主图成功、立体图层失败 → 平面卡 + "Your card is ready. The 3D effect isn't available yet." + **Retry 3D effect**（只重做图层）
-- `?fault=llm`：LLM 失败 → 用 X 头像原图做卡 + "Your card is ready using your original profile picture." + **Regenerate card**（新任务，保留当前卡）
-- `?fault=net`：前两次请求连不上 → "Can't confirm generation progress right now. Reconnecting…" + **Check progress**（只查原任务）
+Demo 用浏览器模拟任务：结果页 URL 加 `?demo=<情况>` 即可演示，对任何后端都有效；默认走真实 60 s，加 `&fast=1` 把上限缩成 6 s 快速过一遍：
+- `?demo=timeout&fast=1`：到点没有主图 → 用头像做卡 + "Your card is ready using your original profile picture." + **Regenerate card**（点了就真的重新生成，当前卡保留到新卡到位）
+- `?demo=layers-timeout&fast=1`：主图到了、图层到点没好 → 平面卡 + "Your card is ready. The 3D effect isn't available yet." + **Retry 3D effect**（只重做图层）
+- `?demo=layers` / `?demo=llm`：同上两种，但第一次回答就判失败（不用等）
+- `?demo=budget` / `?demo=noavatar`：静默兜底，没有提示也没有按钮，卡正常显示、可分享保存（budget 用头像，noavatar 用类型默认图）
+- `?demo=net`：前两次轮询连不上 → 等待页只显示 "Connection lost. Reopen this page to continue."，没有按钮，连上后自动出卡
+- `?demo=net-post`：提交任务那一下就断网 → 同上一句，页面不会自己重发；用户重新进入重走流程
+- 回访：任何一个 demo 账号出过卡以后，落地页 "Demo as" 里它的头像带绿圈，点它直接进结果页（没有资料页、问卷和过场），显示 "Welcome back. Your card is ready to share."；上一次是失败/超时的，对应 Retry 还在。想重来：`claim.html?kol=elonmusk&reset=1`
 - 正常：三层齐了才揭晓；等待页显示真实阶段（Painting your card → Rendering the 3D layers）。
-例：https://kol-identity-h5.vercel.app/v2/analysis.html?kol=cz_binance&fault=layers
+例：https://kol-identity-h5.vercel.app/v2/analysis.html?kol=cz_binance&demo=layers-timeout&fast=1
+
+服务端也能演示超时（只有 mock 有，正式服务不要做）：`POST …/card-art?fault=slow&deadline_ms=5000` → 5 s 后 `failed: timeout`，不调模型不花钱；`?fault=layers-slow` → 主图正常、图层跑到预算用完 → `layers.status: failed, error: timeout`，再 `POST …/layers` 就正常了。
 
 **E. 失败怎么看**
 - 轮询返回 `failed`：看服务日志（Fly：`fly logs -a donut-card-art`），常见是 OpenRouter 拒绝（真人名人头像偶尔会）、超时、额度上限。

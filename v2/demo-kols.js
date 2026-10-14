@@ -22,15 +22,31 @@
   var CSS = ".login-demo{margin:14px 0 2px;padding-top:14px;border-top:1px solid rgb(255 255 255/.08);display:flex;align-items:center;gap:8px;flex-wrap:wrap}" +
     ".login-demo>span{font:500 11px/1 var(--mono,system-ui);letter-spacing:.08em;text-transform:uppercase;color:rgb(255 255 255/.4);margin-right:4px}" +
     ".login-demo a{display:inline-flex;width:34px;height:34px;border-radius:50%;overflow:hidden;box-shadow:0 0 0 1px rgb(255 255 255/.18);transition:transform .15s,box-shadow .15s}" +
-    ".login-demo a:hover{transform:translateY(-2px);box-shadow:0 0 0 2px rgb(115 97 255/.9)}.login-demo img{width:100%;height:100%;object-fit:cover;display:block}";
+    ".login-demo a:hover{transform:translateY(-2px);box-shadow:0 0 0 2px rgb(115 97 255/.9)}.login-demo img{width:100%;height:100%;object-fit:cover;display:block}" +
+    ".login-demo a.has-card{box-shadow:0 0 0 2px rgb(126 226 168/.9)}.login-demo a.has-card:hover{box-shadow:0 0 0 2px rgb(126 226 168/1)}";   /* green ring: a card already drawn, opens it directly */
   /* a row of avatars in the landing's login sheet: "Demo as …" */
   function renderPicker(host, next) {
     if (!host) return;
     var st = document.createElement("style"); st.textContent = CSS; document.head.appendChild(st);
-    host.innerHTML = "<span>Demo as</span>" + Object.keys(KOLS).map(function (id) { var k = KOLS[id]; return '<a href="' + next + "?kol=" + id + '" title="' + k.name + " · " + k.handle + '"><img src="' + k.avatar + '" alt="' + k.name + '"></a>'; }).join("");
+    host.innerHTML = "<span>Demo as</span>" + Object.keys(KOLS).map(function (id) {
+      var k = KOLS[id], has = !!window.DonutCardStore.load(k.handle);   /* a card already drawn opens directly (S13 rule 5) */
+      var href = has ? "./analysis.html?kol=" + id + "&revisit=1" : next + "?kol=" + id;
+      return '<a href="' + href + '"' + (has ? ' class="has-card"' : "") + ' title="' + k.name + " · " + k.handle + (has ? " · card ready" : "") + '"><img src="' + k.avatar + '" alt="' + k.name + '"></a>';
+    }).join("");
     host.hidden = false;
     /* avatars that aren't on this host (they stay out of git) drop out; no avatars, no row */
     host.querySelectorAll("img").forEach(function (im) { im.onerror = function () { im.parentNode.remove(); if (!host.querySelector("a")) host.hidden = true; }; });
   }
+  /* ── the cards already drawn, per handle, in this browser (S13 rule 5: a returning user lands on their card, no quiz,
+     no transition, no new task). The real service keeps this per X account and answers the same shape
+     (BACKEND.md §3, "revisit"); the pages only talk to this seam. ?reset=1 on claim.html / analysis.html forgets one
+     handle's card (demo + QA). */
+  var STORE = "donut.card.";
+  function cardKey(handle) { return STORE + String(handle || "").replace(/^@/, "").toLowerCase(); }
+  window.DonutCardStore = {
+    load: function (handle) { try { return JSON.parse(localStorage.getItem(cardKey(handle)) || "null"); } catch (e) { return null; } },
+    save: function (card) { try { localStorage.setItem(cardKey(card.handle), JSON.stringify(card)); } catch (e) {} },
+    clear: function (handle) { try { localStorage.removeItem(cardKey(handle)); } catch (e) {} }
+  };
   window.DonutDemo = { KOLS: KOLS, current: current, renderPicker: renderPicker };
 })();

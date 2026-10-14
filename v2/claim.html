@@ -237,7 +237,13 @@
 </div>
 
 <script src="./score.js?v=2"></script>
-<script src="./demo-kols.js?v=1"></script>
+<script src="./demo-kols.js?v=2"></script>
+<script>
+/* S13 rule 5: a demo user who already drew a card skips the profile and the quiz; ?reset=1 forgets the card and starts over */
+(function () { var Q = new URLSearchParams(location.search), id = Q.get("kol"), K = window.DonutDemo && DonutDemo.KOLS[id]; if (!K || !window.DonutCardStore) return;
+  if (Q.get("reset") === "1") { DonutCardStore.clear(K.handle); return; }
+  if (DonutCardStore.load(K.handle)) location.replace("./analysis.html?kol=" + id + "&revisit=1"); })();
+</script>
 <script>
 (function () {
   /* ── the one card: mystery front, masked back; flips with the view ── */

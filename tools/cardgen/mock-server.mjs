@@ -12,6 +12,9 @@
    done | failed); `layers` is the 2.5D pair (cut-out + clean plate: pending → ready | failed) and never holds the card
    back — the page decides what to show. Every "failed" and every "timeout" is the server's verdict (a provider error, a
    budget stop, or a stage that ran past its own limit); the browser never infers failure from waiting.
+   S13 (PM, 2026-10-14): one task — card + layers — is settled within CARD_JOB_DEADLINE_MS (60 s). Past it, no card →
+   failed: timeout (the page falls back to the avatar / the type's art + "Regenerate card"); a card without its layers →
+   layers failed: timeout (flat card + "Retry 3D effect"). A layers retry gets its own 60 s (CARD_LAYERS_RETRY_MS).
 
    POST /v1/identity/card-art            { avatar_url|avatar_data, handle, type }  → 200 done (cache) | 202 queued/running
    GET  /v1/identity/card-art/:job                                                 → queued | running | done | failed (+layers)
@@ -42,16 +45,21 @@ const RACE_MODEL = String(process.env.CARD_RACE_MODEL || "google/gemini-3.1-flas
 const RACE_MODE = String(process.env.CARD_RACE_MODE || "parallel");
 const PRIMARY_DEADLINE = Number(process.env.CARD_PRIMARY_DEADLINE_MS || 28000);
 const LLM_TIMEOUT = Number(process.env.CARD_LLM_TIMEOUT_MS || 60000);
+const JOB_DEADLINE = Number(process.env.CARD_JOB_DEADLINE_MS || 60000);        /* S13: the whole task, card + layers */
+const LAYERS_RETRY_DEADLINE = Number(process.env.CARD_LAYERS_RETRY_MS || 60000); /* S13: a layers-only retry */
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /* first settled-ok result of the given promises (each resolves {g, model} or null), or null when all are null */
 function firstOk(list) { return new Promise((resolve) => { let left = list.length; if (!left) resolve(null); list.forEach((p) => p.then((v) => { if (v) resolve(v); else if (--left === 0) resolve(null); })); }); }
 const CACHE = join(CARDGEN, "out/server-cache"); await mkdir(CACHE, { recursive: true });
 const METRICS_LOG = join(CACHE, "jobs.jsonl");          /* one line per stage attempt: llm / layers, ok, ms, error, cost */
-const LAYERS_TIMEOUT = 180000;                           /* the segmenter's own limit; past it the layers are "failed: timeout" (server verdict) */
+const MAINT_TIMEOUT = 180000;                            /* boot sweep and warm-up runs only; user tasks get the S13 budgets above */
 const key = await apiKey(), prompts = await loadPrompts(), budget = new Budget(Number(args.cap || process.env.CARD_BUDGET || 20));
 const jobs = new Map();
-/* QA switches (BACKEND.md §4): POST …?fault=llm → the LLM stage fails with provider_error after 2 s (no call made);
-   POST …?fault=layers → the layers verdict is "failed: simulated" for that card until a layers retry. Never set in production. */
-const faultLayers = new Set();
+/* QA switches (BACKEND.md §3): POST …?fault=llm → the LLM stage fails with provider_error after 2 s (no call made);
+   ?fault=slow → no card within the deadline (no call made) → failed: timeout; ?fault=layers → the layers verdict is
+   "failed: simulated" until a layers retry; ?fault=layers-slow → the layers run past their budget → failed: timeout
+   (cleared by a retry); ?deadline_ms=<3000…180000> shortens this task's cap for a quick walk-through. Never set in production. */
+const faultLayers = new Set(), faultSlowLayers = new Set();
 const PHOTO_AVATAR = /\.(jpe?g)$/i;   /* photo avatars get --face-clean in the restyle; drawn ones don't */
 
 function refsFor(type) { const f = join(STYLE_DIR, `figma/refs-${type}.txt`); if (!existsSync(f)) return []; return require("node:fs").readFileSync(f, "utf8").split("\n").filter(Boolean).map((n) => ["webp", "jpg", "png"].map((e) => join(STYLE_DIR, n + "." + e)).find(existsSync)).filter(Boolean); }
@@ -68,8 +76,9 @@ async function record(stage, key, type, ok, ms, error, cost, model) {
 }
 /* an error from the provider or the runner, reduced to the codes BACKEND.md names */
 function classify(e) {
+  if (e && (e.killed || e.signal)) return "timeout";   /* execFile's timeout kills the child; the message doesn't say so */
   const m = String(e && e.message || e);
-  if (/abort|timed? ?out|ETIMEDOUT|killed/i.test(m)) return "timeout";
+  if (/abort|timed? ?out|ETIMEDOUT|killed|deadline/i.test(m)) return "timeout";
   if (/budget|cap /i.test(m)) return "budget";
   if (/moderat|safety|refus|blocked/i.test(m)) return "moderation_blocked";
   return "provider_error";
@@ -97,20 +106,21 @@ function ensureCutout() {
 const cutoutCmd = (png, cut, plate) => MAC ? [CUTOUT_BIN, [png, cut, plate]] : ["python3", [CUTOUT_PY, png, cut, plate]];
 const layerFiles = (k) => ({ png: join(CACHE, k + ".png"), cut: join(CACHE, k + ".cut.png"), plate: join(CACHE, k + ".plate.jpg"), none: join(CACHE, k + ".cut.none") });
 const inflight = new Map();
-function cutoutFor(key, type) {
+function cutoutFor(key, type, budgetMs = LAYERS_RETRY_DEADLINE) {   /* the budget is the first caller's: the task's remainder, or a retry's 60 s */
   if (inflight.has(key)) return inflight.get(key);
-  const p = cutoutRun(key, type).finally(() => inflight.delete(key));
+  const p = cutoutRun(key, type, budgetMs).finally(() => inflight.delete(key));
   inflight.set(key, p); return p;
 }
-async function cutoutRun(key, type) {
+async function cutoutRun(key, type, budgetMs) {
   const F = layerFiles(key);
   if (existsSync(F.cut) && existsSync(F.plate)) return "ready";
   if (existsSync(F.none) || !existsSync(F.png)) return "failed";
   if (!(await ensureCutout())) { await writeFile(F.none, "no_segmenter"); await record("layers", key, type, false, 0, "no_segmenter"); return "failed"; }
   const t0 = Date.now();
   try {
+    if (faultSlowLayers.has(key)) { await sleep(budgetMs); throw Object.assign(new Error("simulated slow layers (?fault=layers-slow)"), { killed: true }); }
     const [bin, argv] = cutoutCmd(F.png, F.cut, F.plate);
-    const { stdout } = await exec(bin, argv, { maxBuffer: 1 << 20, timeout: LAYERS_TIMEOUT });
+    const { stdout } = await exec(bin, argv, { maxBuffer: 1 << 20, timeout: budgetMs });   /* past the budget the child is killed: "failed: timeout" */
     const cov = Number((/coverage ([\d.]+)/.exec(stdout) || [])[1]);
     if (!(cov >= 0.03 && cov <= 0.9)) throw new Error("coverage " + cov);   /* nothing lifted, or the whole frame: no depth to gain */
     console.log("cutout", key, "coverage", cov.toFixed(2), Date.now() - t0, "ms");
@@ -134,19 +144,21 @@ function layersFor(k, type) {
 }
 /* "Retry 3D effect": forget the verdict, run the layers again for the same card; the LLM is never involved */
 async function retryLayers(k, type) {
-  const F = layerFiles(k); faultLayers.delete(k);
+  const F = layerFiles(k); faultLayers.delete(k); faultSlowLayers.delete(k);
   if (existsSync(F.none) && !inflight.has(k)) await unlink(F.none);
-  return layersFor(k, type);
+  return layersFor(k, type);   /* a fresh run gets LAYERS_RETRY_DEADLINE */
 }
 
 async function pipeline(job) {
   const { avatarPath, type } = job, t0 = Date.now();
-  job.status = "running";
-  try {
-    if (job.fault === "llm") { job.stage = "gemini"; await new Promise((r) => setTimeout(r, 2000)); throw new Error("simulated provider failure (?fault=llm)"); }
+  job.status = "running"; job.stage = PIPELINE === "fast" ? "gemini" : "gpt";
+  const left = () => job.deadline - (Date.now() - job.started);
+  /* the card: resolves { png, cost, model, raced }, rejects with the provider's error */
+  const making = (async () => {
+    if (job.fault === "llm") { await sleep(2000); throw new Error("simulated provider failure (?fault=llm)"); }
+    if (job.fault === "slow") { await sleep(job.deadline + 5000); throw new Error("simulated slow provider (?fault=slow)"); }
     if (PIPELINE === "fast") {
       /* one Gemini call: the avatar and the type's gear + action, style named in the text (harness/fast.mjs) */
-      job.stage = "gemini";
       const action = prompts.types[type].replace(/\s+/g, " ").trim(), prompt = fastPrompt(action);
       const errors = {};
       const call = (model) => generateImage({ key, model, prompt, avatarPath, refs: [], budget, timeoutMs: LLM_TIMEOUT })
@@ -154,33 +166,41 @@ async function pipeline(job) {
       const primary = call(MODEL);
       const racing = RACE_MODEL && RACE_MODEL !== MODEL;
       let racer = racing && RACE_MODE === "parallel" ? call(RACE_MODEL) : null;
-      let pick = await Promise.race([primary, new Promise((r) => setTimeout(() => r("deadline"), PRIMARY_DEADLINE))]);
+      let pick = await Promise.race([primary, sleep(PRIMARY_DEADLINE).then(() => "deadline")]);
       if (pick === "deadline" || pick === null) {
         const fatal = pick === null && ["budget", "moderation_blocked"].includes(classify(errors[MODEL]));
         if (fatal || !racing) { pick = pick === "deadline" ? await primary : null; if (!pick) throw errors[MODEL] || new Error("no image"); }
         else { if (!racer) racer = call(RACE_MODEL); pick = await firstOk([racer, primary]); if (!pick) throw errors[MODEL] || errors[RACE_MODEL] || new Error("no image"); }
       }
-      const g = pick.g; job.model = pick.model; job.raced = pick.model !== MODEL;
-      await writeFile(join(CACHE, job.key + ".png"), g.png); job.cost = g.cost;
-    } else {
-      job.stage = "gpt";
-      const refs = refsFor(type);
-      const g = await generateImage({ key, model: "openai/gpt-5.4-image-2", prompt: buildPrompt(prompts, prompts.style, type), avatarPath, refs, brandPath: join(CARDGEN, "refs/donut-ribbons.webp"), budget, refMode: "style" });
-      const stage1 = join(CACHE, job.key + ".stage1.png"); await writeFile(stage1, g.png);
-      job.stage = "gemini";
-      const faceClean = PHOTO_AVATAR.test(avatarPath) ? ["--face-clean"] : [];
-      await exec("node", [join(HARNESS, "restyle.mjs"), "--image", stage1, "--avatar", avatarPath, "--type", type, "--refs", refs.map((p) => "figma/" + p.split("/").pop().replace(/\.\w+$/, "")).join(","), "--name", "server-" + job.key, "--brand", "--edge-sparkle", ...faceClean], { env: { ...process.env, NODE_USE_ENV_PROXY: "1" } });
-      await copyFile(join(CARDGEN, "out/restyle", "server-" + job.key, "restyled.png"), join(CACHE, job.key + ".png"));
+      return { png: pick.g.png, cost: pick.g.cost, model: pick.model, raced: pick.model !== MODEL };
     }
+    const refs = refsFor(type);
+    const g = await generateImage({ key, model: "openai/gpt-5.4-image-2", prompt: buildPrompt(prompts, prompts.style, type), avatarPath, refs, brandPath: join(CARDGEN, "refs/donut-ribbons.webp"), budget, refMode: "style" });
+    const stage1 = join(CACHE, job.key + ".stage1.png"); await writeFile(stage1, g.png);
+    job.stage = "gemini";
+    const faceClean = PHOTO_AVATAR.test(avatarPath) ? ["--face-clean"] : [];
+    await exec("node", [join(HARNESS, "restyle.mjs"), "--image", stage1, "--avatar", avatarPath, "--type", type, "--refs", refs.map((p) => "figma/" + p.split("/").pop().replace(/\.\w+$/, "")).join(","), "--name", "server-" + job.key, "--brand", "--edge-sparkle", ...faceClean], { env: { ...process.env, NODE_USE_ENV_PROXY: "1" } });
+    return { png: await readFile(join(CARDGEN, "out/restyle", "server-" + job.key, "restyled.png")), cost: g.cost, model: "openai/gpt-5.4-image-2+restyle", raced: false };
+  })();
+  let made;
+  try {
+    /* S13: the task is settled by the deadline — the server's verdict, never the browser's */
+    made = await Promise.race([making, sleep(Math.max(0, left())).then(() => { throw Object.assign(new Error("job deadline " + job.deadline + " ms"), { killed: true }); })]);
   } catch (e) {
     job.status = "failed"; job.error = classify(e); job.detail = String(e.message || e).slice(0, 200);
     await record("llm", job.key, type, false, Date.now() - t0, job.error);
-    console.error("job", job.key, "failed:", job.error, job.detail); return;
+    console.error("job", job.key, "failed:", job.error, job.detail);
+    /* a card that lands after a timeout verdict is still cached: the user's "Regenerate card" then answers at once */
+    if (job.error === "timeout") making.then(async (m) => { await writeFile(join(CACHE, job.key + ".png"), m.png); console.log("job", job.key, "card landed after the verdict at", Date.now() - t0, "ms: cached for the next attempt"); }).catch(() => {});
+    return;
   }
+  await writeFile(join(CACHE, job.key + ".png"), made.png);
+  job.cost = made.cost; job.model = made.model; job.raced = made.raced;
   job.llm_ms = Date.now() - t0; await record("llm", job.key, type, true, job.llm_ms, null, job.cost, job.model);
   job.status = "done"; job.image_url = `/art/${job.key}.png`;
-  /* the 2.5D layers follow on their own (0.3 s on macOS Vision, ~10 s on Fly): answers carry layers.status */
-  job.stage = "cutout"; cutoutFor(job.key, type).catch(() => {});
+  /* the 2.5D layers follow on their own (0.3 s on macOS Vision, ~10 s on Fly) with what is left of the task's cap
+     (never under 3 s): answers carry layers.status, "failed: timeout" past that */
+  job.stage = "cutout"; cutoutFor(job.key, type, Math.max(3000, left())).catch(() => {});
 }
 
 const json = (res, code, body) => { res.writeHead(code, { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "content-type", "Access-Control-Allow-Methods": "GET, POST, OPTIONS" }); res.end(JSON.stringify(body)); };
@@ -189,7 +209,7 @@ http.createServer(async (req, res) => {
   try {
     const u = new URL(req.url, "http://x");
     if (req.method === "OPTIONS") return json(res, 204, {});
-    if (u.pathname === "/healthz") return json(res, 200, { ok: true, pipeline: PIPELINE, model: MODEL, race_model: RACE_MODEL, race_mode: RACE_MODE, primary_deadline_ms: PRIMARY_DEADLINE, llm_timeout_ms: LLM_TIMEOUT, spent_usd: Number(budget.spent.toFixed(3)), prompt_version: prompts.version, metrics });
+    if (u.pathname === "/healthz") return json(res, 200, { ok: true, pipeline: PIPELINE, model: MODEL, race_model: RACE_MODEL, race_mode: RACE_MODE, primary_deadline_ms: PRIMARY_DEADLINE, llm_timeout_ms: LLM_TIMEOUT, job_deadline_ms: JOB_DEADLINE, layers_retry_ms: LAYERS_RETRY_DEADLINE, spent_usd: Number(budget.spent.toFixed(3)), prompt_version: prompts.version, metrics });
     if (u.pathname.startsWith("/art/")) {
       const name = u.pathname.slice(5); if (!/^[a-f0-9]+(\.png|\.cut\.png|\.plate\.jpg)$/.test(name)) return json(res, 404, { error: "not_found" });
       const f = join(CACHE, name); if (!existsSync(f)) return json(res, 404, { error: "not_found" });
@@ -204,16 +224,19 @@ http.createServer(async (req, res) => {
       else return json(res, 400, { error: "no_avatar" });
       const k = cacheKey(avatarBytes, b.type), fault = u.searchParams.get("fault") || "";
       if (fault === "layers") faultLayers.add(k);
-      if (existsSync(join(CACHE, k + ".png")) && fault !== "llm") return json(res, 200, doneAnswer(k, b.type, { cached: true }));
+      if (fault === "layers-slow") faultSlowLayers.add(k);
+      const cardFault = fault === "llm" || fault === "slow";
+      const deadline = u.searchParams.has("deadline_ms") ? Math.min(180000, Math.max(3000, Number(u.searchParams.get("deadline_ms")) || JOB_DEADLINE)) : JOB_DEADLINE;
+      if (existsSync(join(CACHE, k + ".png")) && !cardFault) return json(res, 200, doneAnswer(k, b.type, { cached: true }));
       /* a finished or failed record whose output isn't there is not reused: a new POST is a new attempt (counted) */
       const stale = jobs.get(k); if (stale && (stale.status === "done" || stale.status === "failed")) jobs.delete(k);
       if (!jobs.has(k)) {
         /* ".avatar" in the name: a PNG avatar saved as <key>.png was mistaken for the finished art (instant "done" with the avatar as the card) */
         const avatarPath = join(CACHE, k + ".avatar" + extOf(avatarBytes)); await writeFile(avatarPath, avatarBytes);
-        const job = { id: k, key: k, type: b.type, avatarPath, status: "queued", started: Date.now(), attempt: (stale ? stale.attempt || 1 : 0) + 1, fault: fault === "llm" ? "llm" : "" }; jobs.set(k, job);
+        const job = { id: k, key: k, type: b.type, avatarPath, status: "queued", started: Date.now(), deadline, attempt: (stale ? stale.attempt || 1 : 0) + 1, fault: cardFault ? fault : "" }; jobs.set(k, job);
         pipeline(job).catch((e) => { job.status = "failed"; job.error = classify(e); console.error("job", k, "crashed:", e.message); });
       }
-      const job = jobs.get(k); return json(res, 202, { status: job.status, stage: job.stage || null, job_id: k, attempt: job.attempt });
+      const job = jobs.get(k); return json(res, 202, { status: job.status, stage: job.stage || null, job_id: k, attempt: job.attempt, deadline_ms: job.deadline });
     }
     const m = /^\/v1\/identity\/card-art\/([a-f0-9]+)(\/layers)?$/.exec(u.pathname);
     if (m) {
@@ -226,10 +249,10 @@ http.createServer(async (req, res) => {
       }
       if (req.method !== "GET") return json(res, 405, { error: "method_not_allowed" });
       /* a QA-faulted job reports its own verdict even though a cached card exists for the key */
-      if (existsSync(join(CACHE, k + ".png")) && !(job && job.fault === "llm" && job.status !== "done")) return json(res, 200, doneAnswer(k, type, job ? { elapsed_s: Math.round((Date.now() - job.started) / 1000), llm_ms: job.llm_ms, model: job.model, raced: job.raced } : {}));
+      if (existsSync(join(CACHE, k + ".png")) && !(job && job.fault && job.status !== "done")) return json(res, 200, doneAnswer(k, type, job ? { elapsed_s: Math.round((Date.now() - job.started) / 1000), llm_ms: job.llm_ms, model: job.model, raced: job.raced } : {}));
       if (!job) return json(res, 404, { error: "not_found" });
       if (job.status === "done") { jobs.delete(k); return json(res, 200, { status: "failed", error: "output_missing", job_id: k }); }   /* done but the PNG is gone */
-      return json(res, 200, { status: job.status, stage: job.stage || null, error: job.error, job_id: k, attempt: job.attempt, elapsed_s: Math.round((Date.now() - job.started) / 1000) });   /* model/raced are in the done answer below */
+      return json(res, 200, { status: job.status, stage: job.stage || null, error: job.error, job_id: k, attempt: job.attempt, elapsed_s: Math.round((Date.now() - job.started) / 1000), deadline_ms: job.deadline });   /* model/raced are in the done answer above */
     }
     json(res, 404, { error: "not_found" });
   } catch (e) { json(res, 500, { error: "server_error", message: e.message }); }
@@ -239,7 +262,7 @@ http.createServer(async (req, res) => {
 if (args.warm) {
   const [who, type, avatar] = String(args.warm).split(":"); const bytes = await readFile(resolve(CARDGEN, avatar)); const k = cacheKey(bytes, type);
   if (args["warm-from"]) { await copyFile(resolve(CARDGEN, String(args["warm-from"])), join(CACHE, k + ".png")); await cutoutFor(k, type); console.log(`warm: ${who}/${type} ← ${args["warm-from"]} (key ${k})`); }
-  else if (!existsSync(join(CACHE, k + ".png"))) { const p = join(CACHE, k + ".avatar" + extOf(bytes)); await writeFile(p, bytes); const job = { id: k, key: k, type, avatarPath: p, status: "queued", started: Date.now(), attempt: 1 }; jobs.set(k, job); pipeline(job).then(() => console.log("warm done", k)).catch((e) => console.error("warm failed", e.message)); }
+  else if (!existsSync(join(CACHE, k + ".png"))) { const p = join(CACHE, k + ".avatar" + extOf(bytes)); await writeFile(p, bytes); const job = { id: k, key: k, type, avatarPath: p, status: "queued", started: Date.now(), deadline: 600000, attempt: 1 }; jobs.set(k, job); pipeline(job).then(() => console.log("warm done", k)).catch((e) => console.error("warm failed", e.message)); }
   else console.log(`warm: ${who}/${type} already cached (key ${k})`);
 }
 
@@ -248,10 +271,10 @@ if (args.warm) {
    once at boot keeps it off the first user's card */
 (async () => {
   const pngs = (await readdir(CACHE)).filter((f) => /^[a-f0-9]+\.png$/.test(f));
-  for (const f of pngs) await cutoutFor(f.slice(0, 24), "unresolved");
+  for (const f of pngs) await cutoutFor(f.slice(0, 24), "unresolved", MAINT_TIMEOUT);
   if (!MAC && pngs.length && (await ensureCutout())) {
     const t0 = Date.now();
-    try { await exec("python3", [CUTOUT_PY, join(CACHE, pngs[0]), "/tmp/warm.cut.png", "/tmp/warm.plate.jpg"], { maxBuffer: 1 << 20, timeout: LAYERS_TIMEOUT }); console.log("segmenter warm-up", Date.now() - t0, "ms"); }
+    try { await exec("python3", [CUTOUT_PY, join(CACHE, pngs[0]), "/tmp/warm.cut.png", "/tmp/warm.plate.jpg"], { maxBuffer: 1 << 20, timeout: MAINT_TIMEOUT }); console.log("segmenter warm-up", Date.now() - t0, "ms"); }
     catch (e) { console.error("segmenter warm-up failed:", String(e.message).split("\n")[0]); }
   }
 })().catch((e) => console.error("cutout sweep:", e.message));

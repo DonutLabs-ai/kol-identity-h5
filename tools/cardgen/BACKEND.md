@@ -55,33 +55,59 @@ never takes an avatar URL or handle from the client.
     "error": "timeout" | "no_subject" | "no_segmenter" | "provider_error" },   // when failed (server verdict)
   "error": "timeout" | "provider_error" | "moderation_blocked" | "budget" | "no_avatar" | "output_missing",   // when failed
   "fallback_url": "…/img/archetypes/04-day-trader.jpg",  // optional when failed; the page falls back to the avatar first
-  "elapsed_s": 31, "attempt": 1 }
+  "elapsed_s": 31, "attempt": 1, "deadline_ms": 60000 }
 ```
 
 ### `POST /v1/identity/card-art/{job_id}/layers`
 "Retry 3D effect": re-run only the cut-out and plate of a finished card. Never calls the LLM, never counts against quota.
 Answers `200` with `layers.status: "ready"` (urls) or `202` with `"pending"`; idempotent (a run in flight is shared).
 
-**State rules (product, 2026-10-10).** `status` is the card, `layers.status` is the 2.5D pair; the page waits for both to be
-settled before the reveal. Every `failed` — and every `timeout` — is the server's verdict: a provider error, a budget stop,
-or a stage past its own limit (LLM 540 s, segmenter 180 s). The browser never infers failure from waiting; when it cannot
-reach the server it shows "reconnecting" and re-asks about the same job. The page then: layers failed → flat card +
-"Retry 3D effect" (this endpoint); LLM failed → the avatar as the card (the type's Donut art if X has none) +
-"Regenerate card" (a new POST, user-initiated, counted); `budget` → the current card stays, no regenerate button.
+**State rules (product S13, 2026-10-14; first cut 2026-10-10).** `status` is the card, `layers.status` is the 2.5D pair;
+the page waits for both to be settled before the reveal. The server settles both inside **one 60 s task** — the card and its
+layers together (`CARD_JOB_DEADLINE_MS`); a layers-only retry gets its own 60 s (`CARD_LAYERS_RETRY_MS`). Every `failed`
+and every `timeout` is the server's verdict (a provider error, a budget stop, or the cap); the browser never infers failure
+from waiting. What the page does with each verdict:
+1. **Card failed / timed out** (`error`: `timeout` | `provider_error` | `moderation_blocked` | `output_missing`) → the avatar
+   as the card (the type's Donut art if X has none) + **Regenerate card** (a new POST, user-initiated, counted, new `requestKey`).
+2. **Card ok, layers failed / timed out** (`layers.status: "failed"`) → the flat card + **Retry 3D effect** (`POST …/layers`).
+   These two are the only retries. Note and button appear after the transition, beside the card; the current card stays
+   while the retry runs.
+3. **`budget`** and **`no_avatar`** → silent fallback (avatar, or the type's art when there is no avatar): the card shows
+   normally with share and save, no reason shown, no retry.
+4. **Lost connection** → a passive line only ("Connection lost. Reopen this page to continue."), no retry, no "check
+   progress", nothing re-sent by the page. A user who comes back re-enters the flow; the server must therefore de-duplicate
+   a re-submitted task by cache key (same avatar + type + prompt_version → the same job or the cached card), never run it twice.
+5. **Revisit**: a user who already drew a card lands on it (no profile, quiz or transition, no new task) and is nudged to
+   share; the retry of case 1 or 2 is kept when that was the stored outcome. See "Revisit" below.
 Count LLM attempts and layer attempts separately (the mock writes `out/server-cache/jobs.jsonl` and exposes
-`/healthz.metrics`); never one merged failure rate. Timeout thresholds come from the samples, not from promises.
+`/healthz.metrics`: `ok` / `failed` / `timeout` per stage); never one merged failure rate.
 
-**QA switches (page-side, work against any backend):** `analysis.html?fault=layers` reads the first answer's layers as
-failed (flat card, note, "Retry 3D effect" → the retry fetches the real layers); `?fault=llm` reads the first answer as an
-LLM failure (fallback card, "Regenerate card"); `?fault=net` sends the first two requests nowhere (reconnect note, "Check
-progress"). Nothing is simulated on the server. The interim demo backend on Fly is `mock-server.mjs` (`Dockerfile.mock`);
+**Demo modes (page-side, work against any backend — S13's "browser-simulated task"):** `analysis.html?demo=<case>`, with
+`&fast=1` to shrink the 60 s cap to 6 s for a walk-through (without it the real 60 s runs): `timeout` (no card by the cap →
+avatar card + Regenerate card), `layers-timeout` (card lands, layers never do → flat card + Retry 3D effect), `layers` /
+`llm` (the same two, verdict in the first answer), `budget` / `noavatar` (silent fallbacks), `net` (two polls miss → passive
+line, then recovery), `net-post` (the POST is lost → passive line, the user re-enters). `?fault=` is the older spelling.
+`?reset=1` on claim.html or analysis.html forgets the stored card of that handle. **Server-side QA hooks (mock only, never
+in production):** `POST …?fault=slow` (no card by the cap, no LLM call → `failed: timeout`), `?fault=layers-slow` (the
+layers run past their budget → `layers.status: failed, error: timeout`, cleared by a retry), `?fault=llm`, `?fault=layers`,
+and `?deadline_ms=3000…180000` to shorten one task's cap. The interim demo backend on Fly is `mock-server.mjs` (`Dockerfile.mock`);
 its answers carry `layers: {status, cutout_url, plate_url, error}` and it offers `POST /{job}/layers`. The real service
 (`worker.mjs` → `card-art-service.mjs`, DONUT-CLUSTER.md) answers with the per-asset receipt (`main`, `layers.cutout`,
 `layers.plate` states, `attempt`, `expiresAt`, `workerContract`) and takes `POST /{job}/retry-layers` with
 `{requestKey, expiresAt, expectedContract, retryToken, expectedAttempt, mainSha256}`; the page sends `requestKey` and
 `expectedContract` on every POST and reads both shapes (`normalize()` in analysis.html).
 
-The front end polls every 3 s with no deadline of its own.
+The front end polls every 3 s with no deadline of its own: the 60 s cap is the server's, and the page only ever reads the
+same job.
+
+### Revisit (S13 rule 5)
+A signed-in user who already drew a card must land on it: the landing page's claim/login step checks for an existing card
+and skips profile, quiz and the D0 transition. The demo keeps the card per handle in the browser (`DonutCardStore` in
+`v2/demo-kols.js`: `{handle, type, name, image, cut, plate, layers, fallback: "" | "retry" | "silent", job, requestKey, receipt, at}`).
+The real service keeps it per X account and should answer the same shape from
+`GET /v1/identity/card-art/mine` → `200 { status: "done", image_url, layers: {…}, job_id, outcome: "ok" | "card_failed" | "layers_failed" | "silent" }`
+or `404` when the user has no card yet. `outcome` tells the page which retry to keep (`card_failed` → Regenerate card,
+`layers_failed` → Retry 3D effect, `silent` → none). Nothing is regenerated on a revisit.
 
 ## 4. Generation pipeline (server)
 

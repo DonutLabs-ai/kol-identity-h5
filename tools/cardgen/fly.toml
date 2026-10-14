@@ -17,6 +17,8 @@ primary_region = 'sjc'
   CARD_RACE_MODE = 'parallel'
   CARD_PRIMARY_DEADLINE_MS = '28000'
   CARD_LLM_TIMEOUT_MS = '60000'
+  CARD_JOB_DEADLINE_MS = '60000'
+  CARD_LAYERS_RETRY_MS = '60000'
   HOST = '0.0.0.0'
   PORT = '3022'
 
