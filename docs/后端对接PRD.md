@@ -82,7 +82,7 @@
 - `POST /v1/identity/card-art` → `200 {status:"done", image_url, layers:{status, cutout_url?, plate_url?}}` 或 `202 {status:"running", stage, job_id}`；失败任务之后再 POST 算一次新任务（计额度）
 - `GET /v1/identity/card-art/{job_id}` → `running`（带真实 `stage`）/ `done`（`layers.status` = `pending` | `ready` | `failed`，三层是独立状态）/ `failed`（`error` = `timeout` | `provider_error` | `moderation_blocked` | `budget` | `no_avatar`）
 - `POST /v1/identity/card-art/{job_id}/layers` → 只重做抠图和底图（"重试立体效果"），不调 LLM、不计额度
-- 规则（S13，2026-10-14）：**一个任务 = 生图 + 图层，服务端 60 s 内判定**（mock 环境变量 `CARD_JOB_DEADLINE_MS`），单独重试图层另给 60 s（`CARD_LAYERS_RETRY_MS`）；`failed`/`timeout` 必须是服务端判定，前端不会因为等久了就宣告失败；LLM 和图层的成功/失败/超时/耗时分开记（mock 写 `jobs.jsonl`，`/healthz.metrics` 分 `ok`/`failed`/`timeout`）
+- 规则（S13，2026-10-14）：**一个任务 = 生图 + 图层，服务端 60 s 内判定**（mock 环境变量 `CARD_JOB_DEADLINE_MS`；正式服务已按 `tools/cardgen/S13-DEADLINE.md` 实现：`processingDeadlineAt`，前端不传时默认收到请求 + 60 s），单独重试图层另给 60 s（`CARD_LAYERS_RETRY_MS` / `acceptedRetryProcessingDeadlineAt`）；额度不足正式服务回 `budget_not_dispatched`，前端按静默兜底处理；`failed`/`timeout` 必须是服务端判定，前端不会因为等久了就宣告失败；LLM 和图层的成功/失败/超时/耗时分开记（mock 写 `jobs.jsonl`，`/healthz.metrics` 分 `ok`/`failed`/`timeout`）
 - 前端只在两种情况给 Retry：主图失败/超时 → 用头像（无头像用类型默认图）做卡 + **Regenerate card**（新任务、计额度、新 `requestKey`）；主图成功但图层失败/超时 → 平面卡 + **Retry 3D effect**（只重做图层）。提示和按钮都在过场结束、卡片出现后才显示，重试期间保留当前卡
 - `budget`（额度不足）和 `no_avatar` → 静默兜底：有头像用头像、没有用类型默认图，正常展示、可分享保存，不说原因、不给 Retry
 - 断网 → 页面只显示一句"Connection lost. Reopen this page to continue."，不给 Retry / 查看进度，也不会自己重发任务；用户重新进入会重走流程，所以**服务端要按缓存 key（头像 + 类型 + prompt_version）去重**，同一个人同一类型不能跑两次

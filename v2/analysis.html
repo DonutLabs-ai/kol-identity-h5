@@ -501,6 +501,8 @@
   var receipt = null;   /* the real service's last receipt (attempt, sha256, expiry, worker contract) for retries */
   function normalize(st) {
     var n = { status: st.status, stage: st.stage || null, error: st.error || null, image: st.image_url || "", cut: "", plate: "", layers: "none" };
+    if (/^budget/.test(n.error || "")) n.error = "budget";   /* the formal receiver's budget_not_dispatched (S13-DEADLINE.md) is the silent budget case */
+    if (/timed?_?out/.test(n.error || "")) n.error = "timeout";   /* provider_timeout / timed_out read as the cap's verdict */
     if (st.status === "expired") { n.status = "failed"; n.error = "expired"; return n; }
     if (st.main && st.layers && st.layers.cutout) {   /* the real service: main / cutout / plate each carry a state */
       receipt = { attempt: st.attempt, sha: st.main.sha256, expiresAt: st.expiresAt || st.expires_at, contract: st.workerContract };

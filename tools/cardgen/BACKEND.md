@@ -70,7 +70,10 @@ Answers `200` with `layers.status: "ready"` (urls) or `202` with `"pending"`; id
 
 **State rules (product S13, 2026-10-14; first cut 2026-10-10).** `status` is the card, `layers.status` is the 2.5D pair;
 the page waits for both to be settled before the reveal. The server settles both inside **one 60 s task** — the card and its
-layers together (`CARD_JOB_DEADLINE_MS`); a layers-only retry gets its own 60 s (`CARD_LAYERS_RETRY_MS`). Every `failed`
+layers together (mock: `CARD_JOB_DEADLINE_MS`; formal receiver: `processingDeadlineAt`, defaulting to receipt + 60 s when
+the caller omits it — the page omits it — see [S13-DEADLINE.md](S13-DEADLINE.md)); a layers-only retry gets its own 60 s
+(mock: `CARD_LAYERS_RETRY_MS`; receiver: `acceptedRetryProcessingDeadlineAt`). The page reads the receiver's
+`budget_not_dispatched` as the silent budget case and `timed_out` / `provider_timeout` as the cap's verdict. Every `failed`
 and every `timeout` is the server's verdict (a provider error, a budget stop, or the cap); the browser never infers failure
 from waiting. What the page does with each verdict:
 1. **Card failed / timed out** (`error`: `timeout` | `provider_error` | `moderation_blocked` | `output_missing`) → the avatar
